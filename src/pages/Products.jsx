@@ -902,7 +902,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
         </select>
       </div>
 
-      {categoryData && selectedCategory && (
+      {/* {categoryData && selectedCategory && (
         <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
           <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
           
@@ -940,10 +940,8 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
               
             </div>
           </div>    
-          {/* ✅ ADD THESE LINES - Attribute dropdowns for category section */}
 {categoryData?.attributes && (
   <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
-    {/* Choice of Metal */}
     <div>
       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Choice of Metal:</p>
       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
@@ -954,7 +952,6 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       </select>
     </div>
 
-    {/* Diamond Quality */}
     <div>
       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Diamond Quality:</p>
       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
@@ -965,7 +962,6 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       </select>
     </div>
 
-    {/* Size */}
     <div>
       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Size:</p>
       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
@@ -981,7 +977,116 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 )}
         </div>
         
-      )}
+      )} */}
+
+
+      {categoryData && selectedCategory && (
+  <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+    {/* Left Side - Category Selection */}
+    <div className="flex-1">
+      <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
+        <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
+        
+        <div className="mb-3 sm:mb-4">
+          <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Style:</p>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
+            {categoryData.styles.map(style => (
+              <label key={style.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedStyles.includes(style.id)}
+                  onChange={() => toggleStyle(style.id)}
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                />
+                <span>{style.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Metal & Stone:</p>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
+            {categoryData.metals.map(metal => (
+              <label key={metal.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedMetals.includes(metal.id)}
+                  onChange={() => toggleMetal(metal.id)}
+                  className="w-3 h-3 sm:w-4 sm:h-4"
+                />
+                <span>{metal.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Right Side - Attributes with Checkboxes */}
+    <div className="w-full lg:w-96 flex-shrink-0">
+      <div className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
+        <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">Product Attributes</h3>
+        
+        {/* Choice of Metal */}
+        <div className="mb-4 sm:mb-6">
+          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Choice of Metal:</p>
+          <div className="space-y-2">
+            {categoryData?.attributes?.metal?.options?.map(opt => (
+              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selectedAttributes.metal.includes(opt.id)}
+                  onChange={() => toggleAttribute('metal', opt.id)}
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                />
+                <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Diamond Quality */}
+        <div className="mb-4 sm:mb-6">
+          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Diamond Quality:</p>
+          <div className="space-y-2">
+            {categoryData?.attributes?.diamond?.options?.map(opt => (
+              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selectedAttributes.diamond.includes(opt.id)}
+                  onChange={() => toggleAttribute('diamond', opt.id)}
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                />
+                <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Size */}
+        <div className="mb-4 sm:mb-6">
+          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Size:</p>
+          <div className="space-y-2">
+            {categoryData?.attributes?.size?.options?.map(opt => (
+              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selectedAttributes.size.includes(opt.id)}
+                  onChange={() => toggleAttribute('size', opt.id)}
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                />
+                <span className="font-medium text-sm sm:text-base">
+                  {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {categoryData && (
         <button
