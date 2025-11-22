@@ -1,6 +1,13 @@
-import { useState, useEffect } from 'react';
-import Login from './pages/Login';
-import Dashboard from './Dashboard';
+import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import Login from "./pages/Login";
+import Dashboard from "./Dashboard"; 
+import Homepage from "./pages/Homepage";
+import Products from "./pages/Products";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
+import Categories from "./pages/Categories";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,18 +18,13 @@ function App() {
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+  const checkAuth = () => {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
     if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-        setIsAuthenticated(true);
-      } catch (error) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+      setUser(JSON.parse(savedUser));
+      setIsAuthenticated(true);
     }
     setLoading(false);
   };
@@ -33,31 +35,53 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-3 sm:mt-4 text-gray-600 text-sm sm:text-base">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center p-10">Loading...</div>;
 
   return (
-    <div className="App">
-      {isAuthenticated ? (
-        <Dashboard onLogout={handleLogout} user={user} />
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-    </div>
+    <Router>
+      <Routes>
+
+        {/* Login Page */}
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard/home" />
+            ) : (
+              <Login onLogin={handleLogin} />
+            )
+          }
+        />
+
+        {/* Protected Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            isAuthenticated ? (
+              <Dashboard onLogout={handleLogout} user={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        >
+          {/* Child routes inside dashboard */}
+          <Route path="home" element={<Homepage user={user} />} />
+          <Route path="products" element={<Products />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+
+        {/* Redirect root → login */}
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </Router>
   );
 }
 

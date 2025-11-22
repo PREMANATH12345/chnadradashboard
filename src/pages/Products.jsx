@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3019/api/v1/dashboard';
+const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
 const Products = () => {
   const [view, setView] = useState('main');
@@ -1452,7 +1452,7 @@ const ImagePopup = ({ images, onClose }) => {
           {images.map((img, idx) => (
             <div key={idx} className="border rounded-lg overflow-hidden">
               <img
-                src={`http://localhost:3019${img}`}
+                src={`https://apichandra.rxsquare.in${img}`}
                 alt={`Product ${idx + 1}`}
                 className="w-full h-40 sm:h-48 object-cover"
                 onError={(e) => {
