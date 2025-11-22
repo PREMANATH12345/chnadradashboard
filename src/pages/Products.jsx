@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_URL = 'http://localhost:3019/api/v1/dashboard';
 
 const Products = () => {
-  const [view, setView] = useState('main'); // main, add-category, add-products, view-products
+  const [view, setView] = useState('main');
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const Products = () => {
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Products Management</h1>
 
       {view === 'main' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Add Category */}
           <div 
             onClick={() => setView('add-category')}
@@ -50,6 +50,18 @@ const Products = () => {
               <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📁</div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Add Category</h3>
               <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Create and manage product categories</p>
+            </div>
+          </div>
+
+          {/* Attributes */}
+          <div 
+            onClick={() => setView('attributes')}
+            className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
+          >
+            <div className="text-center">
+              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">⚙️</div>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Attributes</h3>
+              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Size, Metal, Diamond</p>
             </div>
           </div>
 
@@ -106,6 +118,10 @@ const Products = () => {
         />
       )}
 
+      {view === 'attributes' && (
+        <AttributesTab onBack={() => setView('main')} />
+      )}
+
       {view === 'add-products' && (
         <AddProducts 
           onBack={() => setView('main')}
@@ -119,6 +135,245 @@ const Products = () => {
           onBack={() => setView('main')}
           categories={categories}
         />
+      )}
+    </div>
+  );
+};
+
+// ==================== ATTRIBUTES TAB ====================
+const AttributesTab = ({ onBack }) => {
+  const [activeAttribute, setActiveAttribute] = useState(null);
+  const [attributes, setAttributes] = useState({
+    metal: { id: null, options: [] },
+    diamond: { id: null, options: [] },
+    size: { id: null, options: [] }
+  });
+  const [newOption, setNewOption] = useState({ name: '', value: '', size_mm: '' });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAttributes();
+  }, []);
+
+  const fetchAttributes = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`${API_URL}/attributes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        const grouped = { metal: { id: null, options: [] }, diamond: { id: null, options: [] }, size: { id: null, options: [] } };
+        response.data.data.forEach(attr => {
+          grouped[attr.type] = { id: attr.id, options: attr.options };
+        });
+        setAttributes(grouped);
+      }
+    } catch (error) {
+      console.error('Fetch attributes error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddOption = async () => {
+    if (!newOption.name) {
+      alert('Please enter option name');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    try {
+      // If attribute doesn't exist, create it first
+      if (!attributes[activeAttribute].id) {
+        const createRes = await axios.post(
+          `${API_URL}/attributes`,
+          {
+            name: activeAttribute === 'metal' ? 'Choice of Metal' : 
+                  activeAttribute === 'diamond' ? 'Diamond Quality' : 'Size',
+            type: activeAttribute,
+            options: [
+              activeAttribute === 'size' 
+                ? { option_name: newOption.name, option_value: newOption.value, size_mm: newOption.size_mm }
+                : { option_name: newOption.name, option_value: newOption.value || newOption.name }
+            ]
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (createRes.data.success) {
+          await fetchAttributes();
+          setNewOption({ name: '', value: '', size_mm: '' });
+          alert('Attribute created successfully!');
+        }
+      } else {
+        // Add option to existing attribute
+        const addRes = await axios.post(
+          `${API_URL}/attributes/add-option`,
+          {
+            attribute_id: attributes[activeAttribute].id,
+            option_name: newOption.name,
+            option_value: newOption.value || newOption.name,
+            size_mm: activeAttribute === 'size' ? newOption.size_mm : null
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (addRes.data.success) {
+          await fetchAttributes();
+          setNewOption({ name: '', value: '', size_mm: '' });
+          alert('Option added successfully!');
+        }
+      }
+    } catch (error) {
+      console.error('Add option error:', error);
+      alert('Error adding option');
+    }
+  };
+
+  const handleDeleteOption = async (optionId) => {
+    if (!confirm('Are you sure you want to delete this option?')) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.post(
+        `${API_URL}/attributes/delete-option`,
+        { option_id: optionId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        await fetchAttributes();
+        alert('Option deleted successfully');
+      }
+    } catch (error) {
+      console.error('Delete option error:', error);
+      alert('Error deleting option');
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Attributes</h2>
+        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
+      </div>
+
+      <div className="mb-4 sm:mb-6">
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">Attributes</h3>
+        <p className="text-gray-600 text-sm sm:text-base md:text-lg">Size, Metal, Diamond</p>
+      </div>
+
+      {/* Attribute Selection Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <button
+          onClick={() => setActiveAttribute('metal')}
+          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'metal' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+        >
+          <h4 className="font-semibold text-base sm:text-lg">Choice of Metal</h4>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.metal.options.length} options</p>
+        </button>
+        
+        <button
+          onClick={() => setActiveAttribute('diamond')}
+          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'diamond' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+        >
+          <h4 className="font-semibold text-base sm:text-lg">Diamond Quality</h4>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.diamond.options.length} options</p>
+        </button>
+        
+        <button
+          onClick={() => setActiveAttribute('size')}
+          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'size' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+        >
+          <h4 className="font-semibold text-base sm:text-lg">Size</h4>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.size.options.length} options</p>
+        </button>
+      </div>
+
+      {/* Active Attribute Options */}
+      {activeAttribute && (
+        <div className="border-2 border-gray-200 rounded-lg p-4 sm:p-6">
+          <h4 className="font-semibold text-lg sm:text-xl mb-3 sm:mb-4">
+            {activeAttribute === 'metal' ? 'Choice of Metal' : 
+             activeAttribute === 'diamond' ? 'Diamond Quality' : 'Size'} Options
+          </h4>
+
+          {/* Existing Options */}
+          {attributes[activeAttribute].options.length > 0 && (
+            <div className="mb-4 sm:mb-6">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Existing Options:</p>
+              <div className="flex flex-wrap gap-1 sm:gap-2">
+                {attributes[activeAttribute].options.map(opt => (
+                  <div key={opt.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 rounded-md text-xs sm:text-sm">
+                    <span>{opt.option_name}</span>
+                    {activeAttribute === 'size' && opt.size_mm && (
+                      <span className="text-xs text-gray-500">({opt.size_mm}mm)</span>
+                    )}
+                    <button
+                      onClick={() => handleDeleteOption(opt.id)}
+                      className="text-red-500 hover:text-red-700 font-bold ml-1 sm:ml-2 text-sm sm:text-base"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add New Option Form */}
+          <div className="space-y-3 sm:space-y-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium mb-1">
+                {activeAttribute === 'metal' ? 'Metal Type (e.g., 14KT Yellow Gold, 18KT Rose Gold)' :
+                 activeAttribute === 'diamond' ? 'Diamond Quality (e.g., GH-SI, FG-SI)' :
+                 'Size Number'}
+              </label>
+              <input
+                type="text"
+                value={newOption.name}
+                onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                placeholder={activeAttribute === 'size' ? '5' : '14KT Yellow Gold'}
+              />
+            </div>
+
+            {activeAttribute === 'size' && (
+              <>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1">Size Value (optional)</label>
+                  <input
+                    type="text"
+                    value={newOption.value}
+                    onChange={(e) => setNewOption({ ...newOption, value: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                    placeholder="5"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1">Size in MM</label>
+                  <input
+                    type="text"
+                    value={newOption.size_mm}
+                    onChange={(e) => setNewOption({ ...newOption, size_mm: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                    placeholder="15.7"
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={handleAddOption}
+              className="w-full py-2 sm:py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold text-sm sm:text-base"
+            >
+              {attributes[activeAttribute].options.length > 0 ? 'Add Another Option' : 'Add Option'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -342,37 +597,102 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [categoryData, setCategoryData] = useState(null);
   const [selectedStyles, setSelectedStyles] = useState([]);
   const [selectedMetals, setSelectedMetals] = useState([]);
+  const [selectedAttributes, setSelectedAttributes] = useState({
+    metal: [],
+    diamond: [],
+    size: []
+  });
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchCategoryDetails = async (catId) => {
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    
-    try {
-      const [stylesRes, metalsRes] = await Promise.all([
-        axios.post(`${API_URL}/doAll`, {
-          action: 'get',
-          table: 'by_style',
-          where: { category_id: catId }
-        }, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.post(`${API_URL}/doAll`, {
-          action: 'get',
-          table: 'by_metal_and_stone',
-          where: { category_id: catId }
-        }, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
-      setCategoryData({
-        styles: stylesRes.data.data,
-        metals: metalsRes.data.data
-      });
-    } catch (error) {
-      console.error('Error fetching category details:', error);
-    } finally {
-      setLoading(false);
-    }
+   // Add this function to handle attribute selection
+  const toggleAttribute = (type, optionId) => {
+    setSelectedAttributes(prev => ({
+      ...prev,
+      [type]: prev[type].includes(optionId) 
+        ? prev[type].filter(id => id !== optionId)
+        : [...prev[type], optionId]
+    }));
   };
+
+  // const fetchCategoryDetails = async (catId) => {
+  //   setLoading(true);
+  //   const token = localStorage.getItem('token');
+    
+  //   try {
+  //     const [stylesRes, metalsRes] = await Promise.all([
+  //       axios.post(`${API_URL}/doAll`, {
+  //         action: 'get',
+  //         table: 'by_style',
+  //         where: { category_id: catId }
+  //       }, { headers: { Authorization: `Bearer ${token}` } }),
+  //       axios.post(`${API_URL}/doAll`, {
+  //         action: 'get',
+  //         table: 'by_metal_and_stone',
+  //         where: { category_id: catId }
+  //       }, { headers: { Authorization: `Bearer ${token}` } })
+  //     ]);
+
+  //     setCategoryData({
+  //       styles: stylesRes.data.data,
+  //       metals: metalsRes.data.data
+  //     });
+  //   } catch (error) {
+  //     console.error('Error fetching category details:', error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
+  const fetchCategoryDetails = async (catId) => {
+  setLoading(true);
+  const token = localStorage.getItem('token');
+  
+  try {
+    // Fetch category styles and metals (for product categorization)
+    const [stylesRes, metalsRes, attributesRes] = await Promise.all([
+      axios.post(`${API_URL}/doAll`, {
+        action: 'get',
+        table: 'by_style',
+        where: { category_id: catId }
+      }, { headers: { Authorization: `Bearer ${token}` } }),
+      axios.post(`${API_URL}/doAll`, {
+        action: 'get',
+        table: 'by_metal_and_stone',
+        where: { category_id: catId }
+      }, { headers: { Authorization: `Bearer ${token}` } }),
+      // ✅ NEW - Fetch global attributes (metal, diamond, size)
+      axios.get(`${API_URL}/attributes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
+
+    // Parse attributes by type
+    const attributes = {
+      metal: { id: null, options: [] },
+      diamond: { id: null, options: [] },
+      size: { id: null, options: [] }
+    };
+    
+    if (attributesRes.data.success) {
+      attributesRes.data.data.forEach(attr => {
+        attributes[attr.type] = { id: attr.id, options: attr.options };
+      });
+    }
+
+    setCategoryData({
+      styles: stylesRes.data.data,
+      metals: metalsRes.data.data,
+      attributes: attributes  // ✅ Add attributes to state
+    });
+  } catch (error) {
+    console.error('Error fetching category details:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCategorySelect = (catId) => {
     setSelectedCategoryId(catId);
@@ -397,6 +717,9 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const addProductRow = () => {
     const defaultStyle = selectedStyles.length > 0 ? selectedStyles[0] : '';
     const defaultMetal = selectedMetals.length > 0 ? selectedMetals[0] : '';
+    const defaultMetalOption = selectedAttributes.metal.length > 0 ? selectedAttributes.metal[0] : '';
+    const defaultDiamondOption = selectedAttributes.diamond.length > 0 ? selectedAttributes.diamond[0] : '';
+    const defaultSizeOption = selectedAttributes.size.length > 0 ? selectedAttributes.size[0] : '';
     
     setProducts([...products, {
       id: Date.now(),
@@ -404,6 +727,9 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       slug: '',
       style_id: defaultStyle,
       metal_id: defaultMetal,
+      metal_option_id: defaultMetalOption,      
+      diamond_option_id: defaultDiamondOption,    
+      size_option_id: defaultSizeOption,         
       price: '',
       originalPrice: '',
       discount: 0,
@@ -611,9 +937,50 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                   <span>{metal.name}</span>
                 </label>
               ))}
+              
             </div>
-          </div>
+          </div>    
+          {/* ✅ ADD THESE LINES - Attribute dropdowns for category section */}
+{categoryData?.attributes && (
+  <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
+    {/* Choice of Metal */}
+    <div>
+      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Choice of Metal:</p>
+      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+        <option value="">Select Metal Type</option>
+        {categoryData.attributes.metal?.options?.map(opt => (
+          <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+        ))}
+      </select>
+    </div>
+
+    {/* Diamond Quality */}
+    <div>
+      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Diamond Quality:</p>
+      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+        <option value="">Select Diamond</option>
+        {categoryData.attributes.diamond?.options?.map(opt => (
+          <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+        ))}
+      </select>
+    </div>
+
+    {/* Size */}
+    <div>
+      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Size:</p>
+      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+        <option value="">Select Size</option>
+        {categoryData.attributes.size?.options?.map(opt => (
+          <option key={opt.id} value={opt.id}>
+            {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+)}
         </div>
+        
       )}
 
       {categoryData && (
@@ -668,6 +1035,53 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                 ))}
               </select>
             </div>
+
+            {/* ✅ NEW - Choice of Metal Attribute */}
+<div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Choice of Metal</label>
+  <select
+    value={product.metal_option_id || ''}
+    onChange={(e) => updateProduct(product.id, 'metal_option_id', e.target.value)}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+  >
+    <option value="">Select Metal Type</option>
+    {categoryData?.attributes?.metal?.options?.map(opt => (
+      <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+    ))}
+  </select>
+</div>
+
+{/* ✅ NEW - Diamond Quality */}
+<div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Diamond Quality</label>
+  <select
+    value={product.diamond_option_id || ''}
+    onChange={(e) => updateProduct(product.id, 'diamond_option_id', e.target.value)}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+  >
+    <option value="">Select Diamond</option>
+    {categoryData?.attributes?.diamond?.options?.map(opt => (
+      <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+    ))}
+  </select>
+</div>
+
+{/* ✅ NEW - Size */}
+<div>
+  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Size</label>
+  <select
+    value={product.size_option_id || ''}
+    onChange={(e) => updateProduct(product.id, 'size_option_id', e.target.value)}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+  >
+    <option value="">Select Size</option>
+    {categoryData?.attributes?.size?.options?.map(opt => (
+      <option key={opt.id} value={opt.id}>
+        {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
+      </option>
+    ))}
+  </select>
+</div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Price *</label>
@@ -1235,6 +1649,5 @@ const EditProductModal = ({ product, onClose, onSave, categories }) => {
     </div>
   );
 };
-
 
 export default Products;
