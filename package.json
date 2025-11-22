@@ -10,11 +10,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
+<<<<<<< HEAD
+    "dotenv": "^17.2.3",
+    "framer-motion": "^12.23.24",
+    "install": "^0.13.0",
     "lucide-react": "^0.554.0",
+    "npm": "^11.6.3",
+=======
+    "lucide-react": "^0.554.0",
+>>>>>>> bec90c241b254b3ff60a21e3615c8971efef6cc4
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.9.6",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {
