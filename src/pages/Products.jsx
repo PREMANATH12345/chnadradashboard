@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+// import VariantPricingModal from '../components/VariantPricingModal';
+
+
 
 const API_URL = 'http://localhost:3019/api/v1/dashboard';
 
@@ -8,6 +11,7 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+  // const [variantModal, setVariantModal] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -127,6 +131,8 @@ const Products = () => {
           onBack={() => setView('main')}
           categories={categories}
           onRefresh={fetchCategories}
+          // variantModal={variantModal}
+          // setVariantModal={setVariantModal}
         />
       )}
 
@@ -592,107 +598,963 @@ const AddCategory = ({ onBack, onRefresh, categories }) => {
 };
 
 // ==================== ADD PRODUCTS COMPONENT ====================
+// const AddProducts = ({ onBack, categories, onRefresh, variantModal, setVariantModal }) => {
+//   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+//   const [categoryData, setCategoryData] = useState(null);
+//   const [selectedStyles, setSelectedStyles] = useState([]);
+//   const [selectedMetals, setSelectedMetals] = useState([]);
+//   const [selectedAttributes, setSelectedAttributes] = useState({
+//     metal: [],
+//     diamond: [],
+//     size: []
+//   });
+//   const [products, setProducts] = useState([]);
+//   const [loading, setLoading] = useState(false);
+
+//    // Add this function to handle attribute selection
+//   const toggleAttribute = (type, optionId) => {
+//     setSelectedAttributes(prev => ({
+//       ...prev,
+//       [type]: prev[type].includes(optionId) 
+//         ? prev[type].filter(id => id !== optionId)
+//         : [...prev[type], optionId]
+//     }));
+//   };
+
+//   // const fetchCategoryDetails = async (catId) => {
+//   //   setLoading(true);
+//   //   const token = localStorage.getItem('token');
+    
+//   //   try {
+//   //     const [stylesRes, metalsRes] = await Promise.all([
+//   //       axios.post(`${API_URL}/doAll`, {
+//   //         action: 'get',
+//   //         table: 'by_style',
+//   //         where: { category_id: catId }
+//   //       }, { headers: { Authorization: `Bearer ${token}` } }),
+//   //       axios.post(`${API_URL}/doAll`, {
+//   //         action: 'get',
+//   //         table: 'by_metal_and_stone',
+//   //         where: { category_id: catId }
+//   //       }, { headers: { Authorization: `Bearer ${token}` } })
+//   //     ]);
+
+//   //     setCategoryData({
+//   //       styles: stylesRes.data.data,
+//   //       metals: metalsRes.data.data
+//   //     });
+//   //   } catch (error) {
+//   //     console.error('Error fetching category details:', error);
+//   //   } finally {
+//   //     setLoading(false);
+//   //   }
+//   // };
+
+
+//   const fetchCategoryDetails = async (catId) => {
+//   setLoading(true);
+//   const token = localStorage.getItem('token');
+  
+//   try {
+//     // Fetch category styles and metals (for product categorization)
+//     const [stylesRes, metalsRes, attributesRes] = await Promise.all([
+//       axios.post(`${API_URL}/doAll`, {
+//         action: 'get',
+//         table: 'by_style',
+//         where: { category_id: catId }
+//       }, { headers: { Authorization: `Bearer ${token}` } }),
+//       axios.post(`${API_URL}/doAll`, {
+//         action: 'get',
+//         table: 'by_metal_and_stone',
+//         where: { category_id: catId }
+//       }, { headers: { Authorization: `Bearer ${token}` } }),
+//       // ✅ NEW - Fetch global attributes (metal, diamond, size)
+//       axios.get(`${API_URL}/attributes`, {
+//         headers: { Authorization: `Bearer ${token}` }
+//       })
+//     ]);
+
+//     // Parse attributes by type
+//     const attributes = {
+//       metal: { id: null, options: [] },
+//       diamond: { id: null, options: [] },
+//       size: { id: null, options: [] }
+//     };
+    
+//     if (attributesRes.data.success) {
+//       attributesRes.data.data.forEach(attr => {
+//         attributes[attr.type] = { id: attr.id, options: attr.options };
+//       });
+//     }
+
+//     setCategoryData({
+//       styles: stylesRes.data.data,
+//       metals: metalsRes.data.data,
+//       attributes: attributes  // ✅ Add attributes to state
+//     });
+//   } catch (error) {
+//     console.error('Error fetching category details:', error);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+//   const handleCategorySelect = (catId) => {
+//     setSelectedCategoryId(catId);
+//     setSelectedStyles([]);
+//     setSelectedMetals([]);
+//     setProducts([]);
+//     if (catId) fetchCategoryDetails(catId);
+//   };
+
+//   const toggleStyle = (styleId) => {
+//     setSelectedStyles(prev =>
+//       prev.includes(styleId) ? prev.filter(id => id !== styleId) : [...prev, styleId]
+//     );
+//   };
+
+//   const toggleMetal = (metalId) => {
+//     setSelectedMetals(prev =>
+//       prev.includes(metalId) ? prev.filter(id => id !== metalId) : [...prev, metalId]
+//     );
+//   };
+
+//   const addProductRow = () => {
+//     const defaultStyle = selectedStyles.length > 0 ? selectedStyles[0] : '';
+//     const defaultMetal = selectedMetals.length > 0 ? selectedMetals[0] : '';
+//     const defaultMetalOption = selectedAttributes.metal.length > 0 ? selectedAttributes.metal[0] : '';
+//     const defaultDiamondOption = selectedAttributes.diamond.length > 0 ? selectedAttributes.diamond[0] : '';
+//     const defaultSizeOption = selectedAttributes.size.length > 0 ? selectedAttributes.size[0] : '';
+    
+//     setProducts([...products, {
+//       id: Date.now(),
+//       name: '',
+//       slug: '',
+//       style_id: defaultStyle,
+//       metal_id: defaultMetal,
+//       metal_option_id: defaultMetalOption,      
+//       diamond_option_id: defaultDiamondOption,    
+//       size_option_id: defaultSizeOption,         
+//       price: '',
+//       originalPrice: '',
+//       discount: 0,
+//       featured: [],
+//       gender: [],
+//       imageFiles: [], // Array of File objects
+//       imageUrls: []    // Array of URLs (for preview)
+//     }]);
+//   };
+
+//   const updateProduct = (id, field, value) => {
+//     setProducts(products.map(p => {
+//       if (p.id === id) {
+//         const updated = { ...p, [field]: value };
+//         if (field === 'name') {
+//           updated.slug = value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+//         }
+//         return updated;
+//       }
+//       return p;
+//     }));
+//   };
+
+//   const toggleProductFeatured = (productId, feature) => {
+//     setProducts(products.map(p => {
+//       if (p.id === productId) {
+//         const featured = p.featured.includes(feature)
+//           ? p.featured.filter(f => f !== feature)
+//           : [...p.featured, feature];
+//         return { ...p, featured };
+//       }
+//       return p;
+//     }));
+//   };
+
+//   const toggleProductGender = (productId, gender) => {
+//     setProducts(products.map(p => {
+//       if (p.id === productId) {
+//         const genders = p.gender.includes(gender)
+//           ? p.gender.filter(g => g !== gender)
+//           : [...p.gender, gender];
+//         return { ...p, gender: genders };
+//       }
+//       return p;
+//     }));
+//   };
+
+//   const handleImageSelect = (productId, files) => {
+//     const fileArray = Array.from(files);
+//     setProducts(products.map(p => {
+//       if (p.id === productId) {
+//         const newImageUrls = fileArray.map(file => URL.createObjectURL(file));
+//         return {
+//           ...p,
+//           imageFiles: [...p.imageFiles, ...fileArray],
+//           imageUrls: [...p.imageUrls, ...newImageUrls]
+//         };
+//       }
+//       return p;
+//     }));
+//   };
+
+//   const removeImage = (productId, index) => {
+//     setProducts(products.map(p => {
+//       if (p.id === productId) {
+//         return {
+//           ...p,
+//           imageFiles: p.imageFiles.filter((_, i) => i !== index),
+//           imageUrls: p.imageUrls.filter((_, i) => i !== index)
+//         };
+//       }
+//       return p;
+//     }));
+//   };
+
+//   // const saveProducts = async () => {
+//   //   if (products.length === 0) {
+//   //     alert('Please add at least one product');
+//   //     return;
+//   //   }
+
+//   //   for (const product of products) {
+//   //     if (!product.name || !product.style_id || !product.metal_id || !product.price) {
+//   //       alert('Please fill all required fields for all products');
+//   //       return;
+//   //     }
+//   //   }
+
+//   //   setLoading(true);
+//   //   const token = localStorage.getItem('token');
+
+//   //   try {
+
+      
+//   //     for (const product of products) {
+//   //       // Upload images first
+//   //       let uploadedImageUrls = [];
+//   //       if (product.imageFiles.length > 0) {
+//   //         const formData = new FormData();
+//   //         product.imageFiles.forEach(file => {
+//   //           formData.append('images', file);
+//   //         });
+
+//   //         const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
+//   //           headers: {
+//   //             Authorization: `Bearer ${token}`,
+//   //             'Content-Type': 'multipart/form-data'
+//   //           }
+//   //         });
+
+//   //         if (uploadRes.data.success) {
+//   //           uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
+//   //         }
+//   //       }
+
+//   //       const productDetails = {
+//   //         slug: product.slug,
+//   //         price: parseFloat(product.price),
+//   //         originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+//   //         discount: parseInt(product.discount) || 0,
+//   //         style_id: product.style_id,
+//   //         metal_id: product.metal_id,
+//   //         featured: product.featured,
+//   //         gender: product.gender,
+//   //         images: uploadedImageUrls,
+//   //         category: categories.find(c => c.id == selectedCategoryId)?.name || ''
+//   //       };
+
+//   //       await axios.post(`${API_URL}/doAll`, {
+//   //         action: 'insert',
+//   //         table: 'products',
+//   //         data: {
+//   //           category_id: selectedCategoryId,
+//   //           name: product.name,
+//   //           slug: product.slug,
+//   //           product_details: JSON.stringify(productDetails)
+//   //         }
+//   //       }, { headers: { Authorization: `Bearer ${token}` } });
+//   //     }
+
+//   //     alert('Products saved successfully!');
+//   //     setProducts([]);
+//   //     onRefresh();
+//   //   } catch (error) {
+//   //     console.error('Error saving products:', error);
+//   //     alert('Error saving products: ' + (error.response?.data?.message || error.message));
+//   //   } finally {
+//   //     setLoading(false);
+//   //   }
+//   // };
+
+
+// //   const saveProducts = async () => {
+// //   if (products.length === 0) {
+// //     alert('Please add at least one product');
+// //     return;
+// //   }
+
+// //   for (const product of products) {
+// //     if (!product.name || !product.style_id || !product.metal_id || !product.price) {
+// //       alert('Please fill all required fields for all products');
+// //       return;
+// //     }
+// //   }
+
+// //   setLoading(true);
+// //   const token = localStorage.getItem('token');
+
+// //   try {
+// //     // ✅ MODIFIED: Store database IDs for variants
+// //     const savedProductIds = [];
+
+// //     for (const product of products) {
+// //       // Upload images first
+// //       let uploadedImageUrls = [];
+// //       if (product.imageFiles.length > 0) {
+// //         const formData = new FormData();
+// //         product.imageFiles.forEach(file => {
+// //           formData.append('images', file);
+// //         });
+
+// //         const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
+// //           headers: {
+// //             Authorization: `Bearer ${token}`,
+// //             'Content-Type': 'multipart/form-data'
+// //           }
+// //         });
+
+// //         if (uploadRes.data.success) {
+// //           uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
+// //         }
+// //       }
+
+// //       const productDetails = {
+// //         slug: product.slug,
+// //         price: parseFloat(product.price),
+// //         originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+// //         discount: parseInt(product.discount) || 0,
+// //         style_id: product.style_id,
+// //         metal_id: product.metal_id,
+// //         featured: product.featured,
+// //         gender: product.gender,
+// //         images: uploadedImageUrls,
+// //         category: categories.find(c => c.id == selectedCategoryId)?.name || ''
+// //       };
+
+// //       // ✅ MODIFIED: Capture the insertId
+// //       const productRes = await axios.post(`${API_URL}/doAll`, {
+// //         action: 'insert',
+// //         table: 'products',
+// //         data: {
+// //           category_id: selectedCategoryId,
+// //           name: product.name,
+// //           slug: product.slug,
+// //           product_details: JSON.stringify(productDetails)
+// //         }
+// //       }, { headers: { Authorization: `Bearer ${token}` } });
+
+// //       // ✅ NEW: Store the real database ID
+// //       if (productRes.data.success && productRes.data.insertId) {
+// //         savedProductIds.push({
+// //           tempId: product.id,
+// //           dbId: productRes.data.insertId
+// //         });
+// //       }
+// //     }
+
+// //     alert('Products saved successfully!');
+    
+// //     // ✅ NEW: Update products array with real database IDs
+// //     setProducts(products.map(p => {
+// //       const saved = savedProductIds.find(s => s.tempId === p.id);
+// //       if (saved) {
+// //         return { ...p, id: saved.dbId, dbId: saved.dbId };
+// //       }
+// //       return p;
+// //     }));
+    
+// //     onRefresh();
+// //   } catch (error) {
+// //     console.error('Error saving products:', error);
+// //     alert('Error saving products: ' + (error.response?.data?.message || error.message));
+// //   } finally {
+// //     setLoading(false);
+// //   }
+// // };
+
+
+// const saveProducts = async () => {
+//   if (products.length === 0) {
+//     alert('Please add at least one product');
+//     return;
+//   }
+
+//   for (const product of products) {
+//     if (!product.name || !product.style_id || !product.metal_id || !product.price) {
+//       alert('Please fill all required fields for all products');
+//       return;
+//     }
+//   }
+
+//   setLoading(true);
+//   const token = localStorage.getItem('token');
+
+//   try {
+//     for (const product of products) {
+//       // Upload images first
+//       let uploadedImageUrls = [];
+//       if (product.imageFiles.length > 0) {
+//         const formData = new FormData();
+//         product.imageFiles.forEach(file => {
+//           formData.append('images', file);
+//         });
+
+//         const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
+//           headers: {
+//             Authorization: `Bearer ${token}`,
+//             'Content-Type': 'multipart/form-data'
+//           }
+//         });
+
+//         if (uploadRes.data.success) {
+//           uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
+//         }
+//       }
+
+//       const productDetails = {
+//         slug: product.slug,
+//         price: parseFloat(product.price),
+//         originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+//         discount: parseInt(product.discount) || 0,
+//         style_id: product.style_id,
+//         metal_id: product.metal_id,
+//         featured: product.featured,
+//         gender: product.gender,
+//         images: uploadedImageUrls,
+//         category: categories.find(c => c.id == selectedCategoryId)?.name || ''
+//       };
+
+//       await axios.post(`${API_URL}/doAll`, {
+//         action: 'insert',
+//         table: 'products',
+//         data: {
+//           category_id: selectedCategoryId,
+//           name: product.name,
+//           slug: product.slug,
+//           product_details: JSON.stringify(productDetails)
+//         }
+//       }, { headers: { Authorization: `Bearer ${token}` } });
+//     }
+
+//     alert('Products saved successfully! Go to "View Products" to configure variants.');
+    
+//     // ✅ Clear the products form
+//     setProducts([]);
+    
+//     onRefresh();
+//   } catch (error) {
+//     console.error('Error saving products:', error);
+//     alert('Error saving products: ' + (error.response?.data?.message || error.message));
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+//   const selectedCategory = categories.find(c => c.id == selectedCategoryId);
+
+//   return (
+//     <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+//       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
+//         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Add Products</h2>
+//         <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
+//       </div>
+
+//       <div className="mb-4 sm:mb-6">
+//         <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Select Category</label>
+//         <select
+//           value={selectedCategoryId}
+//           onChange={(e) => handleCategorySelect(e.target.value)}
+//           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+//         >
+//           <option value="">-- Select Category --</option>
+//           {categories.map(cat => (
+//             <option key={cat.id} value={cat.id}>{cat.name}</option>
+//           ))}
+//         </select>
+//       </div>
+
+//       {/* {categoryData && selectedCategory && (
+//         <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
+//           <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
+          
+//           <div className="mb-3 sm:mb-4">
+//             <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Style:</p>
+//             <div className="flex flex-wrap gap-1 sm:gap-2">
+//               {categoryData.styles.map(style => (
+//                 <label key={style.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+//                   <input
+//                     type="checkbox"
+//                     checked={selectedStyles.includes(style.id)}
+//                     onChange={() => toggleStyle(style.id)}
+//                     className="w-3 h-3 sm:w-4 sm:h-4"
+//                   />
+//                   <span>{style.name}</span>
+//                 </label>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div>
+//             <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Metal & Stone:</p>
+//             <div className="flex flex-wrap gap-1 sm:gap-2">
+//               {categoryData.metals.map(metal => (
+//                 <label key={metal.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+//                   <input
+//                     type="checkbox"
+//                     checked={selectedMetals.includes(metal.id)}
+//                     onChange={() => toggleMetal(metal.id)}
+//                     className="w-3 h-3 sm:w-4 sm:h-4"
+//                   />
+//                   <span>{metal.name}</span>
+//                 </label>
+//               ))}
+              
+//             </div>
+//           </div>    
+// {categoryData?.attributes && (
+//   <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
+//     <div>
+//       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Choice of Metal:</p>
+//       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+//         <option value="">Select Metal Type</option>
+//         {categoryData.attributes.metal?.options?.map(opt => (
+//           <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+//         ))}
+//       </select>
+//     </div>
+
+//     <div>
+//       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Diamond Quality:</p>
+//       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+//         <option value="">Select Diamond</option>
+//         {categoryData.attributes.diamond?.options?.map(opt => (
+//           <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+//         ))}
+//       </select>
+//     </div>
+
+//     <div>
+//       <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Size:</p>
+//       <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
+//         <option value="">Select Size</option>
+//         {categoryData.attributes.size?.options?.map(opt => (
+//           <option key={opt.id} value={opt.id}>
+//             {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
+//           </option>
+//         ))}
+//       </select>
+//     </div>
+//   </div>
+// )}
+//         </div>
+        
+//       )} */}
+
+
+//   {categoryData && selectedCategory && (
+//   <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+//     {/* Left Side - Category Selection */}
+//     <div className="flex-1">
+//       <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
+//         <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
+        
+//         <div className="mb-3 sm:mb-4">
+//           <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Style:</p>
+//           <div className="flex flex-wrap gap-1 sm:gap-2">
+//             {categoryData.styles.map(style => (
+//               <label key={style.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+//                 <input
+//                   type="checkbox"
+//                   checked={selectedStyles.includes(style.id)}
+//                   onChange={() => toggleStyle(style.id)}
+//                   className="w-3 h-3 sm:w-4 sm:h-4"
+//                 />
+//                 <span>{style.name}</span>
+//               </label>
+//             ))}
+//           </div>
+//         </div>
+
+//         <div>
+//           <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Metal & Stone:</p>
+//           <div className="flex flex-wrap gap-1 sm:gap-2">
+//             {categoryData.metals.map(metal => (
+//               <label key={metal.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+//                 <input
+//                   type="checkbox"
+//                   checked={selectedMetals.includes(metal.id)}
+//                   onChange={() => toggleMetal(metal.id)}
+//                   className="w-3 h-3 sm:w-4 sm:h-4"
+//                 />
+//                 <span>{metal.name}</span>
+//               </label>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+
+//     {/* Right Side - Attributes with Checkboxes */}
+//     <div className="w-full lg:w-96 flex-shrink-0">
+//       <div className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
+//         <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">Product Attributes</h3>
+        
+//         {/* Choice of Metal */}
+//         <div className="mb-4 sm:mb-6">
+//           <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Choice of Metal:</p>
+//           <div className="space-y-2">
+//             {categoryData?.attributes?.metal?.options?.map(opt => (
+//               <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+//                 <input
+//                   type="checkbox"
+//                   checked={selectedAttributes.metal.includes(opt.id)}
+//                   onChange={() => toggleAttribute('metal', opt.id)}
+//                   className="w-4 h-4 sm:w-5 sm:h-5"
+//                 />
+//                 <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
+//               </label>
+//             ))}
+//           </div>
+//         </div>
+
+//         {/* Diamond Quality */}
+//         <div className="mb-4 sm:mb-6">
+//           <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Diamond Quality:</p>
+//           <div className="space-y-2">
+//             {categoryData?.attributes?.diamond?.options?.map(opt => (
+//               <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+//                 <input
+//                   type="checkbox"
+//                   checked={selectedAttributes.diamond.includes(opt.id)}
+//                   onChange={() => toggleAttribute('diamond', opt.id)}
+//                   className="w-4 h-4 sm:w-5 sm:h-5"
+//                 />
+//                 <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
+//               </label>
+//             ))}
+//           </div>
+//         </div>
+
+//         {/* Size */}
+//         <div className="mb-4 sm:mb-6">
+//           <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Size:</p>
+//           <div className="space-y-2">
+//             {categoryData?.attributes?.size?.options?.map(opt => (
+//               <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+//                 <input
+//                   type="checkbox"
+//                   checked={selectedAttributes.size.includes(opt.id)}
+//                   onChange={() => toggleAttribute('size', opt.id)}
+//                   className="w-4 h-4 sm:w-5 sm:h-5"
+//                 />
+//                 <span className="font-medium text-sm sm:text-base">
+//                   {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
+//                 </span>
+//               </label>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+//   )}
+
+//       {categoryData && (
+//         <button
+//           onClick={addProductRow}
+//           className="mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold text-sm sm:text-base"
+//         >
+//           + Add Product Row
+//         </button>
+//       )}
+
+//       {products.map((product, index) => (
+//         <div key={product.id} className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-300 rounded-lg">
+//           <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Product #{index + 1}</h4>
+          
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+//               <input
+//                 type="text"
+//                 value={product.name}
+//                 onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//                 placeholder="e.g., Swirl Heart Ring"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Style *</label>
+//               <select
+//                 value={product.style_id}
+//                 onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//               >
+//                 <option value="">Select Style</option>
+//                 {categoryData?.styles.map(style => (
+//                   <option key={style.id} value={style.id}>{style.name}</option>
+//                 ))}
+//               </select>
+//             </div>
+
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
+//               <select
+//                 value={product.metal_id}
+//                 onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//               >
+//                 <option value="">Select Metal</option>
+//                 {categoryData?.metals.map(metal => (
+//                   <option key={metal.id} value={metal.id}>{metal.name}</option>
+//                 ))}
+//               </select>
+//             </div>
+
+//             {/* ✅ NEW - Choice of Metal Attribute */}
+// {/* <div>
+//   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Choice of Metal</label>
+//   <select
+//     value={product.metal_option_id || ''}
+//     onChange={(e) => updateProduct(product.id, 'metal_option_id', e.target.value)}
+//     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//   >
+//     <option value="">Select Metal Type</option>
+//     {categoryData?.attributes?.metal?.options?.map(opt => (
+//       <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+//     ))}
+//   </select>
+// </div> */}
+
+// {/* ✅ NEW - Diamond Quality */}
+// {/* <div>
+//   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Diamond Quality</label>
+//   <select
+//     value={product.diamond_option_id || ''}
+//     onChange={(e) => updateProduct(product.id, 'diamond_option_id', e.target.value)}
+//     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//   >
+//     <option value="">Select Diamond</option>
+//     {categoryData?.attributes?.diamond?.options?.map(opt => (
+//       <option key={opt.id} value={opt.id}>{opt.option_name}</option>
+//     ))}
+//   </select>
+// </div> */}
+
+
+
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Price *</label>
+//               <input
+//                 type="number"
+//                 value={product.price}
+//                 onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//                 placeholder="10000"
+//               />
+//             </div>
+//           </div>
+
+//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Original Price</label>
+//               <input
+//                 type="number"
+//                 value={product.originalPrice}
+//                 onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//                 placeholder="12000"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Discount %</label>
+//               <input
+//                 type="number"
+//                 value={product.discount}
+//                 onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+//                 placeholder="15"
+//               />
+//             </div>
+
+//             <div>
+//               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Slug (auto)</label>
+//               <input
+//                 type="text"
+//                 value={product.slug}
+//                 readOnly
+//                 className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm sm:text-base"
+//               />
+//             </div>
+//           </div>
+
+//           <div className="mb-3 sm:mb-4">
+//             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Featured</label>
+//             <div className="flex flex-wrap gap-2 sm:gap-3">
+//               {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
+//                 <label key={feature} className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm">
+//                   <input
+//                     type="checkbox"
+//                     checked={product.featured.includes(feature)}
+//                     onChange={() => toggleProductFeatured(product.id, feature)}
+//                     className="w-3 h-3 sm:w-4 sm:h-4"
+//                   />
+//                   <span>{feature}</span>
+//                 </label>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="mb-3 sm:mb-4">
+//             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">For Gender/Age</label>
+//             <div className="flex gap-2 sm:gap-4">
+//               {['Kids', 'Men', 'Women'].map(gender => (
+//                 <label key={gender} className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm">
+//                   <input
+//                     type="checkbox"
+//                     checked={product.gender.includes(gender)}
+//                     onChange={() => toggleProductGender(product.id, gender)}
+//                     className="w-3 h-3 sm:w-4 sm:h-4"
+//                   />
+//                   <span>{gender}</span>
+//                 </label>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="mb-3 sm:mb-4">
+//             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Product Images (Multiple)</label>
+//             <input
+//               type="file"
+//               accept="image/*"
+//               multiple
+//               onChange={(e) => handleImageSelect(product.id, e.target.files)}
+//               className="w-full text-xs sm:text-sm"
+//             />
+//             {product.imageUrls.length > 0 && (
+//               <div className="mt-3 sm:mt-4 flex flex-wrap gap-2">
+//                 {product.imageUrls.map((url, idx) => (
+//                   <div key={idx} className="relative">
+//                     <img src={url} alt={`Preview ${idx + 1}`} className="h-16 w-16 sm:h-20 sm:w-20 object-cover rounded" />
+//                     <button
+//                       onClick={() => removeImage(product.id, idx)}
+//                       className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white rounded-full w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center text-xs"
+//                     >
+//                       ×
+//                     </button>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </div>
+
+// <div className="mb-3 sm:mb-4">
+//   <button
+//     onClick={() => setVariantModal({ product, attributes: categoryData.attributes })}
+//     className="w-full py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold text-sm"
+//   >
+//     ⚙️ Configure Variants (Metal/Diamond/Size Pricing)
+//   </button>
+// </div>
+//         </div>
+//       ))}
+
+//       {products.length > 0 && (
+//         <button
+//           onClick={saveProducts}
+//           disabled={loading}
+//           className="w-full py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base"
+//         >
+//           {loading ? 'Saving...' : `Save ${products.length} Product(s)`}
+//         </button>
+//       )}
+
+
+//       {/* Variant Pricing Modal */}
+// {variantModal && (
+//   <VariantPricingModal
+//     product={variantModal.product}
+//     attributes={variantModal.attributes}
+//     onClose={() => setVariantModal(null)}
+//     onSave={() => {
+//       setVariantModal(null);
+//       alert('✅ Variants configured successfully!');
+//     }}
+//   />
+// )}
+//     </div>
+//   );
+// };
+
+
+// ==================== ADD PRODUCTS COMPONENT ====================
 const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [categoryData, setCategoryData] = useState(null);
   const [selectedStyles, setSelectedStyles] = useState([]);
   const [selectedMetals, setSelectedMetals] = useState([]);
-  const [selectedAttributes, setSelectedAttributes] = useState({
-    metal: [],
-    diamond: [],
-    size: []
-  });
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-   // Add this function to handle attribute selection
-  const toggleAttribute = (type, optionId) => {
-    setSelectedAttributes(prev => ({
-      ...prev,
-      [type]: prev[type].includes(optionId) 
-        ? prev[type].filter(id => id !== optionId)
-        : [...prev[type], optionId]
-    }));
-  };
-
-  // const fetchCategoryDetails = async (catId) => {
-  //   setLoading(true);
-  //   const token = localStorage.getItem('token');
-    
-  //   try {
-  //     const [stylesRes, metalsRes] = await Promise.all([
-  //       axios.post(`${API_URL}/doAll`, {
-  //         action: 'get',
-  //         table: 'by_style',
-  //         where: { category_id: catId }
-  //       }, { headers: { Authorization: `Bearer ${token}` } }),
-  //       axios.post(`${API_URL}/doAll`, {
-  //         action: 'get',
-  //         table: 'by_metal_and_stone',
-  //         where: { category_id: catId }
-  //       }, { headers: { Authorization: `Bearer ${token}` } })
-  //     ]);
-
-  //     setCategoryData({
-  //       styles: stylesRes.data.data,
-  //       metals: metalsRes.data.data
-  //     });
-  //   } catch (error) {
-  //     console.error('Error fetching category details:', error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
+  const FILE_TYPE_OPTIONS = ['STL File', 'CAM Product', 'Rubber Mold', 'Casting Model'];
 
   const fetchCategoryDetails = async (catId) => {
-  setLoading(true);
-  const token = localStorage.getItem('token');
-  
-  try {
-    // Fetch category styles and metals (for product categorization)
-    const [stylesRes, metalsRes, attributesRes] = await Promise.all([
-      axios.post(`${API_URL}/doAll`, {
-        action: 'get',
-        table: 'by_style',
-        where: { category_id: catId }
-      }, { headers: { Authorization: `Bearer ${token}` } }),
-      axios.post(`${API_URL}/doAll`, {
-        action: 'get',
-        table: 'by_metal_and_stone',
-        where: { category_id: catId }
-      }, { headers: { Authorization: `Bearer ${token}` } }),
-      // ✅ NEW - Fetch global attributes (metal, diamond, size)
-      axios.get(`${API_URL}/attributes`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    ]);
-
-    // Parse attributes by type
-    const attributes = {
-      metal: { id: null, options: [] },
-      diamond: { id: null, options: [] },
-      size: { id: null, options: [] }
-    };
+    setLoading(true);
+    const token = localStorage.getItem('token');
     
-    if (attributesRes.data.success) {
-      attributesRes.data.data.forEach(attr => {
-        attributes[attr.type] = { id: attr.id, options: attr.options };
+    try {
+      const [stylesRes, metalsRes, attributesRes] = await Promise.all([
+        axios.post(`${API_URL}/doAll`, {
+          action: 'get',
+          table: 'by_style',
+          where: { category_id: catId }
+        }, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.post(`${API_URL}/doAll`, {
+          action: 'get',
+          table: 'by_metal_and_stone',
+          where: { category_id: catId }
+        }, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/attributes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const attributes = {
+        metal: { id: null, options: [] },
+        diamond: { id: null, options: [] },
+        size: { id: null, options: [] }
+      };
+      
+      if (attributesRes.data.success) {
+        attributesRes.data.data.forEach(attr => {
+          attributes[attr.type] = { id: attr.id, options: attr.options };
+        });
+      }
+
+      setCategoryData({
+        styles: stylesRes.data.data,
+        metals: metalsRes.data.data,
+        attributes: attributes
       });
+    } catch (error) {
+      console.error('Error fetching category details:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setCategoryData({
-      styles: stylesRes.data.data,
-      metals: metalsRes.data.data,
-      attributes: attributes  // ✅ Add attributes to state
-    });
-  } catch (error) {
-    console.error('Error fetching category details:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const handleCategorySelect = (catId) => {
     setSelectedCategoryId(catId);
@@ -717,26 +1579,27 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const addProductRow = () => {
     const defaultStyle = selectedStyles.length > 0 ? selectedStyles[0] : '';
     const defaultMetal = selectedMetals.length > 0 ? selectedMetals[0] : '';
-    const defaultMetalOption = selectedAttributes.metal.length > 0 ? selectedAttributes.metal[0] : '';
-    const defaultDiamondOption = selectedAttributes.diamond.length > 0 ? selectedAttributes.diamond[0] : '';
-    const defaultSizeOption = selectedAttributes.size.length > 0 ? selectedAttributes.size[0] : '';
     
     setProducts([...products, {
       id: Date.now(),
       name: '',
+      description: '',
       slug: '',
       style_id: defaultStyle,
       metal_id: defaultMetal,
-      metal_option_id: defaultMetalOption,      
-      diamond_option_id: defaultDiamondOption,    
-      size_option_id: defaultSizeOption,         
       price: '',
       originalPrice: '',
       discount: 0,
       featured: [],
       gender: [],
-      imageFiles: [], // Array of File objects
-      imageUrls: []    // Array of URLs (for preview)
+      imageFiles: [],
+      imageUrls: [],
+      hasMetalChoice: false,
+      hasDiamondChoice: false,
+      selectedMetalOptions: [],
+      selectedDiamondOptions: [],
+      selectedSizes: {},
+      variantPricing: {}
     }]);
   };
 
@@ -805,6 +1668,116 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     }));
   };
 
+  const toggleProductMetalChoice = (productId) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        return {
+          ...p,
+          hasMetalChoice: !p.hasMetalChoice,
+          selectedMetalOptions: !p.hasMetalChoice ? [] : p.selectedMetalOptions
+        };
+      }
+      return p;
+    }));
+  };
+
+  const toggleProductDiamondChoice = (productId) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        return {
+          ...p,
+          hasDiamondChoice: !p.hasDiamondChoice,
+          selectedDiamondOptions: !p.hasDiamondChoice ? [] : p.selectedDiamondOptions
+        };
+      }
+      return p;
+    }));
+  };
+
+  const toggleProductMetalOption = (productId, optionId) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const selectedMetalOptions = p.selectedMetalOptions.includes(optionId)
+          ? p.selectedMetalOptions.filter(id => id !== optionId)
+          : [...p.selectedMetalOptions, optionId];
+        return { ...p, selectedMetalOptions };
+      }
+      return p;
+    }));
+  };
+
+  const toggleProductDiamondOption = (productId, optionId) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const selectedDiamondOptions = p.selectedDiamondOptions.includes(optionId)
+          ? p.selectedDiamondOptions.filter(id => id !== optionId)
+          : [...p.selectedDiamondOptions, optionId];
+        return { ...p, selectedDiamondOptions };
+      }
+      return p;
+    }));
+  };
+
+  const toggleProductSize = (productId, metalId, diamondId, sizeId) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+        return {
+          ...p,
+          selectedSizes: {
+            ...p.selectedSizes,
+            [key]: !p.selectedSizes[key]
+          }
+        };
+      }
+      return p;
+    }));
+  };
+
+  const updateVariantPricing = (productId, metalId, diamondId, sizeId, field, value) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+        return {
+          ...p,
+          variantPricing: {
+            ...p.variantPricing,
+            [key]: {
+              ...p.variantPricing[key],
+              [field]: value
+            }
+          }
+        };
+      }
+      return p;
+    }));
+  };
+
+  const toggleVariantFileType = (productId, metalId, diamondId, sizeId, fileType) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+        const current = p.variantPricing[key] || {};
+        const currentFiles = current.file_types || [];
+        const newFiles = currentFiles.includes(fileType)
+          ? currentFiles.filter(f => f !== fileType)
+          : [...currentFiles, fileType];
+        
+        return {
+          ...p,
+          variantPricing: {
+            ...p.variantPricing,
+            [key]: {
+              ...current,
+              file_types: newFiles
+            }
+          }
+        };
+      }
+      return p;
+    }));
+  };
+
   const saveProducts = async () => {
     if (products.length === 0) {
       alert('Please add at least one product');
@@ -823,7 +1796,6 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
     try {
       for (const product of products) {
-        // Upload images first
         let uploadedImageUrls = [];
         if (product.imageFiles.length > 0) {
           const formData = new FormData();
@@ -845,6 +1817,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
         const productDetails = {
           slug: product.slug,
+          description: product.description || '',
           price: parseFloat(product.price),
           originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
           discount: parseInt(product.discount) || 0,
@@ -856,7 +1829,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
           category: categories.find(c => c.id == selectedCategoryId)?.name || ''
         };
 
-        await axios.post(`${API_URL}/doAll`, {
+        const productRes = await axios.post(`${API_URL}/doAll`, {
           action: 'insert',
           table: 'products',
           data: {
@@ -866,9 +1839,41 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
             product_details: JSON.stringify(productDetails)
           }
         }, { headers: { Authorization: `Bearer ${token}` } });
+
+        if (productRes.data.success && productRes.data.insertId) {
+          const productDbId = productRes.data.insertId;
+          const variants = [];
+
+          for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
+            if (!isSelected) continue;
+
+            const pricing = product.variantPricing[key];
+            if (!pricing || !pricing.original_price) continue;
+
+            const [metalPart, diamondPart, sizePart] = key.split('-');
+            
+            variants.push({
+              metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+              size_option_id: parseInt(sizePart),
+              original_price: parseFloat(pricing.original_price),
+              discount_price: parseFloat(pricing.discount_price) || parseFloat(pricing.original_price),
+              discount_percentage: parseInt(pricing.discount_percentage) || 0,
+              file_types: pricing.file_types || []
+            });
+          }
+
+          if (variants.length > 0) {
+            await axios.post(
+              `${API_URL}/product-variants/pricing`,
+              { product_id: productDbId, variants },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        }
       }
 
-      alert('Products saved successfully!');
+      alert('Products and variants saved successfully!');
       setProducts([]);
       onRefresh();
     } catch (error) {
@@ -902,7 +1907,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
         </select>
       </div>
 
-      {/* {categoryData && selectedCategory && (
+      {categoryData && selectedCategory && (
         <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
           <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
           
@@ -937,156 +1942,10 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                   <span>{metal.name}</span>
                 </label>
               ))}
-              
             </div>
-          </div>    
-{categoryData?.attributes && (
-  <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
-    <div>
-      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Choice of Metal:</p>
-      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
-        <option value="">Select Metal Type</option>
-        {categoryData.attributes.metal?.options?.map(opt => (
-          <option key={opt.id} value={opt.id}>{opt.option_name}</option>
-        ))}
-      </select>
-    </div>
-
-    <div>
-      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Diamond Quality:</p>
-      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
-        <option value="">Select Diamond</option>
-        {categoryData.attributes.diamond?.options?.map(opt => (
-          <option key={opt.id} value={opt.id}>{opt.option_name}</option>
-        ))}
-      </select>
-    </div>
-
-    <div>
-      <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Size:</p>
-      <select className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base">
-        <option value="">Select Size</option>
-        {categoryData.attributes.size?.options?.map(opt => (
-          <option key={opt.id} value={opt.id}>
-            {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-)}
-        </div>
-        
-      )} */}
-
-
-      {categoryData && selectedCategory && (
-  <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-    {/* Left Side - Category Selection */}
-    <div className="flex-1">
-      <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
-        <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
-        
-        <div className="mb-3 sm:mb-4">
-          <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Style:</p>
-          <div className="flex flex-wrap gap-1 sm:gap-2">
-            {categoryData.styles.map(style => (
-              <label key={style.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedStyles.includes(style.id)}
-                  onChange={() => toggleStyle(style.id)}
-                  className="w-3 h-3 sm:w-4 sm:h-4"
-                />
-                <span>{style.name}</span>
-              </label>
-            ))}
           </div>
         </div>
-
-        <div>
-          <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Metal & Stone:</p>
-          <div className="flex flex-wrap gap-1 sm:gap-2">
-            {categoryData.metals.map(metal => (
-              <label key={metal.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedMetals.includes(metal.id)}
-                  onChange={() => toggleMetal(metal.id)}
-                  className="w-3 h-3 sm:w-4 sm:h-4"
-                />
-                <span>{metal.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Right Side - Attributes with Checkboxes */}
-    <div className="w-full lg:w-96 flex-shrink-0">
-      <div className="p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
-        <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">Product Attributes</h3>
-        
-        {/* Choice of Metal */}
-        <div className="mb-4 sm:mb-6">
-          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Choice of Metal:</p>
-          <div className="space-y-2">
-            {categoryData?.attributes?.metal?.options?.map(opt => (
-              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={selectedAttributes.metal.includes(opt.id)}
-                  onChange={() => toggleAttribute('metal', opt.id)}
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                />
-                <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Diamond Quality */}
-        <div className="mb-4 sm:mb-6">
-          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Diamond Quality:</p>
-          <div className="space-y-2">
-            {categoryData?.attributes?.diamond?.options?.map(opt => (
-              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={selectedAttributes.diamond.includes(opt.id)}
-                  onChange={() => toggleAttribute('diamond', opt.id)}
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                />
-                <span className="font-medium text-sm sm:text-base">{opt.option_name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Size */}
-        <div className="mb-4 sm:mb-6">
-          <p className="font-medium text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">Size:</p>
-          <div className="space-y-2">
-            {categoryData?.attributes?.size?.options?.map(opt => (
-              <label key={opt.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={selectedAttributes.size.includes(opt.id)}
-                  onChange={() => toggleAttribute('size', opt.id)}
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                />
-                <span className="font-medium text-sm sm:text-base">
-                  {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {categoryData && (
         <button
@@ -1098,27 +1957,28 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       )}
 
       {products.map((product, index) => (
-        <div key={product.id} className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-300 rounded-lg">
-          <h4 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Product #{index + 1}</h4>
+        <div key={product.id} className="mb-6 p-4 border-2 border-gray-300 rounded-lg bg-gray-50">
+          <h4 className="font-semibold mb-4 text-lg bg-blue-100 p-2 rounded">Product #{index + 1}</h4>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
+          {/* Basic Product Info */}
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
               <input
                 type="text"
                 value={product.name}
                 onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="e.g., Swirl Heart Ring"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Style *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Style *</label>
               <select
                 value={product.style_id}
                 onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="">Select Style</option>
                 {categoryData?.styles.map(style => (
@@ -1128,11 +1988,11 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
               <select
                 value={product.metal_id}
                 onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="">Select Metal</option>
                 {categoryData?.metals.map(metal => (
@@ -1141,150 +2001,182 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
               </select>
             </div>
 
-            {/* ✅ NEW - Choice of Metal Attribute */}
-<div>
-  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Choice of Metal</label>
-  <select
-    value={product.metal_option_id || ''}
-    onChange={(e) => updateProduct(product.id, 'metal_option_id', e.target.value)}
-    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-  >
-    <option value="">Select Metal Type</option>
-    {categoryData?.attributes?.metal?.options?.map(opt => (
-      <option key={opt.id} value={opt.id}>{opt.option_name}</option>
-    ))}
-  </select>
-</div>
-
-{/* ✅ NEW - Diamond Quality */}
-<div>
-  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Diamond Quality</label>
-  <select
-    value={product.diamond_option_id || ''}
-    onChange={(e) => updateProduct(product.id, 'diamond_option_id', e.target.value)}
-    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-  >
-    <option value="">Select Diamond</option>
-    {categoryData?.attributes?.diamond?.options?.map(opt => (
-      <option key={opt.id} value={opt.id}>{opt.option_name}</option>
-    ))}
-  </select>
-</div>
-
-{/* ✅ NEW - Size */}
-<div>
-  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Size</label>
-  <select
-    value={product.size_option_id || ''}
-    onChange={(e) => updateProduct(product.id, 'size_option_id', e.target.value)}
-    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-  >
-    <option value="">Select Size</option>
-    {categoryData?.attributes?.size?.options?.map(opt => (
-      <option key={opt.id} value={opt.id}>
-        {opt.option_name} {opt.size_mm && `(${opt.size_mm}mm)`}
-      </option>
-    ))}
-  </select>
-</div>
-
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Price *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price *</label>
               <input
                 type="number"
                 value={product.price}
                 onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="10000"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Original Price</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Original Price</label>
               <input
                 type="number"
                 value={product.originalPrice}
                 onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="12000"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Discount %</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
               <input
                 type="number"
                 value={product.discount}
                 onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="15"
+              />
+            </div>
+          </div> */}
+
+          {/* Basic Product Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+              <input
+                type="text"
+                value={product.name}
+                onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="e.g., Swirl Heart Ring"
+              />
+            </div>
+
+            {/* ✅ NEW - Description Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <input
+                type="text"
+                value={product.description || ''}
+                onChange={(e) => updateProduct(product.id, 'description', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="e.g., Beautiful heart-shaped ring with diamonds"
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Slug (auto)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Style *</label>
+              <select
+                value={product.style_id}
+                onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select Style</option>
+                {categoryData?.styles.map(style => (
+                  <option key={style.id} value={style.id}>{style.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
+              <select
+                value={product.metal_id}
+                onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Select Metal</option>
+                {categoryData?.metals.map(metal => (
+                  <option key={metal.id} value={metal.id}>{metal.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price *</label>
               <input
-                type="text"
-                value={product.slug}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm sm:text-base"
+                type="number"
+                value={product.price}
+                onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="10000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Original Price</label>
+              <input
+                type="number"
+                value={product.originalPrice}
+                onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="12000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+              <input
+                type="number"
+                value={product.discount}
+                onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="15"
               />
             </div>
           </div>
 
-          <div className="mb-3 sm:mb-4">
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Featured</label>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
-                <label key={feature} className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm">
-                  <input
-                    type="checkbox"
-                    checked={product.featured.includes(feature)}
-                    onChange={() => toggleProductFeatured(product.id, feature)}
-                    className="w-3 h-3 sm:w-4 sm:h-4"
-                  />
-                  <span>{feature}</span>
-                </label>
-              ))}
+          {/* Featured & Gender */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Featured</label>
+              <div className="flex flex-wrap gap-3">
+                {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
+                  <label key={feature} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={product.featured.includes(feature)}
+                      onChange={() => toggleProductFeatured(product.id, feature)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{feature}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">For Gender/Age</label>
+              <div className="flex gap-4">
+                {['Kids', 'Men', 'Women'].map(gender => (
+                  <label key={gender} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={product.gender.includes(gender)}
+                      onChange={() => toggleProductGender(product.id, gender)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{gender}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="mb-3 sm:mb-4">
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">For Gender/Age</label>
-            <div className="flex gap-2 sm:gap-4">
-              {['Kids', 'Men', 'Women'].map(gender => (
-                <label key={gender} className="flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm">
-                  <input
-                    type="checkbox"
-                    checked={product.gender.includes(gender)}
-                    onChange={() => toggleProductGender(product.id, gender)}
-                    className="w-3 h-3 sm:w-4 sm:h-4"
-                  />
-                  <span>{gender}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-3 sm:mb-4">
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Product Images (Multiple)</label>
+          {/* Product Images */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={(e) => handleImageSelect(product.id, e.target.files)}
-              className="w-full text-xs sm:text-sm"
+              className="w-full text-sm"
             />
             {product.imageUrls.length > 0 && (
-              <div className="mt-3 sm:mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {product.imageUrls.map((url, idx) => (
                   <div key={idx} className="relative">
-                    <img src={url} alt={`Preview ${idx + 1}`} className="h-16 w-16 sm:h-20 sm:w-20 object-cover rounded" />
+                    <img src={url} alt={`Preview ${idx + 1}`} className="h-20 w-20 object-cover rounded" />
                     <button
                       onClick={() => removeImage(product.id, idx)}
-                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white rounded-full w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center text-xs"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
                     >
                       ×
                     </button>
@@ -1293,6 +2185,340 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
               </div>
             )}
           </div>
+
+          {/* VARIANT CONFIGURATION SECTION */}
+          <div className="mt-6 p-4 bg-white border-2 border-blue-300 rounded-lg">
+            <h5 className="font-bold text-lg mb-4 text-blue-800">⚙️ Variant Configuration (Optional)</h5>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {/* Choice of Metal */}
+              <div className="border-2 border-gray-200 rounded p-3">
+                <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={product.hasMetalChoice}
+                    onChange={() => toggleProductMetalChoice(product.id)}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-bold">Choice of Metal</span>
+                </label>
+                
+                {product.hasMetalChoice && (
+                  <div className="space-y-2">
+                    {categoryData?.attributes?.metal?.options?.map(opt => (
+                      <label key={opt.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50">
+                        <input
+                          type="checkbox"
+                          checked={product.selectedMetalOptions.includes(opt.id)}
+                          onChange={() => toggleProductMetalOption(product.id, opt.id)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{opt.option_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Diamond Quality */}
+              <div className="border-2 border-gray-200 rounded p-3">
+                <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={product.hasDiamondChoice}
+                    onChange={() => toggleProductDiamondChoice(product.id)}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-bold">Diamond Quality</span>
+                </label>
+                
+                {product.hasDiamondChoice && (
+                  <div className="space-y-2">
+                    {categoryData?.attributes?.diamond?.options?.map(opt => (
+                      <label key={opt.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-purple-50">
+                        <input
+                          type="checkbox"
+                          checked={product.selectedDiamondOptions.includes(opt.id)}
+                          onChange={() => toggleProductDiamondOption(product.id, opt.id)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{opt.option_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Size Info */}
+              <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
+                <h6 className="font-bold mb-2">Sizes</h6>
+                <p className="text-xs text-gray-600">Configure sizes below with pricing details</p>
+              </div>
+            </div>
+
+            {/* Size & Pricing Configuration */}
+            <div className="mt-4">
+              <h6 className="font-bold mb-3">Configure Sizes & Pricing:</h6>
+              
+              {/* Size Only (No Metal/Diamond) */}
+              {!product.hasMetalChoice && !product.hasDiamondChoice && (
+                <div className="space-y-3">
+                  {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+                    const key = `none-none-${sizeOpt.id}`;
+                    const isSelected = product.selectedSizes[key];
+                    const pricing = product.variantPricing[key] || {};
+                    
+                    return (
+                      <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3">
+                        <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isSelected || false}
+                            onChange={() => toggleProductSize(product.id, null, null, sizeOpt.id)}
+                            className="w-5 h-5"
+                          />
+                          <span className="font-bold">
+                            {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                          </span>
+                        </label>
+
+                        {isSelected && (
+                          <div className="ml-8 space-y-3">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                <input
+                                  type="number"
+                                  placeholder="15000"
+                                  value={pricing.original_price || ''}
+                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'original_price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                <input
+                                  type="number"
+                                  placeholder="13000"
+                                  value={pricing.discount_price || ''}
+                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'discount_price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium mb-1">Discount %</label>
+                                <input
+                                  type="number"
+                                  placeholder="13"
+                                  value={pricing.discount_percentage || ''}
+                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'discount_percentage', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium mb-2">File Types:</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {FILE_TYPE_OPTIONS.map(fileType => (
+                                  <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={pricing.file_types?.includes(fileType) || false}
+                                      onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileType)}
+                                      className="w-4 h-4"
+                                    />
+                                    <span>{fileType}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Metal Only (No Diamond) */}
+              {product.hasMetalChoice && !product.hasDiamondChoice && product.selectedMetalOptions.map(metalId => {
+                const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+                return (
+                  <div key={metalId} className="mb-4 border-2 border-blue-200 rounded p-4 bg-blue-50">
+                    <h6 className="font-bold mb-3">{metalOpt?.option_name}</h6>
+                    <div className="space-y-3">
+                      {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+                        const key = `${metalId}-none-${sizeOpt.id}`;
+                        const isSelected = product.selectedSizes[key];
+                        const pricing = product.variantPricing[key] || {};
+                        
+                        return (
+                          <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                            <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isSelected || false}
+                                onChange={() => toggleProductSize(product.id, metalId, null, sizeOpt.id)}
+                                className="w-5 h-5"
+                              />
+                              <span className="font-bold">
+                                {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                              </span>
+                            </label>
+
+                            {isSelected && (
+                              <div className="ml-8 space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                    <input
+                                      type="number"
+                                      placeholder="15000"
+                                      value={pricing.original_price || ''}
+                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'original_price', e.target.value)}
+                                      className="w-full px-2 py-1 border rounded text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                    <input
+                                      type="number"
+                                      placeholder="13000"
+                                      value={pricing.discount_price || ''}
+                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'discount_price', e.target.value)}
+                                      className="w-full px-2 py-1 border rounded text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1">Discount %</label>
+                                    <input
+                                      type="number"
+                                      placeholder="13"
+                                      value={pricing.discount_percentage || ''}
+                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'discount_percentage', e.target.value)}
+                                      className="w-full px-2 py-1 border rounded text-sm"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium mb-2">File Types:</label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {FILE_TYPE_OPTIONS.map(fileType => (
+                                      <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={pricing.file_types?.includes(fileType) || false}
+                                          onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileType)}
+                                          className="w-4 h-4"
+                                        />
+                                        <span>{fileType}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Metal + Diamond */}
+              {product.hasMetalChoice && product.hasDiamondChoice && product.selectedMetalOptions.map(metalId => {
+                const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+                return product.selectedDiamondOptions.map(diamondId => {
+                  const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => o.id === diamondId);
+                  return (
+                    <div key={`${metalId}-${diamondId}`} className="mb-4 border-2 border-purple-200 rounded p-4 bg-purple-50">
+                      <h6 className="font-bold mb-3">{metalOpt?.option_name} + {diamondOpt?.option_name}</h6>
+                      <div className="space-y-3">
+                        {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+                          const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
+                          const isSelected = product.selectedSizes[key];
+                          const pricing = product.variantPricing[key] || {};
+                          
+                          return (
+                            <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                              <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected || false}
+                                  onChange={() => toggleProductSize(product.id, metalId, diamondId, sizeOpt.id)}
+                                  className="w-5 h-5"
+                                />
+                                <span className="font-bold">
+                                  {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                                </span>
+                              </label>
+
+                              {isSelected && (
+                                <div className="ml-8 space-y-3">
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                      <input
+                                        type="number"
+                                        placeholder="15000"
+                                        value={pricing.original_price || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'original_price', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                      <input
+                                        type="number"
+                                        placeholder="13000"
+                                        value={pricing.discount_price || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'discount_price', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">Discount %</label>
+                                      <input
+                                        type="number"
+                                        placeholder="13"
+                                        value={pricing.discount_percentage || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'discount_percentage', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-medium mb-2">File Types:</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {FILE_TYPE_OPTIONS.map(fileType => (
+                                        <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={pricing.file_types?.includes(fileType) || false}
+                                            onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileType)}
+                                            className="w-4 h-4"
+                                          />
+                                          <span>{fileType}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          </div>
         </div>
       ))}
 
@@ -1300,14 +2526,54 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
         <button
           onClick={saveProducts}
           disabled={loading}
-          className="w-full py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base"
+          className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-lg"
         >
-          {loading ? 'Saving...' : `Save ${products.length} Product(s)`}
+          {loading ? 'Saving...' : `💾 Save ${products.length} Product(s) with Variants`}
         </button>
       )}
     </div>
   );
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ==================== VIEW PRODUCTS COMPONENT (TABLE FORMAT) ====================
 const ViewProducts = ({ onBack, categories }) => {
