@@ -16,7 +16,7 @@ const Homepage = () => {
   const [showPreview, setShowPreview] = useState(false);
 
   // API Base URL
-  const API_URL = 'http://localhost:3019/api/v1/dashboard';
+  const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
   const getAuthToken = () => {
     return localStorage.getItem('token');
@@ -1222,7 +1222,7 @@ const Homepage = () => {
   if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
     return imagePath;
   }
-  return `http://localhost:3019${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
 };
     
     return (
@@ -1321,7 +1321,7 @@ const Homepage = () => {
       if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
         return imagePath;
       }
-      return `http://localhost:3019${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+      return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     };
 
     // Function to ensure we always have exactly 4 image slots
@@ -1433,7 +1433,7 @@ const Homepage = () => {
       if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
         return imagePath;
       }
-      return `http://localhost:3019${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+      return `https://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     };
 
     if (!section.enabled || !section.data?.items?.length) return null;

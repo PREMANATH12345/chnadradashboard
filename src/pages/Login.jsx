@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3019/api/v1/dashboard';
+const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -25,7 +25,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await axios.post(`${API_URL}/auth/login`, formData);
-      
+
       if (response.data.success) {
         localStorage.setItem('token', response.data.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.data.user));
@@ -39,67 +39,158 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-6 sm:p-8 rounded-lg shadow-md">
-        <div>
-          <h2 className="mt-2 text-center text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Admin Login
-          </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-green-800 to-green-700 p-4">
+      
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+
+        {/* LEFT SIDE IMAGE - hidden on mobile/tablets */}
+        <div
+          className="hidden lg:flex lg:w-1/2 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: "url('/Login.jpg')",
+          }}
+        ></div>
+
+        {/* RIGHT SIDE (FORM) */}
+        <div className="w-full lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
+          
+          <div className="w-full max-w-md mx-auto">
+            <div className="text-center lg:text-left mb-8">
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-800">
+                Welcome Back
+              </h2>
+              <p className="mt-2 text-gray-600">
+                Sign in to your admin dashboard
+              </p>
+            </div>
+
+            {/* FORM */}
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div className="space-y-4">
+
+                {/* USERNAME */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
+                                 focus:outline-none focus:ring-2 focus:ring-green-500
+                                 text-gray-900 placeholder-gray-400"
+                      placeholder="Enter your username or email"
+                    />
+
+                    {/* ICON */}
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PASSWORD */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
+                                 focus:outline-none focus:ring-2 focus:ring-green-500
+                                 text-gray-900 placeholder-gray-400"
+                      placeholder="Enter your password"
+                    />
+
+                    {/* ICON */}
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ERROR */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              {/* REMEMBER + FORGOT */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-green-600 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 text-sm text-gray-700">
+                    Remember me
+                  </label>
+                </div>
+
+                <a className="text-sm text-green-600 hover:text-green-500 cursor-pointer">
+                  Forgot your password?
+                </a>
+              </div>
+
+              {/* BUTTON */}
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center items-center py-3 px-4 rounded-lg shadow-sm
+                             text-sm font-medium text-white bg-green-600 hover:bg-green-700
+                             focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500
+                             disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in to dashboard"
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <p className="mt-6 text-center text-xs text-gray-500">
+              © 2024 EcoAdmin. All rights reserved.
+            </p>
+          </div>
         </div>
-        <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username or Email
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm sm:text-base"
-                placeholder="Enter your username or email"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm sm:text-base"
-                placeholder="Enter your password"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 sm:px-4 sm:py-3 rounded text-sm">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Logging in...' : 'Login'}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
 };
-
 
 export default Login;
