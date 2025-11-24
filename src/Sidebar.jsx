@@ -4,7 +4,7 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  RectangleStackIcon,
+  RectangleStackIcon,AdjustmentsHorizontalIcon 
 } from "@heroicons/react/24/outline";
 import { NavLink } from "react-router-dom";
 
@@ -14,7 +14,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm  z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}
@@ -55,6 +55,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
           {[
             { path: "home", label: "Dashboard", icon: <HomeIcon className="w-4" /> },
             { path: "categories", label: "Categories", icon: <RectangleStackIcon className="w-4" /> },
+                        { path: "attributes", label: "Attributes", icon: <AdjustmentsHorizontalIcon  className="w-4" /> },
+
             { path: "products", label: "Products", icon: <CubeIcon className="w-4" /> },
             { path: "analytics", label: "Analytics", icon: <ChartBarIcon className="w-4" /> },
             { path: "settings", label: "Settings", icon: <Cog6ToothIcon className="w-4" /> },

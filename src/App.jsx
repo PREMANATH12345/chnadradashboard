@@ -8,6 +8,7 @@ import Products from "./pages/Products";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Categories from "./pages/Categories";
+import Attributes from "./pages/Attributes";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -74,6 +75,7 @@ function App() {
           <Route path="home" element={<Homepage user={user} />} />
           <Route path="products" element={<Products />} />
           <Route path="categories" element={<Categories />} />
+           <Route path="attributes" element={<Attributes />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>

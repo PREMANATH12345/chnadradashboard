@@ -1,21 +1,31 @@
 // Categories.js
 import { useState, useEffect } from 'react';
 import { DoAll } from '../api/auth';
-import { Plus, Edit2, Trash2, Loader, Tag, Gem, Sparkles } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader, Tag, Gem, Sparkles, Search, Filter, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CategoryModal from "../Models/Categories/CategoryModal"
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [categoryDetails, setCategoryDetails] = useState({});
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    applyFiltersAndSearch();
+  }, [categories, searchTerm, selectedFilter, sortBy]);
 
   const fetchCategories = async () => {
     try {
@@ -44,7 +54,6 @@ const Categories = () => {
     
     for (const category of categoriesData) {
       try {
-        
         // Fetch style items for this specific category
         const styleResponse = await DoAll({
           action: 'get',
@@ -59,10 +68,8 @@ const Categories = () => {
           where: { category_id: category.id }
         });
 
-
         const styles = styleResponse.data.success && styleResponse.data.data ? styleResponse.data.data : [];
         const metals = metalResponse.data.success && metalResponse.data.data ? metalResponse.data.data : [];
-
 
         details[category.id] = {
           styles: Array.isArray(styles) ? styles : [],
@@ -75,6 +82,62 @@ const Categories = () => {
     }
 
     setCategoryDetails(details);
+  };
+
+  const applyFiltersAndSearch = () => {
+    let filtered = [...categories];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(category =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.slug.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply category type filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(category => {
+        const details = categoryDetails[category.id] || { styles: [], metals: [] };
+        const styles = Array.isArray(details.styles) ? details.styles : [];
+        const metals = Array.isArray(details.metals) ? details.metals : [];
+
+        switch (selectedFilter) {
+          case 'with-styles':
+            return styles.length > 0;
+          case 'with-metals':
+            return metals.length > 0;
+          case 'with-both':
+            return styles.length > 0 && metals.length > 0;
+          case 'empty':
+            return styles.length === 0 && metals.length === 0;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'styles-count':
+          const aStyles = Array.isArray(categoryDetails[a.id]?.styles) ? categoryDetails[a.id].styles.length : 0;
+          const bStyles = Array.isArray(categoryDetails[b.id]?.styles) ? categoryDetails[b.id].styles.length : 0;
+          return bStyles - aStyles;
+        case 'metals-count':
+          const aMetals = Array.isArray(categoryDetails[a.id]?.metals) ? categoryDetails[a.id].metals.length : 0;
+          const bMetals = Array.isArray(categoryDetails[b.id]?.metals) ? categoryDetails[b.id].metals.length : 0;
+          return bMetals - aMetals;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredCategories(filtered);
   };
 
   const handleAddNew = () => {
@@ -124,6 +187,12 @@ const Categories = () => {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedFilter('all');
+    setSortBy('name');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -139,8 +208,10 @@ const Categories = () => {
     );
   }
 
+  const hasActiveFilters = searchTerm || selectedFilter !== 'all' || sortBy !== 'name';
+
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
@@ -162,11 +233,96 @@ const Categories = () => {
               <span>Add Category</span>
             </button>
           </div>
+
+          {/* Search and Filter Section */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search categories by name or slug..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm appearance-none"
+              >
+                <option value="all">All Categories</option>
+                <option value="with-styles">With Style Options</option>
+                <option value="with-metals">With Metal Options</option>
+                <option value="with-both">With Both Options</option>
+                <option value="empty">No Options</option>
+              </select>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex space-x-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              >
+                <option value="name">Sort by: Name A-Z</option>
+                <option value="name-desc">Sort by: Name Z-A</option>
+                <option value="styles-count">Sort by: Most Styles</option>
+                <option value="metals-count">Sort by: Most Metals</option>
+              </select>
+              
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-gray-100 hover:text-gray-800 border border-gray-300 rounded-lg bg-red-500 transition-colors duration-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+              {/* Results Count */}
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Showing {filteredCategories.length} of {categories.length} categories
+              {hasActiveFilters && ' (filtered)'}
+            </p>
+            
+            {hasActiveFilters && filteredCategories.length === 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+          </div>
+
+        
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {categories.map(category => {
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredCategories.map(category => {
             const details = categoryDetails[category.id] || { styles: [], metals: [] };
             const styles = Array.isArray(details.styles) ? details.styles : [];
             const metals = Array.isArray(details.metals) ? details.metals : [];
@@ -269,20 +425,36 @@ const Categories = () => {
         </div>
 
         {/* Empty State */}
-        {categories.length === 0 && (
+        {filteredCategories.length === 0 && (
           <div className="text-center py-12">
             <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Tag className="w-8 h-8 text-emerald-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">No Categories Yet</h3>
-              <p className="text-sm text-gray-600 mb-6">Get started by creating your first category to organize your products</p>
-              <button
-                onClick={handleAddNew}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-              >
-                Create Your First Category
-              </button>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                {hasActiveFilters ? 'No categories found' : 'No Categories Yet'}
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                {hasActiveFilters 
+                  ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                  : 'Get started by creating your first category to organize your products'
+                }
+              </p>
+              {hasActiveFilters ? (
+                <button
+                  onClick={clearFilters}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                >
+                  Clear All Filters
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddNew}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                >
+                  Create Your First Category
+                </button>
+              )}
             </div>
           </div>
         )}
