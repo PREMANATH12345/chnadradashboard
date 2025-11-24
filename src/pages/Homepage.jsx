@@ -22,8 +22,37 @@ const Homepage = () => {
     return localStorage.getItem('token');
   };
 
+  // Add categories state
+  const [categories, setCategories] = useState([]);
+
+  // Fetch categories function
+  const fetchCategories = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'get',
+          table: 'category'
+        })
+      });
+
+      const result = await response.json();
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     loadSections();
+    // Load categories when component mounts
+    fetchCategories().then(setCategories);
   }, []);
 
   const loadSections = async () => {
@@ -360,15 +389,11 @@ const Homepage = () => {
           items: [
             {
               id: 1,
-              title: 'Electronics',
+              title: '',
               image: '',
-              categoryLink: '/category/electronics'
-            },
-            {
-              id: 2,
-              title: 'Fashion',
-              image: '',
-              categoryLink: '/category/fashion'
+              categoryLink: '/category',
+              selectedCategories: [], // New field for selected categories
+              categoryImages: {} // New field for category-specific images
             }
           ]
         };
@@ -415,241 +440,162 @@ const Homepage = () => {
     }
   };
 
-  // Hero Slider Component - IMAGES ONLY
-  const HeroSlider = ({ items }) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
-    
-    useEffect(() => {
-      if (items.length <= 1) return;
-      
-      const timer = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % items.length);
-      }, 5000);
-      
-      return () => clearInterval(timer);
-    }, [items.length]);
-    
-    const nextSlide = () => {
-      setCurrentSlide((prev) => (prev + 1) % items.length);
-    };
-    
-    const prevSlide = () => {
-      setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-    };
-    
-    const goToSlide = (index) => {
-      setCurrentSlide(index);
-    };
+  // Category Selector Component
+ const CategorySelector = ({ item, onUpdate }) => {
+  const [loading, setLoading] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState(item.selectedCategories || []);
+  const [categoryImages, setCategoryImages] = useState(item.categoryImages || {});
 
-    const getImageUrl = (imagePath) => {
-      if (!imagePath) return '';
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-        return imagePath;
-      }
-      return `https://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    };
+  useEffect(() => {
+    setSelectedCategories(item.selectedCategories || []);
+    setCategoryImages(item.categoryImages || {});
+  }, [item]);
+
+  const toggleCategory = (categoryId) => {
+    const newSelectedCategories = selectedCategories.includes(categoryId)
+      ? selectedCategories.filter(id => id !== categoryId)
+      : [...selectedCategories, categoryId];
     
-    return (
-      <div className="relative w-full h-screen overflow-hidden">
-        {items.map((item, idx) => (
-          <div
-            key={idx}
-            className={`transition-opacity duration-500 ease-in-out w-full h-full ${
-              idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
-            }`}
-          >
-            {item.image && (
-              <img 
-                src={getImageUrl(item.image)} 
-                alt={item.title || 'Hero'} 
-                className="w-full h-full object-cover"
-                onError={(e) => { 
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-        ))}
-        
-        {/* Navigation Arrows */}
-        {items.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
-        
-        {/* Dots Indicator */}
-        {items.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {items.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToSlide(idx)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    setSelectedCategories(newSelectedCategories);
+    onUpdate(newSelectedCategories, categoryImages);
   };
 
-  // Collection Slider Component - MULTIPLE IMAGES PER COLLECTION
-  const CollectionSlider = ({ items }) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const itemsPerView = 3;
-    
-    const nextSlide = () => {
-      setCurrentIndex((prev) => 
-        prev + itemsPerView >= items.length ? 0 : prev + 1
-      );
-    };
-    
-    const prevSlide = () => {
-      setCurrentIndex((prev) => 
-        prev === 0 ? Math.max(0, items.length - itemsPerView) : prev - 1
-      );
-    };
-    
-    const visibleItems = items.slice(currentIndex, currentIndex + itemsPerView);
-    
-    useEffect(() => {
-      if (items.length <= itemsPerView) return;
-      
-      const timer = setInterval(() => {
-        nextSlide();
-      }, 4000);
-      
-      return () => clearInterval(timer);
-    }, [items.length, currentIndex]);
+  const handleCategoryImageUpload = async (e, categoryId) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    const getImageUrl = (imagePath) => {
-      if (!imagePath) return '';
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-        return imagePath;
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    const newCategoryImages = { ...categoryImages, [categoryId]: previewUrl };
+    setCategoryImages(newCategoryImages);
+    onUpdate(selectedCategories, newCategoryImages);
+
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/upload-images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.data.paths.length > 0) {
+        const updatedCategoryImages = { ...categoryImages, [categoryId]: result.data.paths[0] };
+        setCategoryImages(updatedCategoryImages);
+        onUpdate(selectedCategories, updatedCategoryImages);
+      } else {
+        alert('Failed to upload category image: ' + result.message);
+        const failedCategoryImages = { ...categoryImages };
+        delete failedCategoryImages[categoryId];
+        setCategoryImages(failedCategoryImages);
+        onUpdate(selectedCategories, failedCategoryImages);
       }
-      return `https://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    };
+    } catch (error) {
+      console.error('Error uploading category image:', error);
+      alert('Error uploading category image');
+      const failedCategoryImages = { ...categoryImages };
+      delete failedCategoryImages[categoryId];
+      setCategoryImages(failedCategoryImages);
+      onUpdate(selectedCategories, failedCategoryImages);
+    }
+  };
 
-    // Function to ensure we always have exactly 4 image slots
-    const renderImageGrid = (images) => {
-      const imageArray = images || [];
+  const removeCategoryImage = (categoryId) => {
+    const newCategoryImages = { ...categoryImages };
+    delete newCategoryImages[categoryId];
+    setCategoryImages(newCategoryImages);
+    onUpdate(selectedCategories, newCategoryImages);
+  };
+
+  if (loading) {
+    return <div className="text-sm text-gray-500">Loading categories...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium mb-2">Select Categories</label>
       
-      return (
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          {/* Always render exactly 4 slots */}
-          {Array.from({ length: 4 }).map((_, imageIdx) => {
-            const image = imageArray[imageIdx];
-            
-            return (
-              <div key={imageIdx} className="relative overflow-hidden aspect-square bg-gray-100 rounded-lg">
-                {image ? (
-                  <img 
-                    src={getImageUrl(image)} 
-                    alt={`Collection image ${imageIdx + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    onError={(e) => { 
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs rounded-lg">
-                    No Image {imageIdx + 1}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {categories.length === 0 ? (
+        <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
+          No categories found. Please create categories in the Products section first.
         </div>
-      );
-    };
-    
-    return (
-      <div className="py-16 px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {visibleItems.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-lg overflow-hidden group p-4 border border-gray-100 hover:shadow-lg transition-shadow">
-                  {/* 2x2 Image Grid - Always shows 4 slots */}
-                  {renderImageGrid(item.images)}
-                  
-                  {/* Collection Title and Info */}
-                  <div className="text-center">
-                    <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                    {item.subtitle && (
-                      <p className="text-gray-600 text-sm mb-3">{item.subtitle}</p>
-                    )}
-                    {item.cta && (
-                      <button className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm">
-                        {item.cta}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Navigation Arrows for Collection */}
-            {items.length > itemsPerView && (
-              <>
-                <button
-                  onClick={prevSlide}
-                  className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={nextSlide}
-                  className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-          
-          {/* Dots Indicator for Collection */}
-          {items.length > itemsPerView && (
-            <div className="flex justify-center mt-8 space-x-2">
-              {Array.from({ length: Math.ceil(items.length / itemsPerView) }).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentIndex(idx * itemsPerView)}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    Math.floor(currentIndex / itemsPerView) === idx 
-                      ? 'bg-blue-600' 
-                      : 'bg-gray-300'
-                  }`}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {categories.map((category) => (
+            <div key={category.id} className="border border-gray-200 rounded-lg p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(category.id)}
+                  onChange={() => toggleCategory(category.id)}
+                  className="w-4 h-4 text-blue-600"
                 />
-              ))}
+                <span className="font-medium text-gray-900">{category.name}</span>
+              </label>
+              
+              {selectedCategories.includes(category.id) && (
+                <div className="mt-3 space-y-2">
+                  <label className="block text-xs font-medium text-gray-500">
+                    {category.name} Image
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCategoryImageUpload(e, category.id)}
+                      className="hidden"
+                      id={`category-image-${category.id}`}
+                    />
+                    <label
+                      htmlFor={`category-image-${category.id}`}
+                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center gap-2 cursor-pointer text-sm"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload {category.name} Image
+                    </label>
+                  </div>
+                  
+                  {categoryImages[category.id] && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img 
+                        src={categoryImages[category.id]} 
+                        alt={category.name}
+                        className="h-16 w-16 object-cover rounded border"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <button
+                        onClick={() => removeCategoryImage(category.id)}
+                        className="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
-      </div>
-    );
-  };
+      )}
+      
+      {selectedCategories.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-sm text-green-800">
+            {selectedCategories.length} {selectedCategories.length === 1 ? 'category' : 'categories'} selected
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
   const SectionEditor = ({ section }) => {
     const [formData, setFormData] = useState(() => {
@@ -757,7 +703,9 @@ const Homepage = () => {
             id,
             title: '',
             image: '',
-            categoryLink: '/category'
+            categoryLink: '/category',
+            selectedCategories: [],
+            categoryImages: {}
           };
         default:
           return { id };
@@ -1160,7 +1108,7 @@ const Homepage = () => {
             {formData.items?.map((item, idx) => (
               <div key={idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-lg">Category {idx + 1}</h3>
+                  <h3 className="font-semibold text-lg">Category Highlight {idx + 1}</h3>
                   {(formData.items?.length || 0) > 1 && (
                     <button
                       onClick={() => removeItem(idx)}
@@ -1181,7 +1129,18 @@ const Homepage = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
-                  {renderImageUpload(item.image || '', (value) => updateItem(idx, 'image', value))}
+                  
+                  {/* Main Category Image */}
+                  {renderImageUpload(item.image || '', (value) => updateItem(idx, 'image', value), "Main Category Image")}
+                  
+                  {/* Category Selection */}
+                  <CategorySelector 
+                    item={item}
+                    onUpdate={(selectedCategories, categoryImages) => {
+                      updateItem(idx, 'selectedCategories', selectedCategories);
+                      updateItem(idx, 'categoryImages', categoryImages);
+                    }}
+                  />
                   
                   <div>
                     <label className="block text-sm font-medium mb-1">Category Link</label>
@@ -1201,7 +1160,7 @@ const Homepage = () => {
               className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              Add Category
+              Add Category Highlight
             </button>
             
             <div className="flex gap-3 pt-4">
@@ -1230,6 +1189,242 @@ const Homepage = () => {
           </div>
         );
     }
+  };
+
+  // Hero Slider Component - IMAGES ONLY
+  const HeroSlider = ({ items }) => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+    
+    useEffect(() => {
+      if (items.length <= 1) return;
+      
+      const timer = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % items.length);
+      }, 5000);
+      
+      return () => clearInterval(timer);
+    }, [items.length]);
+    
+    const nextSlide = () => {
+      setCurrentSlide((prev) => (prev + 1) % items.length);
+    };
+    
+    const prevSlide = () => {
+      setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
+    };
+    
+    const goToSlide = (index) => {
+      setCurrentSlide(index);
+    };
+
+   const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+  return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+};
+    
+    return (
+      <div className="relative w-full h-screen overflow-hidden">
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className={`transition-opacity duration-500 ease-in-out w-full h-full ${
+              idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
+            }`}
+          >
+            {item.image && (
+              <img 
+                src={getImageUrl(item.image)} 
+                alt={item.title || 'Hero'} 
+                className="w-full h-full object-cover"
+                onError={(e) => { 
+                  e.target.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
+        ))}
+        
+        {/* Navigation Arrows */}
+        {items.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+        
+        {/* Dots Indicator */}
+        {items.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {items.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => goToSlide(idx)}
+                className={`w-3 h-3 rounded-full transition-all ${
+                  idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Collection Slider Component - MULTIPLE IMAGES PER COLLECTION
+  const CollectionSlider = ({ items }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const itemsPerView = 3;
+    
+    const nextSlide = () => {
+      setCurrentIndex((prev) => 
+        prev + itemsPerView >= items.length ? 0 : prev + 1
+      );
+    };
+    
+    const prevSlide = () => {
+      setCurrentIndex((prev) => 
+        prev === 0 ? Math.max(0, items.length - itemsPerView) : prev - 1
+      );
+    };
+    
+    const visibleItems = items.slice(currentIndex, currentIndex + itemsPerView);
+    
+    useEffect(() => {
+      if (items.length <= itemsPerView) return;
+      
+      const timer = setInterval(() => {
+        nextSlide();
+      }, 4000);
+      
+      return () => clearInterval(timer);
+    }, [items.length, currentIndex]);
+
+    const getImageUrl = (imagePath) => {
+      if (!imagePath) return '';
+      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+        return imagePath;
+      }
+      return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    };
+
+    // Function to ensure we always have exactly 4 image slots
+    const renderImageGrid = (images) => {
+      const imageArray = images || [];
+      
+      return (
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {/* Always render exactly 4 slots */}
+          {Array.from({ length: 4 }).map((_, imageIdx) => {
+            const image = imageArray[imageIdx];
+            
+            return (
+              <div key={imageIdx} className="relative overflow-hidden aspect-square bg-gray-100 rounded-lg">
+                {image ? (
+                  <img 
+                    src={getImageUrl(image)} 
+                    alt={`Collection image ${imageIdx + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => { 
+                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs rounded-lg">
+                    No Image {imageIdx + 1}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+    
+    return (
+      <div className="py-16 px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {visibleItems.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-lg overflow-hidden group p-4 border border-gray-100 hover:shadow-lg transition-shadow">
+                  {/* 2x2 Image Grid - Always shows 4 slots */}
+                  {renderImageGrid(item.images)}
+                  
+                  {/* Collection Title and Info */}
+                  <div className="text-center">
+                    <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+                    {item.subtitle && (
+                      <p className="text-gray-600 text-sm mb-3">{item.subtitle}</p>
+                    )}
+                    {item.cta && (
+                      <button className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm">
+                        {item.cta}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Navigation Arrows for Collection */}
+            {items.length > itemsPerView && (
+              <>
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Dots Indicator for Collection */}
+          {items.length > itemsPerView && (
+            <div className="flex justify-center mt-8 space-x-2">
+              {Array.from({ length: Math.ceil(items.length / itemsPerView) }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx * itemsPerView)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    Math.floor(currentIndex / itemsPerView) === idx 
+                      ? 'bg-blue-600' 
+                      : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const PreviewSection = ({ section }) => {
@@ -1318,33 +1513,67 @@ const Homepage = () => {
         return <CollectionSlider items={section.data.items} />;
 
       case 'category-highlight':
-        return (
-          <div className="py-16 px-8 bg-gray-50">
-            <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {section.data.items.map((item, idx) => (
-                  <div key={idx} className="text-center cursor-pointer">
-                    {item.image ? (
-                      <img 
-                        src={getImageUrl(item.image)} 
-                        alt={item.title || 'Category'} 
-                        className="w-full aspect-square object-cover rounded-lg shadow-sm"
-                        onError={(e) => { 
-                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                        No Image
+  return (
+    <div className="py-16 px-8 bg-gray-50">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-4xl font-bold text-center mb-12">{section.name}</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {section.data.items.map((item, idx) => (
+            <React.Fragment key={idx}>
+              {/* Main category item */}
+              {item.image && (
+                <div className="text-center cursor-pointer group">
+                  <img 
+                    src={getImageUrl(item.image)} 
+                    alt={item.title || 'Category'} 
+                    className="w-full aspect-square object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow"
+                    onError={(e) => { 
+                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                  {item.title && (
+                    <h3 className="font-semibold mt-3 text-gray-900">{item.title}</h3>
+                  )}
+                </div>
+              )}
+              
+              {/* Selected categories with their images */}
+              {item.selectedCategories && item.selectedCategories.length > 0 && (
+                <>
+                  {item.selectedCategories.map((categoryId, catIdx) => {
+                    const category = categories.find(cat => cat.id === categoryId);
+                    const categoryImage = item.categoryImages?.[categoryId];
+                    
+                    return (
+                      <div key={catIdx} className="text-center cursor-pointer group">
+                        {categoryImage ? (
+                          <img 
+                            src={getImageUrl(categoryImage)} 
+                            alt={category?.name || 'Sub Category'} 
+                            className="w-full aspect-square object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow"
+                            onError={(e) => { 
+                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+                            {category?.name || 'No Image'}
+                          </div>
+                        )}
+                        {category && (
+                          <h3 className="font-semibold mt-3 text-gray-900">{category.name}</h3>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
+                    );
+                  })}
+                </>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
       default:
         return null;
     }
