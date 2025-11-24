@@ -161,7 +161,7 @@ const fetchAttributes = async () => {
       const response = await DoAll({
         action: 'delete',
         table: 'attribute_options',
-        id: optionId
+        where: {id:optionId}
       });
       
       if (response.data.success) {
@@ -196,7 +196,7 @@ const fetchAttributes = async () => {
       await DoAll({
         action: 'delete',
         table: 'attributes',
-        id: attributeId
+        where: {id:attributeId}
       });
       
       toast.success('Attribute deleted successfully!');
@@ -413,7 +413,7 @@ const fetchAttributes = async () => {
                         options.map(option => (
                           <div 
                             key={option.id} 
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 group/option hover:bg-white hover:border-emerald-200 transition-all duration-200"
+                            className="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg border border-gray-200 group/option hover:bg-white hover:border-emerald-200 transition-all duration-200"
                           >
                           <div className="flex-1">
   <div className="text-sm text-gray-800 flex items-center gap-3">

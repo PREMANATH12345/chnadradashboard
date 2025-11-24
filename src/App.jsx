@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-
+import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Dashboard from "./Dashboard"; 
 import Homepage from "./pages/Homepage";
@@ -46,6 +46,41 @@ function App() {
 
   return (
     <Router>
+       <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            padding: "14px 18px",
+            borderRadius: "12px",
+            fontSize: "15px",
+            fontWeight: 500,
+          },
+          success: {
+            style: {
+              background: "#E8FBE8",
+              color: "#0B7A0B",
+              borderLeft: "6px solid #0B7A0B",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+            },
+            iconTheme: {
+              primary: "#0B7A0B",
+              secondary: "#E8FBE8",
+            },
+          },
+          error: {
+            style: {
+              background: "#FFECEC",
+              color: "#C81616",
+              borderLeft: "6px solid #C81616",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+            },
+            iconTheme: {
+              primary: "#C81616",
+              secondary: "#FFECEC",
+            },
+          },
+        }}
+      />
       <Routes>
 
         {/* Login Page */}

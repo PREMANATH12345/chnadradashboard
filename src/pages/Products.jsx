@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-// import VariantPricingModal from '../components/VariantPricingModal';
-
-
+import { DoAll } from '../api/auth';
 
 const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
@@ -11,29 +9,32 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  // const [variantModal, setVariantModal] = useState(null);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/doAll`,
-        { action: 'get', table: 'category' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.success) {
-        setCategories(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    } finally {
-      setLoading(false);
+const fetchCategories = async () => {
+  setLoading(true);
+  try {
+    const response = await DoAll({
+      action: 'get',
+      table: 'category'
+    });
+
+    if (response.data.success) {
+      setCategories(response.data.data);
+    } else {
+      toast.error("Failed to load categories");
     }
-  };
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    toast.error("Something went wrong while fetching categories");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (loading) {
     return <div className="p-4 sm:p-8 text-center">Loading...</div>;
@@ -41,89 +42,82 @@ const Products = () => {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Products Management</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
+        
+        {/* Add Button - Always Visible */}
+        <button
+          onClick={() => {
+            if (categories.length === 0) {
+              alert('Please create a category first!');
+              return;
+            }
+            setView('add-products');
+          }}
+          className={`w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 ${
+            categories.length > 0 
+              ? 'hover:bg-blue-700 transition-colors' 
+              : 'opacity-50 cursor-not-allowed'
+          }`}
+        >
+          <span>+</span>
+          <span>Add Product</span>
+        </button>
+      </div>
 
       {view === 'main' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Add Category */}
-          <div 
-            onClick={() => setView('add-category')}
-            className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
-          >
-            <div className="text-center">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">📁</div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Add Category</h3>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Create and manage product categories</p>
+        <div className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-2xl font-bold text-blue-600">{categories.length}</div>
+              <div className="text-sm text-gray-600">Total Categories</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-2xl font-bold text-green-600">0</div>
+              <div className="text-sm text-gray-600">Active Products</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-2xl font-bold text-purple-600">0</div>
+              <div className="text-sm text-gray-600">Featured Products</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-2xl font-bold text-orange-600">0</div>
+              <div className="text-sm text-gray-600">Low Stock</div>
             </div>
           </div>
 
-          {/* Attributes */}
-          <div 
-            onClick={() => setView('attributes')}
-            className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md border-2 border-gray-200 hover:border-blue-500 cursor-pointer transition-all"
-          >
-            <div className="text-center">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">⚙️</div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Attributes</h3>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Size, Metal, Diamond</p>
+          {/* Products Display Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 className="text-lg font-semibold text-gray-900">All Products</h2>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <select className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-md text-sm">
+                    <option>All Categories</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <button className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50">
+                    🔍
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* Add Products */}
-          <div 
-            onClick={() => {
-              if (categories.length === 0) {
-                alert('Please create a category first!');
-                return;
-              }
-              setView('add-products');
-            }}
-            className={`bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md border-2 border-gray-200 cursor-pointer transition-all ${
-              categories.length > 0 ? 'hover:border-blue-500' : 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <div className="text-center">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">🛍️</div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Add Products</h3>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Add products to your categories</p>
-              {categories.length === 0 && (
-                <p className="text-red-500 text-xs sm:text-sm mt-1 sm:mt-2">Create a category first</p>
-              )}
-            </div>
-          </div>
-
-          {/* View Products */}
-          <div 
-            onClick={() => {
-              if (categories.length === 0) {
-                alert('No categories available!');
-                return;
-              }
-              setView('view-products');
-            }}
-            className={`bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md border-2 border-gray-200 cursor-pointer transition-all ${
-              categories.length > 0 ? 'hover:border-blue-500' : 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <div className="text-center">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">👁️</div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">View Products</h3>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Browse all created products</p>
-            </div>
+            
+            <ViewProducts 
+              categories={categories}
+              onAddProduct={() => {
+                if (categories.length === 0) {
+                  alert('Please create a category first!');
+                  return;
+                }
+                setView('add-products');
+              }}
+            />
           </div>
         </div>
-      )}
-
-      {view === 'add-category' && (
-        <AddCategory 
-          onBack={() => setView('main')} 
-          onRefresh={fetchCategories}
-          categories={categories}
-        />
-      )}
-
-      {view === 'attributes' && (
-        <AttributesTab onBack={() => setView('main')} />
       )}
 
       {view === 'add-products' && (
@@ -131,14 +125,262 @@ const Products = () => {
           onBack={() => setView('main')}
           categories={categories}
           onRefresh={fetchCategories}
-          // variantModal={variantModal}
-          // setVariantModal={setVariantModal}
         />
       )}
+    </div>
+  );
+};
 
-      {view === 'view-products' && (
-        <ViewProducts 
-          onBack={() => setView('main')}
+// ==================== VIEW PRODUCTS COMPONENT ====================
+const ViewProducts = ({ categories, onAddProduct }) => {
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [imagePopup, setImagePopup] = useState(null);
+  const [editProduct, setEditProduct] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
+  const toggleCategory = (catId) => {
+    setSelectedCategoryIds(prev => {
+      const newSelection = prev.includes(catId)
+        ? prev.filter(id => id !== catId)
+        : [...prev, catId];
+      return newSelection;
+    });
+  };
+
+  const fetchProducts = useCallback(async () => {
+    if (selectedCategoryIds.length === 0) {
+      setProducts([]);
+      return;
+    }
+
+    setLoading(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/products/by-category`,
+        { category_ids: selectedCategoryIds },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log(response)
+
+      if (response.data.success) {
+        setProducts(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      alert('Error loading products');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategoryIds]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategoryIds, fetchProducts]);
+
+  const handleDelete = async (productId) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.post(
+        `${API_URL}/products/delete`,
+        { product_id: productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert('Product deleted successfully');
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Error deleting product');
+    }
+  };
+
+  const filteredProducts = products
+    .filter(product => 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.slug.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'price-high':
+          return b.product_details.price - a.product_details.price;
+        case 'price-low':
+          return a.product_details.price - b.product_details.price;
+        case 'discount':
+          return b.product_details.discount - a.product_details.discount;
+        default:
+          return 0;
+      }
+    });
+
+  return (
+    <div className="bg-white rounded-lg">
+      {/* Mobile Filter Bar */}
+      <div className="lg:hidden p-4 border-b border-gray-200">
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            placeholder="🔍 Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+          >
+            <option value="name">📝 Name</option>
+            <option value="price-high">💰 High to Low</option>
+            <option value="price-low">💰 Low to High</option>
+            <option value="discount">🎯 Discount</option>
+          </select>
+        </div>
+        
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => toggleCategory(cat.id)}
+              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                selectedCategoryIds.includes(cat.id)
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row">
+        {/* Desktop Sidebar - Categories */}
+        <div className="hidden lg:block w-64 flex-shrink-0 border-r border-gray-200 p-4">
+          <h3 className="font-semibold text-lg mb-4">📂 Categories</h3>
+          <div className="space-y-2">
+            {categories.map(cat => (
+              <label
+                key={cat.id}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategoryIds.includes(cat.id)}
+                  onChange={() => toggleCategory(cat.id)}
+                  className="w-5 h-5"
+                />
+                <span className="font-medium text-sm">{cat.name}</span>
+              </label>
+            ))}
+          </div>
+
+          {selectedCategoryIds.length > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-800">
+                ✅ {selectedCategoryIds.length} {selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Products Grid */}
+        <div className="flex-1">
+          {/* Desktop Toolbar */}
+          <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200">
+            <div className="flex items-center gap-4">
+              <input
+                type="text"
+                placeholder="🔍 Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm w-64"
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="name">📝 Name</option>
+                <option value="price-high">💰 High to Low</option>
+                <option value="price-low">💰 Low to High</option>
+                <option value="discount">🎯 Discount</option>
+              </select>
+            </div>
+            <div className="text-sm text-gray-600">
+              📊 {filteredProducts.length} products found
+            </div>
+          </div>
+
+          {/* Products Grid */}
+          {selectedCategoryIds.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-6xl mb-4">📁</div>
+              <p className="text-lg mb-4">Select a category to view products</p>
+              <button
+                onClick={onAddProduct}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+              >
+                ➕ Add Your First Product
+              </button>
+            </div>
+          ) : loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-6xl mb-4">😔</div>
+              <p className="text-lg mb-2">No products found</p>
+              <p className="text-sm mb-4">Try selecting different categories or search terms</p>
+              <button
+                onClick={onAddProduct}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+              >
+                ➕ Add New Product
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={setEditProduct}
+                  onDelete={handleDelete}
+                  onViewImages={setImagePopup}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Image Popup */}
+      {imagePopup && (
+        <ImagePopup images={imagePopup} onClose={() => setImagePopup(null)} />
+      )}
+
+      {/* Edit Product Panel */}
+      {editProduct && (
+        <EditProductPanel
+          product={editProduct}
+          onClose={() => setEditProduct(null)}
+          onSave={() => {
+            setEditProduct(null);
+            fetchProducts();
+          }}
           categories={categories}
         />
       )}
@@ -146,457 +388,640 @@ const Products = () => {
   );
 };
 
-// ==================== ATTRIBUTES TAB ====================
-const AttributesTab = ({ onBack }) => {
-  const [activeAttribute, setActiveAttribute] = useState(null);
-  const [attributes, setAttributes] = useState({
-    metal: { id: null, options: [] },
-    diamond: { id: null, options: [] },
-    size: { id: null, options: [] }
-  });
-  const [newOption, setNewOption] = useState({ name: '', value: '', size_mm: '' });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAttributes();
-  }, []);
-
-  const fetchAttributes = async () => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await axios.get(`${API_URL}/attributes`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        const grouped = { metal: { id: null, options: [] }, diamond: { id: null, options: [] }, size: { id: null, options: [] } };
-        response.data.data.forEach(attr => {
-          grouped[attr.type] = { id: attr.id, options: attr.options };
-        });
-        setAttributes(grouped);
-      }
-    } catch (error) {
-      console.error('Fetch attributes error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddOption = async () => {
-    if (!newOption.name) {
-      alert('Please enter option name');
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    try {
-      // If attribute doesn't exist, create it first
-      if (!attributes[activeAttribute].id) {
-        const createRes = await axios.post(
-          `${API_URL}/attributes`,
-          {
-            name: activeAttribute === 'metal' ? 'Choice of Metal' : 
-                  activeAttribute === 'diamond' ? 'Diamond Quality' : 'Size',
-            type: activeAttribute,
-            options: [
-              activeAttribute === 'size' 
-                ? { option_name: newOption.name, option_value: newOption.value, size_mm: newOption.size_mm }
-                : { option_name: newOption.name, option_value: newOption.value || newOption.name }
-            ]
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        if (createRes.data.success) {
-          await fetchAttributes();
-          setNewOption({ name: '', value: '', size_mm: '' });
-          alert('Attribute created successfully!');
-        }
-      } else {
-        // Add option to existing attribute
-        const addRes = await axios.post(
-          `${API_URL}/attributes/add-option`,
-          {
-            attribute_id: attributes[activeAttribute].id,
-            option_name: newOption.name,
-            option_value: newOption.value || newOption.name,
-            size_mm: activeAttribute === 'size' ? newOption.size_mm : null
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        if (addRes.data.success) {
-          await fetchAttributes();
-          setNewOption({ name: '', value: '', size_mm: '' });
-          alert('Option added successfully!');
-        }
-      }
-    } catch (error) {
-      console.error('Add option error:', error);
-      alert('Error adding option');
-    }
-  };
-
-  const handleDeleteOption = async (optionId) => {
-    if (!confirm('Are you sure you want to delete this option?')) return;
-
-    const token = localStorage.getItem('token');
-    try {
-      const response = await axios.post(
-        `${API_URL}/attributes/delete-option`,
-        { option_id: optionId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      if (response.data.success) {
-        await fetchAttributes();
-        alert('Option deleted successfully');
-      }
-    } catch (error) {
-      console.error('Delete option error:', error);
-      alert('Error deleting option');
-    }
-  };
-
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+// ==================== PRODUCT CARD COMPONENT ====================
+const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const mainImage = product.product_details.images?.[0] || '';
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Attributes</h2>
-        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
-      </div>
-
-      <div className="mb-4 sm:mb-6">
-        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">Attributes</h3>
-        <p className="text-gray-600 text-sm sm:text-base md:text-lg">Size, Metal, Diamond</p>
-      </div>
-
-      {/* Attribute Selection Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <button
-          onClick={() => setActiveAttribute('metal')}
-          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'metal' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-        >
-          <h4 className="font-semibold text-base sm:text-lg">Choice of Metal</h4>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.metal.options.length} options</p>
-        </button>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+      {/* Product Image */}
+      <div className="relative">
+        <img
+          src={mainImage ? `https://apichandra.rxsquare.in${mainImage}` : '/api/placeholder/300/200'}
+          alt={product.name}
+          className="w-full h-48 object-cover rounded-t-lg"
+          onError={(e) => {
+            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect fill="%23f3f4f6" width="300" height="200"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="16" x="150" y="100" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+          }}
+        />
         
-        <button
-          onClick={() => setActiveAttribute('diamond')}
-          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'diamond' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-        >
-          <h4 className="font-semibold text-base sm:text-lg">Diamond Quality</h4>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.diamond.options.length} options</p>
-        </button>
-        
-        <button
-          onClick={() => setActiveAttribute('size')}
-          className={`p-4 sm:p-6 rounded-lg border-2 text-left ${activeAttribute === 'size' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-        >
-          <h4 className="font-semibold text-base sm:text-lg">Size</h4>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">{attributes.size.options.length} options</p>
-        </button>
+        {/* Discount Badge */}
+        {product.product_details.discount > 0 && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+            🎯 {product.product_details.discount}% OFF
+          </div>
+        )}
+
+        {/* Image Count Badge */}
+        {product.product_details.images?.length > 0 && (
+          <button
+            onClick={() => onViewImages(product.product_details.images)}
+            className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs"
+          >
+            📷 {product.product_details.images.length}
+          </button>
+        )}
       </div>
 
-      {/* Active Attribute Options */}
-      {activeAttribute && (
-        <div className="border-2 border-gray-200 rounded-lg p-4 sm:p-6">
-          <h4 className="font-semibold text-lg sm:text-xl mb-3 sm:mb-4">
-            {activeAttribute === 'metal' ? 'Choice of Metal' : 
-             activeAttribute === 'diamond' ? 'Diamond Quality' : 'Size'} Options
-          </h4>
+      {/* Product Info */}
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1 text-sm">{product.name}</h3>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="ml-2 text-gray-500 hover:text-gray-700 text-xs"
+          >
+            {isExpanded ? '▲' : '▼'}
+          </button>
+        </div>
 
-          {/* Existing Options */}
-          {attributes[activeAttribute].options.length > 0 && (
-            <div className="mb-4 sm:mb-6">
-              <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Existing Options:</p>
-              <div className="flex flex-wrap gap-1 sm:gap-2">
-                {attributes[activeAttribute].options.map(opt => (
-                  <div key={opt.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 rounded-md text-xs sm:text-sm">
-                    <span>{opt.option_name}</span>
-                    {activeAttribute === 'size' && opt.size_mm && (
-                      <span className="text-xs text-gray-500">({opt.size_mm}mm)</span>
-                    )}
-                    <button
-                      onClick={() => handleDeleteOption(opt.id)}
-                      className="text-red-500 hover:text-red-700 font-bold ml-1 sm:ml-2 text-sm sm:text-base"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <p className="text-xs text-gray-600 mb-3 line-clamp-1">🔗 {product.slug}</p>
+
+        {/* Price */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg font-bold text-green-600">
+            💰 ₹{product.product_details.price?.toLocaleString()}
+          </span>
+          {product.product_details.originalPrice > product.product_details.price && (
+            <span className="text-sm text-gray-500 line-through">
+              ₹{product.product_details.originalPrice?.toLocaleString()}
+            </span>
           )}
+        </div>
 
-          {/* Add New Option Form */}
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1">
-                {activeAttribute === 'metal' ? 'Metal Type (e.g., 14KT Yellow Gold, 18KT Rose Gold)' :
-                 activeAttribute === 'diamond' ? 'Diamond Quality (e.g., GH-SI, FG-SI)' :
-                 'Size Number'}
-              </label>
-              <input
-                type="text"
-                value={newOption.name}
-                onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                placeholder={activeAttribute === 'size' ? '5' : '14KT Yellow Gold'}
-              />
-            </div>
+        {/* Category & Gender */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+            📂 {product.product_details.category}
+          </span>
+          {product.product_details.gender?.map(gender => (
+            <span key={gender} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+              👤 {gender}
+            </span>
+          ))}
+        </div>
 
-            {activeAttribute === 'size' && (
-              <>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-1">Size Value (optional)</label>
-                  <input
-                    type="text"
-                    value={newOption.value}
-                    onChange={(e) => setNewOption({ ...newOption, value: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                    placeholder="5"
-                  />
+        {/* Expanded Details */}
+        {isExpanded && (
+          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+            {/* Featured Tags */}
+            {product.product_details.featured?.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-600 mb-1">⭐ Featured:</p>
+                <div className="flex flex-wrap gap-1">
+                  {product.product_details.featured.map((tag, idx) => (
+                    <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-1">Size in MM</label>
-                  <input
-                    type="text"
-                    value={newOption.size_mm}
-                    onChange={(e) => setNewOption({ ...newOption, size_mm: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                    placeholder="15.7"
-                  />
-                </div>
-              </>
+              </div>
             )}
 
-            <button
-              onClick={handleAddOption}
-              className="w-full py-2 sm:py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold text-sm sm:text-base"
-            >
-              {attributes[activeAttribute].options.length > 0 ? 'Add Another Option' : 'Add Option'}
-            </button>
+            {/* Style & Metal */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-gray-600">🎨 Style:</span>
+                <p className="font-medium">{product.product_details.style_id || 'N/A'}</p>
+              </div>
+              <div>
+                <span className="text-gray-600">💎 Metal:</span>
+                <p className="font-medium">{product.product_details.metal_id || 'N/A'}</p>
+              </div>
+            </div>
+
+            {/* Description */}
+            {product.product_details.description && (
+              <div>
+                <span className="text-xs text-gray-600">📝 Description:</span>
+                <p className="text-xs font-medium mt-1 line-clamp-2">{product.product_details.description}</p>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => onEdit(product)}
+            className="flex-1 py-2 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => onDelete(product.id)}
+            className="flex-1 py-2 bg-red-600 text-white rounded text-sm font-semibold hover:bg-red-700 flex items-center justify-center gap-1"
+          >
+            🗑️ Delete
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-// ==================== ADD CATEGORY COMPONENT ====================
-const AddCategory = ({ onBack, onRefresh, categories }) => {
-  const [categoryName, setCategoryName] = useState('');
-  const [categorySlug, setCategorySlug] = useState('');
-  const [byStyleItems, setByStyleItems] = useState(['']);
-  const [byMetalItems, setByMetalItems] = useState(['']);
+// ==================== IMAGE POPUP COMPONENT ====================
+const ImagePopup = ({ images, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="relative max-w-4xl w-full max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 text-white text-2xl z-10 hover:text-gray-300"
+        >
+          ✕
+        </button>
+        
+        <div className="relative">
+          <img
+            src={`https://apichandra.rxsquare.in${images[currentIndex]}`}
+            alt={`Product ${currentIndex + 1}`}
+            className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+          />
+          
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+              >
+                ‹
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Thumbnails */}
+        {images.length > 1 && (
+          <div className="flex gap-2 mt-4 overflow-x-auto justify-center">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                className={`flex-shrink-0 w-16 h-16 border-2 rounded ${
+                  idx === currentIndex ? 'border-blue-500' : 'border-transparent'
+                }`}
+              >
+                <img
+                  src={`https://apichandra.rxsquare.in${img}`}
+                  alt={`Thumb ${idx + 1}`}
+                  className="w-full h-full object-cover rounded"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="text-white text-center mt-2">
+          {currentIndex + 1} / {images.length}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== EDIT PRODUCT PANEL ====================
+const EditProductPanel = ({ product, onClose, onSave, categories }) => {
+  const [formData, setFormData] = useState({
+    name: product.name,
+    slug: product.slug,
+    description: product.product_details.description || '',
+    price: product.product_details.price,
+    originalPrice: product.product_details.originalPrice,
+    discount: product.product_details.discount,
+    featured: product.product_details.featured || [],
+    gender: product.product_details.gender || [],
+    style_id: product.product_details.style_id || '',
+    metal_id: product.product_details.metal_id || '',
+    category_id: product.category_id || ''
+  });
+
+  const [categoryData, setCategoryData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imageUrls, setImageUrls] = useState(product.product_details.images || []);
 
-  const generateSlug = (name) => {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  // Fetch category details when category changes
+  useEffect(() => {
+    if (formData.category_id) {
+      fetchCategoryDetails(formData.category_id);
+    }
+  }, [formData.category_id]);
+
+const fetchCategoryDetails = useCallback(async (catId) => {
+  if (!catId) return;
+
+  setLoading(true);
+
+  try {
+    // Fetch both API calls in parallel
+    const [stylesRes, metalsRes] = await Promise.all([
+      DoAll({
+        action: 'get',
+        table: 'by_style',
+        where: { category_id: catId }
+      }),
+      DoAll({
+        action: 'get',
+        table: 'by_metal_and_stone',
+        where: { category_id: catId }
+      })
+    ]);
+
+    setCategoryData({
+      styles: stylesRes?.data || [],
+      metals: metalsRes?.data || []
+    });
+
+  } catch (error) {
+    console.error("Error fetching category details:", error);
+    alert("Failed to load category details.");
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+
+  const handleImageSelect = (files) => {
+    const fileArray = Array.from(files);
+    const newImageUrls = fileArray.map(file => URL.createObjectURL(file));
+    setImageFiles(prev => [...prev, ...fileArray]);
+    setImageUrls(prev => [...prev, ...newImageUrls]);
   };
 
-  const handleCategoryNameChange = (value) => {
-    setCategoryName(value);
-    setCategorySlug(generateSlug(value));
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  const addStyleItem = () => setByStyleItems([...byStyleItems, '']);
-  const addMetalItem = () => setByMetalItems([...byMetalItems, '']);
-
-  const updateStyleItem = (index, value) => {
-    const updated = [...byStyleItems];
-    updated[index] = value;
-    setByStyleItems(updated);
+  const toggleFeatured = (feature) => {
+    setFormData(prev => ({
+      ...prev,
+      featured: prev.featured.includes(feature)
+        ? prev.featured.filter(f => f !== feature)
+        : [...prev.featured, feature]
+    }));
   };
 
-  const updateMetalItem = (index, value) => {
-    const updated = [...byMetalItems];
-    updated[index] = value;
-    setByMetalItems(updated);
-  };
-
-  const removeStyleItem = (index) => {
-    setByStyleItems(byStyleItems.filter((_, i) => i !== index));
-  };
-
-  const removeMetalItem = (index) => {
-    setByMetalItems(byMetalItems.filter((_, i) => i !== index));
+  const toggleGender = (gender) => {
+    setFormData(prev => ({
+      ...prev,
+      gender: prev.gender.includes(gender)
+        ? prev.gender.filter(g => g !== gender)
+        : [...prev.gender, gender]
+    }));
   };
 
   const handleSave = async () => {
-    if (!categoryName.trim()) {
-      alert('Please enter category name');
-      return;
-    }
-
-    const validStyles = byStyleItems.filter(item => item.trim());
-    const validMetals = byMetalItems.filter(item => item.trim());
-
-    if (validStyles.length === 0 || validMetals.length === 0) {
-      alert('Please add at least one style and one metal/stone option');
-      return;
-    }
-
     setSaving(true);
     const token = localStorage.getItem('token');
 
     try {
-      const catResponse = await axios.post(
-        `${API_URL}/doAll`,
+      let uploadedImageUrls = [...imageUrls.filter(url => !url.startsWith('blob:'))];
+
+      // Upload new images
+      if (imageFiles.length > 0) {
+        const formData = new FormData();
+        imageFiles.forEach(file => {
+          formData.append('images', file);
+        });
+
+        const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        if (uploadRes.data.success) {
+          uploadedImageUrls = [...uploadedImageUrls, ...uploadRes.data.data.images.map(img => img.url)];
+        }
+      }
+
+      const productDetails = {
+        ...product.product_details,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        originalPrice: parseFloat(formData.originalPrice),
+        discount: parseInt(formData.discount),
+        featured: formData.featured,
+        gender: formData.gender,
+        style_id: formData.style_id,
+        metal_id: formData.metal_id,
+        images: uploadedImageUrls,
+        category: categories.find(c => c.id == formData.category_id)?.name || ''
+      };
+
+      const response = await axios.post(
+        `${API_URL}/products/update`,
         {
-          action: 'insert',
-          table: 'category',
-          data: { name: categoryName, slug: categorySlug }
+          product_id: product.id,
+          category_id: formData.category_id,
+          name: formData.name,
+          slug: formData.slug,
+          product_details: productDetails
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const categoryId = catResponse.data.insertId;
-
-      for (const style of validStyles) {
-        await axios.post(
-          `${API_URL}/doAll`,
-          {
-            action: 'insert',
-            table: 'by_style',
-            data: { category_id: categoryId, name: style }
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      if (response.data.success) {
+        alert('✅ Product updated successfully');
+        onSave();
       }
-
-      for (const metal of validMetals) {
-        await axios.post(
-          `${API_URL}/doAll`,
-          {
-            action: 'insert',
-            table: 'by_metal_and_stone',
-            data: { category_id: categoryId, name: metal }
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-
-      alert('Category created successfully!');
-      onRefresh();
-      
-      setCategoryName('');
-      setCategorySlug('');
-      setByStyleItems(['']);
-      setByMetalItems(['']);
     } catch (error) {
-      console.error('Error saving category:', error);
-      alert('Error creating category');
+      console.error('Error updating product:', error);
+      alert('❌ Error updating product');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Add Category</h2>
-        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
-      </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+            ✏️ Edit Product
+          </h3>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-xl p-1"
+          >
+            ✕
+          </button>
+        </div>
 
-      {categories.length > 0 && (
-        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold mb-2 text-sm sm:text-base">Existing Categories:</h3>
-          <div className="flex flex-wrap gap-1 sm:gap-2">
-            {categories.map(cat => (
-              <span key={cat.id} className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm">
-                {cat.name}
-              </span>
-            ))}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Left Column - Basic Info */}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Category Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📂 Category *
+                </label>
+                <select
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Basic Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    📝 Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      name: e.target.value, 
+                      slug: e.target.value.toLowerCase().replace(/\s+/g, '-') 
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="Product name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🔗 Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                    readOnly
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🎨 Style *
+                  </label>
+                  <select
+                    value={formData.style_id}
+                    onChange={(e) => setFormData({ ...formData, style_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    disabled={!categoryData}
+                  >
+                    <option value="">Select Style</option>
+                    {categoryData?.styles.map(style => (
+                      <option key={style.id} value={style.id}>{style.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    💎 Metal/Stone *
+                  </label>
+                  <select
+                    value={formData.metal_id}
+                    onChange={(e) => setFormData({ ...formData, metal_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    disabled={!categoryData}
+                  >
+                    <option value="">Select Metal</option>
+                    {categoryData?.metals.map(metal => (
+                      <option key={metal.id} value={metal.id}>{metal.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📄 Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  placeholder="Product description..."
+                />
+              </div>
+
+              {/* Pricing Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    💰 Price *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    📊 Original Price
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.originalPrice}
+                    onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🎯 Discount %
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.discount}
+                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Features & Images */}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Featured Options */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  ⭐ Featured Tags
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
+                    <label key={feature} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.featured.includes(feature)}
+                        onChange={() => toggleFeatured(feature)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm">{feature}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gender Selection */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  👥 Target Gender/Age
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  {['Kids', 'Men', 'Women'].map(gender => (
+                    <label key={gender} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.gender.includes(gender)}
+                        onChange={() => toggleGender(gender)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm">{gender}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Management */}
+              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  🖼️ Product Images
+                </label>
+                
+                {/* Image Upload */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleImageSelect(e.target.files)}
+                  className="w-full text-sm mb-3"
+                />
+
+                {/* Image Previews */}
+                {imageUrls.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
+                    {imageUrls.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img 
+                          src={url.startsWith('blob:') ? url : `https://apichandra.rxsquare.in${url}`}
+                          alt={`Preview ${idx + 1}`}
+                          className="h-20 w-full object-cover rounded border"
+                        />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category Name</label>
-        <input
-          type="text"
-          value={categoryName}
-          onChange={(e) => handleCategoryNameChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-          placeholder="e.g., Rings, Necklaces, Earrings"
-        />
-        {categorySlug && (
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Slug: {categorySlug}</p>
-        )}
-      </div>
-
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category by Style</label>
-        {byStyleItems.map((item, index) => (
-          <div key={index} className="flex flex-col sm:flex-row gap-2 mb-2">
-            <input
-              type="text"
-              value={item}
-              onChange={(e) => updateStyleItem(index, e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-              placeholder="e.g., Couple Ring, Solitaire, Band"
-            />
-            {byStyleItems.length > 1 && (
-              <button
-                onClick={() => removeStyleItem(index)}
-                className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm sm:text-base"
-              >
-                Remove
-              </button>
+        {/* Footer Actions */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                💾 Save Changes
+              </>
             )}
-          </div>
-        ))}
-        <button
-          onClick={addStyleItem}
-          className="mt-2 px-3 sm:px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm sm:text-base"
-        >
-          + Add Style
-        </button>
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-semibold text-sm sm:text-base"
+          >
+            ❌ Cancel
+          </button>
+        </div>
       </div>
-
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Category by Metal & Stone</label>
-        {byMetalItems.map((item, index) => (
-          <div key={index} className="flex flex-col sm:flex-row gap-2 mb-2">
-            <input
-              type="text"
-              value={item}
-              onChange={(e) => updateMetalItem(index, e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-              placeholder="e.g., Gold Ring, Diamond Ring, Platinum"
-            />
-            {byMetalItems.length > 1 && (
-              <button
-                onClick={() => removeMetalItem(index)}
-                className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm sm:text-base"
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          onClick={addMetalItem}
-          className="mt-2 px-3 sm:px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm sm:text-base"
-        >
-          + Add Metal/Stone
-        </button>
-      </div>
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base"
-      >
-        {saving ? 'Saving...' : 'Save Category'}
-      </button>
     </div>
   );
 };
-
 
 const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -605,6 +1030,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [selectedMetals, setSelectedMetals] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeProductTab, setActiveProductTab] = useState(0);
 
   const FILE_TYPE_OPTIONS = ['STL File', 'CAM Product', 'Rubber Mold', 'Casting Model'];
 
@@ -658,6 +1084,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     setSelectedStyles([]);
     setSelectedMetals([]);
     setProducts([]);
+    setActiveProductTab(0);
     if (catId) fetchCategoryDetails(catId);
   };
 
@@ -677,7 +1104,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     const defaultStyle = selectedStyles.length > 0 ? selectedStyles[0] : '';
     const defaultMetal = selectedMetals.length > 0 ? selectedMetals[0] : '';
     
-    setProducts([...products, {
+    const newProduct = {
       id: Date.now(),
       name: '',
       description: '',
@@ -697,7 +1124,17 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       selectedDiamondOptions: [],
       selectedSizes: {},
       variantPricing: {}
-    }]);
+    };
+    
+    setProducts([...products, newProduct]);
+    setActiveProductTab(products.length);
+  };
+
+  const removeProduct = (productId) => {
+    setProducts(products.filter(p => p.id !== productId));
+    if (activeProductTab >= products.length - 1) {
+      setActiveProductTab(Math.max(0, products.length - 2));
+    }
   };
 
   const updateProduct = (id, field, value) => {
@@ -970,12 +1407,13 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
         }
       }
 
-      alert('Products and variants saved successfully!');
+      alert('✅ Products and variants saved successfully!');
       setProducts([]);
+      setActiveProductTab(0);
       onRefresh();
     } catch (error) {
       console.error('Error saving products:', error);
-      alert('Error saving products: ' + (error.response?.data?.message || error.message));
+      alert('❌ Error saving products: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -984,59 +1422,89 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const selectedCategory = categories.find(c => c.id == selectedCategoryId);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Add Products</h2>
-        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
+    <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 lg:p-6">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <span className="text-xl">📦</span>
+          </div>
+          <div>
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              Add Products
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Add new products with variant configurations
+            </p>
+          </div>
+        </div>
+        <button 
+          onClick={onBack}
+          className="w-full lg:w-auto px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2 transition-colors"
+        >
+          <span>←</span>
+          <span>Back to Products</span>
+        </button>
       </div>
 
-      <div className="mb-4 sm:mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Select Category</label>
+      {/* Category Selection */}
+      <div className="bg-blue-50 rounded-lg p-4 mb-4 sm:mb-6">
+        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <span className="bg-blue-500 text-white p-1 rounded">📂</span>
+          Select Category
+        </label>
         <select
           value={selectedCategoryId}
           onChange={(e) => handleCategorySelect(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base bg-white"
         >
-          <option value="">-- Select Category --</option>
+          <option value="">-- Select a Category --</option>
           {categories.map(cat => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
       </div>
 
+      {/* Category Details */}
       {categoryData && selectedCategory && (
-        <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-gray-200 rounded-lg">
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">{selectedCategory.name}</h3>
-          
-          <div className="mb-3 sm:mb-4">
-            <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Style:</p>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          {/* Styles Section */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <span className="bg-purple-100 p-1 rounded">🎨</span>
+              Available Styles
+            </h3>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
               {categoryData.styles.map(style => (
-                <label key={style.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+                <label key={style.id} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors border border-gray-200 min-w-[120px]">
                   <input
                     type="checkbox"
                     checked={selectedStyles.includes(style.id)}
                     onChange={() => toggleStyle(style.id)}
-                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                   />
-                  <span>{style.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-700">{style.name}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          <div>
-            <p className="font-medium text-gray-700 mb-1 sm:mb-2 text-sm sm:text-base">Category by Metal & Stone:</p>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
+          {/* Metals Section */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
+              <span className="bg-yellow-100 p-1 rounded">💎</span>
+              Available Metals & Stones
+            </h3>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
               {categoryData.metals.map(metal => (
-                <label key={metal.id} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 text-xs sm:text-sm">
+                <label key={metal.id} className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-yellow-50 transition-colors border border-gray-200 min-w-[120px]">
                   <input
                     type="checkbox"
                     checked={selectedMetals.includes(metal.id)}
                     onChange={() => toggleMetal(metal.id)}
-                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    className="w-4 h-4 text-yellow-600 focus:ring-yellow-500"
                   />
-                  <span>{metal.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-700">{metal.name}</span>
                 </label>
               ))}
             </div>
@@ -1044,248 +1512,306 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
         </div>
       )}
 
+      {/* Add Product Button */}
       {categoryData && (
-        <button
-          onClick={addProductRow}
-          className="mb-4 sm:mb-6 px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold text-sm sm:text-base"
-        >
-          + Add Product Row
-        </button>
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <button
+            onClick={addProductRow}
+            className="px-4 sm:px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-sm sm:text-base flex items-center gap-2 transition-colors shadow-md"
+          >
+            <span>+</span>
+            <span>Add Product</span>
+          </button>
+          
+          {products.length > 0 && (
+            <div className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
+              {products.length} product{products.length !== 1 ? 's' : ''} added
+            </div>
+          )}
+        </div>
       )}
 
+      {/* Products Tabs */}
+      {products.length > 0 && (
+        <div className="mb-4 sm:mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-1 overflow-x-auto">
+              {products.map((product, index) => (
+                <button
+                  key={product.id}
+                  onClick={() => setActiveProductTab(index)}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${
+                    activeProductTab === index
+                      ? 'border-blue-500 text-blue-600 bg-blue-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <span>📦</span>
+                  <span>Product {index + 1}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeProduct(product.id);
+                    }}
+                    className="text-gray-400 hover:text-red-500 ml-1"
+                  >
+                    ×
+                  </button>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Product Forms */}
       {products.map((product, index) => (
-        <div key={product.id} className="mb-6 p-4 border-2 border-gray-300 rounded-lg bg-gray-50">
-          <h4 className="font-semibold mb-4 text-lg bg-blue-100 p-2 rounded">Product #{index + 1}</h4>
-          
-          {/* Basic Product Info */}
-          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-              <input
-                type="text"
-                value={product.name}
-                onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g., Swirl Heart Ring"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Style *</label>
-              <select
-                value={product.style_id}
-                onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select Style</option>
-                {categoryData?.styles.map(style => (
-                  <option key={style.id} value={style.id}>{style.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
-              <select
-                value={product.metal_id}
-                onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select Metal</option>
-                {categoryData?.metals.map(metal => (
-                  <option key={metal.id} value={metal.id}>{metal.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price *</label>
-              <input
-                type="number"
-                value={product.price}
-                onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="10000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Original Price</label>
-              <input
-                type="number"
-                value={product.originalPrice}
-                onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="12000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
-              <input
-                type="number"
-                value={product.discount}
-                onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="15"
-              />
-            </div>
-          </div> */}
-
-          {/* Basic Product Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-              <input
-                type="text"
-                value={product.name}
-                onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g., Swirl Heart Ring"
-              />
-            </div>
-
-            {/* ✅ NEW - Description Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <input
-                type="text"
-                value={product.description || ''}
-                onChange={(e) => updateProduct(product.id, 'description', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g., Beautiful heart-shaped ring with diamonds"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Style *</label>
-              <select
-                value={product.style_id}
-                onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select Style</option>
-                {categoryData?.styles.map(style => (
-                  <option key={style.id} value={style.id}>{style.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Metal/Stone *</label>
-              <select
-                value={product.metal_id}
-                onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select Metal</option>
-                {categoryData?.metals.map(metal => (
-                  <option key={metal.id} value={metal.id}>{metal.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Base Price *</label>
-              <input
-                type="number"
-                value={product.price}
-                onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="10000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Original Price</label>
-              <input
-                type="number"
-                value={product.originalPrice}
-                onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="12000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
-              <input
-                type="number"
-                value={product.discount}
-                onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="15"
-              />
-            </div>
+        <div 
+          key={product.id} 
+          className={`bg-white border-2 rounded-xl shadow-sm mb-6 transition-all duration-300 ${
+            activeProductTab === index ? 'border-blue-300 block' : 'border-gray-200 hidden'
+          }`}
+        >
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-t-xl border-b">
+            <h4 className="font-bold text-lg text-gray-800 flex items-center gap-3">
+              <span className="bg-blue-500 text-white p-2 rounded-lg">📦</span>
+              <span>Product #{index + 1} - {product.name || 'New Product'}</span>
+            </h4>
           </div>
 
-          {/* Featured & Gender */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Featured</label>
-              <div className="flex flex-wrap gap-3">
-                {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
-                  <label key={feature} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={product.featured.includes(feature)}
-                      onChange={() => toggleProductFeatured(product.id, feature)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">{feature}</span>
+          <div className="p-4 sm:p-6">
+            {/* Basic Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              {/* Product Name */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>📝</span>
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  value={product.name}
+                  onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  placeholder="e.g., Diamond Heart Ring"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>📄</span>
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={product.description || ''}
+                  onChange={(e) => updateProduct(product.id, 'description', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  placeholder="Beautiful description..."
+                />
+              </div>
+
+              {/* Slug */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>🔗</span>
+                  URL Slug
+                </label>
+                <input
+                  type="text"
+                  value={product.slug}
+                  readOnly
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                  placeholder="auto-generated-slug"
+                />
+              </div>
+
+              {/* Style Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>🎨</span>
+                  Style *
+                </label>
+                <select
+                  value={product.style_id}
+                  onChange={(e) => updateProduct(product.id, 'style_id', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Select Style</option>
+                  {categoryData?.styles.map(style => (
+                    <option key={style.id} value={style.id}>{style.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Metal Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>💎</span>
+                  Metal/Stone *
+                </label>
+                <select
+                  value={product.metal_id}
+                  onChange={(e) => updateProduct(product.id, 'metal_id', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Select Metal</option>
+                  {categoryData?.metals.map(metal => (
+                    <option key={metal.id} value={metal.id}>{metal.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Pricing Grid */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    💰 Price *
                   </label>
-                ))}
+                  <input
+                    type="number"
+                    value={product.price}
+                    onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="10000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    📊 Original
+                  </label>
+                  <input
+                    type="number"
+                    value={product.originalPrice}
+                    onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="12000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    🎯 Discount %
+                  </label>
+                  <input
+                    type="number"
+                    value={product.discount}
+                    onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="15"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">For Gender/Age</label>
-              <div className="flex gap-4">
-                {['Kids', 'Men', 'Women'].map(gender => (
-                  <label key={gender} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={product.gender.includes(gender)}
-                      onChange={() => toggleProductGender(product.id, gender)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">{gender}</span>
-                  </label>
-                ))}
+            {/* Featured & Gender Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
+              {/* Featured Options */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span>⭐</span>
+                  Featured Options
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
+                    <label key={feature} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={product.featured.includes(feature)}
+                        onChange={() => toggleProductFeatured(product.id, feature)}
+                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{feature}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gender Options */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span>👥</span>
+                  Target Audience
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {['Kids', 'Men', 'Women'].map(gender => (
+                    <label key={gender} className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]">
+                      <input
+                        type="checkbox"
+                        checked={product.gender.includes(gender)}
+                        onChange={() => toggleProductGender(product.id, gender)}
+                        className="w-4 h-4 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">{gender}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Product Images */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handleImageSelect(product.id, e.target.files)}
-              className="w-full text-sm"
-            />
-            {product.imageUrls.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {product.imageUrls.map((url, idx) => (
-                  <div key={idx} className="relative">
-                    <img src={url} alt={`Preview ${idx + 1}`} className="h-20 w-20 object-cover rounded" />
-                    <button
-                      onClick={() => removeImage(product.id, idx)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                    >
-                      ×
-                    </button>
+            {/* Image Upload Section */}
+            <div className="mb-6 sm:mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span>🖼️</span>
+                Product Images
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-blue-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleImageSelect(product.id, e.target.files)}
+                  className="hidden"
+                  id={`image-upload-${product.id}`}
+                />
+                <label
+                  htmlFor={`image-upload-${product.id}`}
+                  className="cursor-pointer block"
+                >
+                  <div className="text-gray-400 mb-2">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                ))}
+                  <p className="text-sm text-gray-600 mb-1">
+                    Click to upload product images
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, WEBP up to 10MB
+                  </p>
+                </label>
               </div>
-            )}
-          </div>
 
-          {/* VARIANT CONFIGURATION SECTION */}
-          <div className="mt-6 p-4 bg-white border-2 border-blue-300 rounded-lg">
-            <h5 className="font-bold text-lg mb-4 text-blue-800">⚙️ Variant Configuration (Optional)</h5>
+              {/* Image Previews */}
+              {product.imageUrls.length > 0 && (
+                <div className="mt-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {product.imageUrls.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img 
+                          src={url} 
+                          alt={`Preview ${idx + 1}`} 
+                          className="h-24 w-full object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          onClick={() => removeImage(product.id, idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        >
+                          ×
+                        </button>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Variant Configuration - This section remains largely the same but with responsive classes */}
+             <div className="mt-6 p-4 bg-white border-2 border-blue-300 rounded-lg">
+            <h5 className="font-bold text-lg mb-4 text-blue-800 flex items-center gap-2">
+              ⚙️ Variant Configuration (Optional)
+            </h5>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               {/* Choice of Metal */}
@@ -1297,7 +1823,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                     onChange={() => toggleProductMetalChoice(product.id)}
                     className="w-5 h-5"
                   />
-                  <span className="font-bold">Choice of Metal</span>
+                  <span className="font-bold">🔩 Choice of Metal</span>
                 </label>
                 
                 {product.hasMetalChoice && (
@@ -1326,7 +1852,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                     onChange={() => toggleProductDiamondChoice(product.id)}
                     className="w-5 h-5"
                   />
-                  <span className="font-bold">Diamond Quality</span>
+                  <span className="font-bold">💎 Diamond Quality</span>
                 </label>
                 
                 {product.hasDiamondChoice && (
@@ -1348,14 +1874,14 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
               {/* Size Info */}
               <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
-                <h6 className="font-bold mb-2">Sizes</h6>
+                <h6 className="font-bold mb-2">📏 Sizes</h6>
                 <p className="text-xs text-gray-600">Configure sizes below with pricing details</p>
               </div>
             </div>
 
             {/* Size & Pricing Configuration */}
             <div className="mt-4">
-              <h6 className="font-bold mb-3">Configure Sizes & Pricing:</h6>
+              <h6 className="font-bold mb-3">📐 Configure Sizes & Pricing:</h6>
               
               {/* Size Only (No Metal/Diamond) */}
               {!product.hasMetalChoice && !product.hasDiamondChoice && (
@@ -1383,7 +1909,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                           <div className="ml-8 space-y-3">
                             <div className="grid grid-cols-3 gap-3">
                               <div>
-                                <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
                                 <input
                                   type="number"
                                   placeholder="15000"
@@ -1393,7 +1919,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
                                 <input
                                   type="number"
                                   placeholder="13000"
@@ -1403,7 +1929,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium mb-1">Discount %</label>
+                                <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
                                 <input
                                   type="number"
                                   placeholder="13"
@@ -1415,7 +1941,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium mb-2">File Types:</label>
+                              <label className="block text-xs font-medium mb-2">📁 File Types:</label>
                               <div className="grid grid-cols-2 gap-2">
                                 {FILE_TYPE_OPTIONS.map(fileType => (
                                   <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1468,7 +1994,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                               <div className="ml-8 space-y-3">
                                 <div className="grid grid-cols-3 gap-3">
                                   <div>
-                                    <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                    <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
                                     <input
                                       type="number"
                                       placeholder="15000"
@@ -1478,7 +2004,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                    <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
                                     <input
                                       type="number"
                                       placeholder="13000"
@@ -1488,7 +2014,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium mb-1">Discount %</label>
+                                    <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
                                     <input
                                       type="number"
                                       placeholder="13"
@@ -1500,7 +2026,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                 </div>
 
                                 <div>
-                                  <label className="block text-xs font-medium mb-2">File Types:</label>
+                                  <label className="block text-xs font-medium mb-2">📁 File Types:</label>
                                   <div className="grid grid-cols-2 gap-2">
                                     {FILE_TYPE_OPTIONS.map(fileType => (
                                       <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1557,7 +2083,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                 <div className="ml-8 space-y-3">
                                   <div className="grid grid-cols-3 gap-3">
                                     <div>
-                                      <label className="block text-xs font-medium mb-1">Original Price *</label>
+                                      <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
                                       <input
                                         type="number"
                                         placeholder="15000"
@@ -1567,7 +2093,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                       />
                                     </div>
                                    <div>
-                                      <label className="block text-xs font-medium mb-1">Discount Price</label>
+                                      <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
                                       <input
                                         type="number"
                                         placeholder="13000"
@@ -1577,7 +2103,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-xs font-medium mb-1">Discount %</label>
+                                      <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
                                       <input
                                         type="number"
                                         placeholder="13"
@@ -1589,7 +2115,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                                   </div>
 
                                   <div>
-                                    <label className="block text-xs font-medium mb-2">File Types:</label>
+                                    <label className="block text-xs font-medium mb-2">📁 File Types:</label>
                                     <div className="grid grid-cols-2 gap-2">
                                       {FILE_TYPE_OPTIONS.map(fileType => (
                                         <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1616,467 +2142,32 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
               })}
             </div>
           </div>
+          </div>
         </div>
       ))}
 
+      {/* Save Button */}
       {products.length > 0 && (
-        <button
-          onClick={saveProducts}
-          disabled={loading}
-          className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-lg"
-        >
-          {loading ? 'Saving...' : `💾 Save ${products.length} Product(s) with Variants`}
-        </button>
-      )}
-    </div>
-  );
-};
-
-
-
-
-// ==================== VIEW PRODUCTS COMPONENT (TABLE FORMAT) ====================
-const ViewProducts = ({ onBack, categories }) => {
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [imagePopup, setImagePopup] = useState(null);
-  const [editProduct, setEditProduct] = useState(null);
-
-  const toggleCategory = (catId) => {
-    setSelectedCategoryIds(prev => {
-      const newSelection = prev.includes(catId)
-        ? prev.filter(id => id !== catId)
-        : [...prev, catId];
-      return newSelection;
-    });
-  };
-
-  const fetchProducts = useCallback(async () => {
-    if (selectedCategoryIds.length === 0) {
-      setProducts([]);
-      return;
-    }
-
-    setLoading(true);
-    const token = localStorage.getItem('token');
-
-    try {
-      const response = await axios.post(
-        `${API_URL}/products/by-category`,
-        { category_ids: selectedCategoryIds },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setProducts(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      alert('Error loading products');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategoryIds]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [selectedCategoryIds, fetchProducts]);
-
-  const handleDelete = async (productId) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    const token = localStorage.getItem('token');
-    try {
-      const response = await axios.post(
-        `${API_URL}/products/delete`,
-        { product_id: productId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        alert('Product deleted successfully');
-        fetchProducts();
-      }
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Error deleting product');
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">View Products</h2>
-        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm sm:text-base">← Back</button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-        {/* Left Sidebar - Categories */}
-        <div className="w-full lg:w-64 flex-shrink-0">
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4">Categories</h3>
-          <div className="space-y-2">
-            {categories.map(cat => (
-              <label
-                key={cat.id}
-                className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedCategoryIds.includes(cat.id)}
-                  onChange={() => toggleCategory(cat.id)}
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                />
-                <span className="font-medium text-sm sm:text-base">{cat.name}</span>
-              </label>
-            ))}
-          </div>
-
-          {selectedCategoryIds.length > 0 && (
-            <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-50 rounded-md">
-              <p className="text-xs sm:text-sm text-blue-800">
-                {selectedCategoryIds.length} {selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Right Content - Products Table */}
-        <div className="flex-1 overflow-x-auto">
-          {selectedCategoryIds.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 text-gray-500">
-              <p className="text-base sm:text-lg">Select a category to view products</p>
-            </div>
-          ) : loading ? (
-            <div className="text-center py-8 sm:py-12 text-gray-500">
-              <p className="text-base sm:text-lg">Loading products...</p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 text-gray-500">
-              <p className="text-base sm:text-lg">No products found in selected categories</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[800px]">
-                <thead>
-                  <tr className="bg-gray-100 border-b-2 border-gray-300">
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">ID</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Name</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Slug</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Category</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Price</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Discount</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Gender</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Featured</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Images</th>
-                    <th className="p-2 sm:p-3 text-left font-semibold text-xs sm:text-sm">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">{product.id}</td>
-                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">{product.name}</td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm text-gray-600">{product.slug}</td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">{product.product_details.category}</td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        <div>
-                          <span className="font-bold text-green-600">₹{product.product_details.price?.toLocaleString()}</span>
-                          {product.product_details.originalPrice > product.product_details.price && (
-                            <div className="text-xs text-gray-500 line-through">
-                              ₹{product.product_details.originalPrice?.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        {product.product_details.discount > 0 && (
-                          <span className="bg-red-100 text-red-800 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold">
-                            {product.product_details.discount}%
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        <div>
-                          {product.product_details.gender?.join(', ') || '-'}
-                        </div>
-                      </td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        <div className="flex flex-wrap gap-1">
-                          {product.product_details.featured?.slice(0, 2).map((tag, idx) => (
-                            <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-1 sm:px-2 py-0.5 rounded">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        <button
-                          onClick={() => setImagePopup(product.product_details.images || [])}
-                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                        >
-                          👁️ <span className="text-xs sm:text-sm">({product.product_details.images?.length || 0})</span>
-                        </button>
-                      </td>
-                      <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                        <div className="flex gap-1 sm:gap-2">
-                          <button
-                            onClick={() => setEditProduct(product)}
-                            className="px-2 sm:px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product.id)}
-                            className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Image Popup */}
-      {imagePopup && (
-        <ImagePopup images={imagePopup} onClose={() => setImagePopup(null)} />
-      )}
-
-      {/* Edit Product Modal */}
-      {editProduct && (
-        <EditProductModal
-          product={editProduct}
-          onClose={() => setEditProduct(null)}
-          onSave={() => {
-            setEditProduct(null);
-            fetchProducts();
-          }}
-          categories={categories}
-        />
-      )}
-    </div>
-  );
-};
-
-// ==================== IMAGE POPUP COMPONENT ====================
-const ImagePopup = ({ images, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-3 sm:mb-4">
-          <h3 className="text-lg sm:text-xl font-bold">Product Images ({images.length})</h3>
+        <div className="sticky bottom-4 bg-white p-4 rounded-xl shadow-lg border border-gray-200">
           <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-gray-900 text-xl sm:text-2xl font-bold"
+            onClick={saveProducts}
+            disabled={loading}
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-lg flex items-center justify-center gap-3 transition-all shadow-md"
           >
-            ×
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                <span>Saving All Products...</span>
+              </>
+            ) : (
+              <>
+                <span>💾</span>
+                <span>Save {products.length} Product{products.length !== 1 ? 's' : ''}</span>
+              </>
+            )}
           </button>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          {images.map((img, idx) => (
-            <div key={idx} className="border rounded-lg overflow-hidden">
-              <img
-                src={`https://apichandra.rxsquare.in${img}`}
-                alt={`Product ${idx + 1}`}
-                className="w-full h-40 sm:h-48 object-cover"
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EError%3C/text%3E%3C/svg%3E';
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== EDIT PRODUCT MODAL ====================
-const EditProductModal = ({ product, onClose, onSave, categories }) => {
-  const [formData, setFormData] = useState({
-    name: product.name,
-    slug: product.slug,
-    price: product.product_details.price,
-    originalPrice: product.product_details.originalPrice,
-    discount: product.product_details.discount,
-    featured: product.product_details.featured || [],
-    gender: product.product_details.gender || []
-  });
-
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    const token = localStorage.getItem('token');
-
-    try {
-      const updatedDetails = {
-        ...product.product_details,
-        price: parseFloat(formData.price),
-        originalPrice: parseFloat(formData.originalPrice),
-        discount: parseInt(formData.discount),
-        featured: formData.featured,
-        gender: formData.gender
-      };
-
-      const response = await axios.post(
-        `${API_URL}/products/update`,
-        {
-          product_id: product.id,
-          name: formData.name,
-          slug: formData.slug,
-          product_details: updatedDetails
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        alert('Product updated successfully');
-        onSave();
-      }
-    } catch (error) {
-      console.error('Error updating product:', error);
-      alert('Error updating product');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleFeatured = (feature) => {
-    setFormData(prev => ({
-      ...prev,
-      featured: prev.featured.includes(feature)
-        ? prev.featured.filter(f => f !== feature)
-        : [...prev.featured, feature]
-    }));
-  };
-
-  const toggleGender = (gender) => {
-    setFormData(prev => ({
-      ...prev,
-      gender: prev.gender.includes(gender)
-        ? prev.gender.filter(g => g !== gender)
-        : [...prev.gender, gender]
-    }));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-3 sm:mb-4">
-          <h3 className="text-lg sm:text-xl font-bold">Edit Product</h3>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-900 text-xl sm:text-2xl">×</button>
-        </div>
-
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Product Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-              className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Slug</label>
-            <input
-              type="text"
-              value={formData.slug}
-              readOnly
-              className="w-full px-3 py-2 border rounded-md bg-gray-50 text-sm sm:text-base"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Price</label>
-              <input
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Original Price</label>
-              <input
-                type="number"
-                value={formData.originalPrice}
-                onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Discount %</label>
-              <input
-                type="number"
-                value={formData.discount}
-                onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md text-sm sm:text-base"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 sm:mb-2">Featured</label>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
-                <label key={feature} className="flex items-center gap-1 sm:gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={formData.featured.includes(feature)}
-                    onChange={() => toggleFeatured(feature)}
-                    className="w-4 h-4"
-                  />
-                  <span>{feature}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 sm:mb-2">Gender</label>
-            <div className="flex gap-2 sm:gap-4">
-              {['Kids', 'Men', 'Women'].map(gender => (
-                <label key={gender} className="flex items-center gap-1 sm:gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={formData.gender.includes(gender)}
-                    onChange={() => toggleGender(gender)}
-                    className="w-4 h-4"
-                  />
-                  <span>{gender}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 sm:px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 text-sm sm:text-base"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -53,7 +53,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
         {/* Menu */}
         <nav className="p-2 space-y-1">
           {[
-            { path: "home", label: "Dashboard", icon: <HomeIcon className="w-4" /> },
+            { path: "home", label: "Home ", icon: <HomeIcon className="w-4" /> },
             { path: "categories", label: "Categories", icon: <RectangleStackIcon className="w-4" /> },
                         { path: "attributes", label: "Attributes", icon: <AdjustmentsHorizontalIcon  className="w-4" /> },
 
