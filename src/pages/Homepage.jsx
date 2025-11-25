@@ -1,23 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  GripVertical, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
-  ChevronDown, 
-  Eye, 
-  EyeOff, 
-  Settings, 
-  Upload,
-  Loader,
-  Search,
-  Filter
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DoAll } from '../api/auth';
-import toast from 'react-hot-toast';
+import { GripVertical, Plus, Edit, Trash2, Save, X, ChevronDown, Eye, EyeOff, Settings, Upload } from 'lucide-react';
 
 const Homepage = () => {
   const [view, setView] = useState('dashboard');
@@ -28,229 +10,330 @@ const Homepage = () => {
   const [pendingSectionType, setPendingSectionType] = useState(null);
   const [sectionTitle, setSectionTitle] = useState('');
   const [sections, setSections] = useState([]);
-  const [filteredSections, setFilteredSections] = useState([]);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
-  
-  // Search and Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
 
+  // API Base URL
+  const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
+
+  const getAuthToken = () => {
+    return localStorage.getItem('token');
+  };
 
   // Add categories state
   const [categories, setCategories] = useState([]);
 
   // Fetch categories function
- const fetchCategories = async () => {
+  const fetchCategories = async () => {
     try {
-      const response = await DoAll({
-        action: 'get',
-        table: 'category'
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'get',
+          table: 'category'
+        })
       });
-      if (response.data.success) {
-        setCategories(response.data.data || []);
-      }
+
+      const result = await response.json();
+      return result.success ? result.data : [];
     } catch (error) {
       console.error('Error fetching categories:', error);
+      return [];
     }
   };
 
-const loadSections = async () => {
-    try {
-      setLoading(true);
+  // Enhanced loadSections function - Load category data from collection_category
+  // const loadSections = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getAuthToken();
+      
+  //     // Load sections
+  //     const response = await fetch(`${API_URL}/doAll`, {
+  //       method: 'POST',
+  //       headers: { 
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       body: JSON.stringify({
+  //         action: 'get',
+  //         table: 'homepage_sections',
+  //         order_by: { order_position: 'ASC' }
+  //       })
+  //     });
 
-      const response = await DoAll({
+  //     const result = await response.json();
+      
+  //     if (result.success && result.data.length > 0) {
+  //       const loadedSections = await Promise.all(
+  //         result.data.map(async (row) => {
+  //           const sectionData = JSON.parse(row.section_data || '{}');
+            
+  //           // For category-highlight sections, load ALL data from collection_category
+  //           if (row.type === 'category-highlight') {
+  //             const categoryResponse = await fetch(`${API_URL}/doAll`, {
+  //               method: 'POST',
+  //               headers: { 
+  //                 'Content-Type': 'application/json',
+  //                 'Authorization': `Bearer ${token}`
+  //               },
+  //               body: JSON.stringify({
+  //                 action: 'get',
+  //                 table: 'collection_category',
+  //                 where: { 
+  //                   section_id: row.id,
+  //                   is_deleted: 0 
+  //                 },
+  //                 order_by: { display_order: 'ASC' }
+  //               })
+  //             });
+              
+  //             const categoryResult = await categoryResponse.json();
+              
+  //             if (categoryResult.success && categoryResult.data.length > 0) {
+  //               // Create items array from collection_category data
+  //               sectionData.items = categoryResult.data.map(catItem => {
+  //                 const images = JSON.parse(catItem.images || '[]');
+  //                 return {
+  //                   id: catItem.id,
+  //                   title: catItem.title, // From collection_category
+  //                   image: images[0] || '', // From collection_category
+  //                   selectedCategories: [catItem.category_id] // From collection_category
+  //                 };
+  //               });
+  //             } else {
+  //               sectionData.items = [];
+  //             }
+  //           }
+            
+  //           return {
+  //             id: row.id,
+  //             name: row.name,
+  //             type: row.type,
+  //             enabled: row.enabled === 1,
+  //             order: row.order_position,
+  //             data: sectionData
+  //           };
+  //         })
+  //       );
+        
+  //       setSections(loadedSections);
+  //     } else {
+  //       setSections([]);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error loading sections:', error);
+  //     alert('Failed to load sections from database');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  const loadSections = async () => {
+  try {
+    setLoading(true);
+    const token = getAuthToken();
+    
+    // Load sections
+    const response = await fetch(`${API_URL}/doAll`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
         action: 'get',
         table: 'homepage_sections',
         order_by: { order_position: 'ASC' }
-      });
+      })
+    });
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to load sections');
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-      const rows = response.data.data || [];
-
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'API returned unsuccessful response');
+    }
+    
+    if (result.data && result.data.length > 0) {
       const loadedSections = await Promise.all(
-        rows.map(async (row) => {
-          let sectionData = {};
+        result.data.map(async (row) => {
           try {
-            sectionData = JSON.parse(row.section_data || '{}');
-          } catch (e) {
-            sectionData = {};
-          }
-
-          if (row.type === 'category-highlight') {
-            try {
-              const catResponse = await DoAll({
-                action: 'get',
-                table: 'collection_category',
-                where: { section_id: row.id, is_deleted: 0 },
-                order_by: { display_order: 'ASC' }
+            // Parse section data with fallback
+            const sectionData = JSON.parse(row.section_data || '{}');
+            
+            // For category-highlight sections, load ALL data from collection_category
+            if (row.type === 'category-highlight') {
+              const categoryResponse = await fetch(`${API_URL}/doAll`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  action: 'get',
+                  table: 'collection_category',
+                  where: { 
+                    section_id: row.id,
+                    is_deleted: 0 
+                  },
+                  order_by: { display_order: 'ASC' }
+                })
               });
 
-              if (catResponse.data.success && catResponse.data.data) {
-                const uniqueItems = new Map();
-                catResponse.data.data.forEach(catItem => {
-                  const images = JSON.parse(catItem.images || '[]');
-                  const item = {
-                    id: catItem.id,
-                    title: catItem.title,
-                    image: images[0] || '',
-                    selectedCategories: [catItem.category_id]
-                  };
-                  if (!uniqueItems.has(catItem.id)) {
-                    uniqueItems.set(catItem.id, item);
-                  }
-                });
-                sectionData.items = Array.from(uniqueItems.values());
-              } else {
+              if (!categoryResponse.ok) {
+                console.warn(`Failed to load category data for section ${row.id}`);
                 sectionData.items = [];
+              } else {
+                const categoryResult = await categoryResponse.json();
+                
+                if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
+                  // Use Set to prevent duplicates based on ID
+                  const uniqueItems = new Map();
+                  
+                  categoryResult.data.forEach(catItem => {
+                    const images = JSON.parse(catItem.images || '[]');
+                    const item = {
+                      id: catItem.id,
+                      title: catItem.title,
+                      image: images[0] || '',
+                      selectedCategories: [catItem.category_id]
+                    };
+                    
+                    // Prevent duplicates by ID
+                    if (!uniqueItems.has(catItem.id)) {
+                      uniqueItems.set(catItem.id, item);
+                    }
+                  });
+                  
+                  sectionData.items = Array.from(uniqueItems.values());
+                } else {
+                  sectionData.items = [];
+                }
               }
-            } catch (err) {
-              console.warn('Failed to load category items for section', row.id);
-              sectionData.items = [];
             }
+            
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: sectionData
+            };
+          } catch (sectionError) {
+            console.error(`Error processing section ${row.id}:`, sectionError);
+            // Return a basic section even if category data fails
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: { items: [] }
+            };
           }
-
-          return {
-            id: row.id,
-            name: row.name,
-            type: row.type,
-            enabled: row.enabled === 1,
-            order: row.order_position,
-            data: sectionData
-          };
         })
       );
-
-      const validSections = loadedSections.filter(s => s !== null);
+      
+      // Filter out any null sections and set state
+      const validSections = loadedSections.filter(section => section !== null);
       setSections(validSections);
-      setFilteredSections(validSections);
-    } catch (error) {
-      console.error('Error loading sections:', error);
-      toast.error('Failed to load sections: ' + error.message);
-    } finally {
-      setLoading(false);
+    } else {
+      setSections([]);
     }
-  };
-
+  } catch (error) {
+    console.error('Error loading sections:', error);
+    alert('Failed to load sections from database: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     loadSections();
+    // Load categories when component mounts
     fetchCategories().then(setCategories);
   }, []);
 
-  useEffect(() => {
-    applyFiltersAndSearch();
-  }, [sections, searchTerm, selectedFilter, sortBy]);
-
-  const applyFiltersAndSearch = () => {
-    let filtered = [...sections];
-    
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(section =>
-        section.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        section.type.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Apply status filter
-    if (selectedFilter !== 'all') {
-      filtered = filtered.filter(section => {
-        switch (selectedFilter) {
-          case 'active':
-            return section.enabled;
-          case 'inactive':
-            return !section.enabled;
-          default:
-            return true;
-        }
-      });
-    }
-    
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
-        case 'order':
-          return a.order - b.order;
-        case 'order-desc':
-          return b.order - a.order;
-        default:
-          return 0;
-      }
-    });
-    
-    setFilteredSections(filtered);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedFilter('all');
-    setSortBy('name');
-  };
-
-const handleImageUpload = async (e, updateFunction) => {
+  const handleImageUpload = async (e, updateFunction) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Show preview immediately
     const previewUrl = URL.createObjectURL(file);
     updateFunction(previewUrl);
 
-    const formData = new FormData();
-    formData.append('images', file);
-
     try {
-      const response = await DoAll({
-        action: 'upload',
-        formData
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/upload-images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       });
 
-      if (response.data.success && response.data.data.paths.length > 0) {
-        updateFunction(response.data.data.paths[0]);
+      const result = await response.json();
+      
+      if (result.success && result.data.paths.length > 0) {
+        // Update with server path
+        updateFunction(result.data.paths[0]);
       } else {
-        toast.error('Upload failed: ' + response.data.message);
-        updateFunction('');
+        alert('Failed to upload image: ' + result.message);
+        updateFunction(''); // Clear on failure
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Image upload failed');
-      updateFunction('');
+      console.error('Error uploading image:', error);
+      alert('Error uploading image. Please try again.');
+      updateFunction(''); // Clear on failure
     }
   };
 
-const handleBulkImageUpload = async (e, onSuccess) => {
+  const handleBulkImageUpload = async (e, onSuccess) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     if (files.length > 10) {
-      toast.error('Maximum 10 images allowed');
+      alert('Maximum 10 images allowed');
       return;
     }
 
-    const formData = new FormData();
-    files.forEach(file => formData.append('images', file));
-
     try {
-      const response = await DoAll({
-        action: 'upload',
-        formData
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('images', file);
       });
 
-      if (response.data.success && response.data.data.paths.length > 0) {
-        onSuccess(response.data.data.paths);
-        toast.success(`${response.data.data.paths.length} images uploaded!`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/upload-images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.data.paths.length > 0) {
+        onSuccess(result.data.paths);
+        alert(`${result.data.paths.length} images uploaded successfully!`);
       } else {
-        toast.error('Bulk upload failed: ' + response.data.message);
+        alert('Failed to upload images: ' + result.message);
       }
     } catch (error) {
-      console.error('Bulk upload error:', error);
-      toast.error('Bulk image upload failed');
+      console.error('Error uploading images:', error);
+      alert('Error uploading images. Please try again.');
     }
   };
 
@@ -261,80 +344,133 @@ const handleBulkImageUpload = async (e, onSuccess) => {
   const handleDragOver = (e, index) => {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
+
     const newSections = [...sections];
     const draggedSection = newSections[draggedIndex];
     newSections.splice(draggedIndex, 1);
     newSections.splice(index, 0, draggedSection);
-   
+    
     newSections.forEach((section, idx) => {
       section.order = idx;
     });
+
     setSections(newSections);
     setDraggedIndex(index);
   };
 
-const handleDragEnd = async () => {
+  const handleDragEnd = async () => {
     setDraggedIndex(null);
+    
     try {
+      const token = getAuthToken();
       for (const section of sections) {
-        await DoAll({
-          action: 'update',
-          table: 'homepage_sections',
-          data: { order_position: section.order },
-          where: { id: section.id }
+        await fetch(`${API_URL}/doAll`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            action: 'update',
+            table: 'homepage_sections',
+            data: { order_position: section.order },
+            where: { id: section.id }
+          })
         });
       }
-      loadSections();
     } catch (error) {
-      console.error('Failed to save order:', error);
+      console.error('Error updating section order:', error);
     }
   };
 
-const toggleSection = async (id) => {
+  const toggleSection = async (id) => {
     const section = sections.find(s => s.id === id);
     const newEnabled = !section.enabled;
 
     try {
-      await DoAll({
-        action: 'update',
-        table: 'homepage_sections',
-        data: { enabled: newEnabled ? 1 : 0 },
-        where: { id: id }
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'update',
+          table: 'homepage_sections',
+          data: { enabled: newEnabled ? 1 : 0 },
+          where: { id: id }
+        })
       });
 
-      setSections(sections.map(s =>
-        s.id === id ? { ...s, enabled: newEnabled } : s
-      ));
+      const result = await response.json();
+      
+      if (result.success) {
+        setSections(sections.map(s => 
+          s.id === id ? { ...s, enabled: newEnabled } : s
+        ));
+      }
     } catch (error) {
-      console.error('Toggle failed:', error);
+      console.error('Error toggling section:', error);
     }
   };
 
-const saveCategoryData = async (sectionId, categoryData) => {
+  // Enhanced saveCategoryData function - Store all data in collection_category
+  const saveCategoryData = async (sectionId, categoryData) => {
     try {
-      // Soft delete old entries
-      await DoAll({
-        action: 'soft_delete',
-        table: 'collection_category',
-        where: { section_id: sectionId }
+      const token = getAuthToken();
+      console.log("Saving category data to collection_category:", sectionId, categoryData);
+      
+      // First, soft delete existing entries for this section
+      await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'soft_delete',
+          table: 'collection_category',
+          where: { section_id: sectionId }
+        })
       });
 
+      // Then insert new entries for each item
       if (categoryData.items && categoryData.items.length > 0) {
         for (const [index, item] of categoryData.items.entries()) {
           if (item.selectedCategories && item.selectedCategories.length > 0) {
             const categoryId = item.selectedCategories[0];
-            await DoAll({
-              action: 'insert',
-              table: 'collection_category',
-              data: {
+            const category = categories.find(cat => cat.id === categoryId);
+            
+            if (category) {
+              console.log(`Inserting into collection_category:`, {
                 section_id: sectionId,
                 category_id: categoryId,
-                title: item.title || categories.find(c => c.id === categoryId)?.name || '',
-                images: JSON.stringify(item.image ? [item.image] : []),
-                display_order: index,
-                is_deleted: 0
-              }
-            });
+                title: item.title,
+                image: item.image
+              });
+              
+              await fetch(`${API_URL}/doAll`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  action: 'insert',
+                  table: 'collection_category',
+                  data: {
+                    section_id: sectionId,
+                    category_id: categoryId,
+                    title: item.title || category.name,
+                    images: JSON.stringify(item.image ? [item.image] : []),
+                    display_order: index,
+                    updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    is_deleted: 0
+                  }
+                })
+              });
+            }
           }
         }
       }
@@ -344,40 +480,87 @@ const saveCategoryData = async (sectionId, categoryData) => {
     }
   };
 
-const saveSection = async (sectionId, newData) => {
+  // Modified saveSection function - Store minimal data in homepage_sections for category-highlight
+  const saveSection = async (sectionId, newData) => {
     try {
+      const token = getAuthToken();
       const section = sections.find(s => s.id === sectionId);
-
+      
       if (section.type === 'category-highlight') {
-        const minimalData = {
+        // For category-highlight, store minimal data in homepage_sections
+        const dataForHomepageSections = {
           ...newData,
-          items: newData.items?.map(i => ({ id: i.id, title: i.title, image: i.image })) || []
+          items: newData.items?.map(item => ({
+            id: item.id,
+            title: item.title,
+            image: item.image
+            // Don't store selectedCategories in homepage_sections
+          })) || []
         };
-
-        await DoAll({
-          action: 'update',
-          table: 'homepage_sections',
-          data: { section_data: JSON.stringify(minimalData) },
-          where: { id: sectionId }
+        
+        // Save to homepage_sections
+        const response = await fetch(`${API_URL}/doAll`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            action: 'update',
+            table: 'homepage_sections',
+            data: {
+              section_data: JSON.stringify(dataForHomepageSections)
+            },
+            where: { id: sectionId }
+          })
         });
 
-        await saveCategoryData(sectionId, newData);
+        const result = await response.json();
+        
+        if (result.success) {
+          // Save all category details to collection_category
+          await saveCategoryData(sectionId, newData);
+          
+          // Update local state
+          setSections(sections.map(s => 
+            s.id === sectionId ? { ...s, data: newData } : s
+          ));
+          alert('Section saved successfully!');
+        } else {
+          alert('Failed to save section: ' + result.message);
+        }
       } else {
-        await DoAll({
-          action: 'update',
-          table: 'homepage_sections',
-          data: { section_data: JSON.stringify(newData) },
-          where: { id: sectionId }
+        // For other section types, save normally
+        const response = await fetch(`${API_URL}/doAll`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            action: 'update',
+            table: 'homepage_sections',
+            data: {
+              section_data: JSON.stringify(newData)
+            },
+            where: { id: sectionId }
+          })
         });
-      }
 
-      setSections(sections.map(s =>
-        s.id === sectionId ? { ...s, data: newData } : s
-      ));
-      toast.success('Section saved successfully!');
+        const result = await response.json();
+        
+        if (result.success) {
+          setSections(sections.map(s => 
+            s.id === sectionId ? { ...s, data: newData } : s
+          ));
+          alert('Section saved successfully!');
+        } else {
+          alert('Failed to save section: ' + result.message);
+        }
+      }
     } catch (error) {
-      console.error('Save failed:', error);
-      toast.error('Failed to save section');
+      console.error('Error saving section:', error);
+      alert('Error saving section. Please try again.');
     }
   };
 
@@ -389,9 +572,9 @@ const saveSection = async (sectionId, newData) => {
     setShowDropdown(false);
   };
 
-const confirmAddSection = async () => {
+  const confirmAddSection = async () => {
     if (!sectionTitle.trim()) {
-      toast.error('Please enter a section title');
+      alert('Please enter a section title');
       return;
     }
 
@@ -404,30 +587,41 @@ const confirmAddSection = async () => {
     };
 
     try {
-      const response = await DoAll({
-        action: 'insert',
-        table: 'homepage_sections',
-        data: {
-          name: newSection.name,
-          type: newSection.type,
-          enabled: 1,
-          order_position: newSection.order,
-          section_data: JSON.stringify(newSection.data)
-        }
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'insert',
+          table: 'homepage_sections',
+          data: {
+            name: newSection.name,
+            type: newSection.type,
+            enabled: newSection.enabled ? 1 : 0,
+            order_position: newSection.order,
+            section_data: JSON.stringify(newSection.data)
+          }
+        })
       });
 
-      if (response.data.success) {
-        newSection.id = response.data.insertId;
+      const result = await response.json();
+      
+      if (result.success) {
+        newSection.id = result.insertId;
         setSections([...sections, newSection]);
         setSelectedSection(newSection);
         setView('section-edit');
         setShowTitleModal(false);
         setPendingSectionType(null);
-        loadSections();
+      } else {
+        alert('Failed to create section: ' + result.message);
       }
     } catch (error) {
-      console.error('Create section failed:', error);
-      toast.error('Failed to create section');
+      console.error('Error creating section:', error);
+      alert('Error creating section. Please try again.');
     }
   };
 
@@ -483,21 +677,57 @@ const confirmAddSection = async () => {
     }
   };
 
-const deleteSection = async (id) => {
-    if (!confirm('Delete this section permanently?')) return;
+  const deleteSection = async (id) => {
+    if (!confirm('Are you sure you want to delete this section?')) {
+      return;
+    }
 
     try {
-      await DoAll({ action: 'soft_delete', table: 'collection_category', where: { section_id: id } });
-      await DoAll({ action: 'soft_delete', table: 'homepage_sections', where: { id } });
+      const token = getAuthToken();
+      
+      // First delete from collection_category table
+      await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'soft_delete',
+          table: 'collection_category',
+          where: { section_id: id }
+        })
+      });
 
-      setSections(sections.filter(s => s.id !== id));
-      if (selectedSection?.id === id) {
-        setSelectedSection(null);
-        setView('reorder');
+      // Then soft delete from homepage_sections
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'soft_delete',
+          table: 'homepage_sections',
+          where: { id: id }
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setSections(sections.filter(s => s.id !== id));
+        if (selectedSection?.id === id) {
+          setSelectedSection(null);
+          setView('reorder');
+        }
+        alert('Section deleted successfully!');
+      } else {
+        alert('Failed to delete section: ' + result.message);
       }
-      loadSections();
     } catch (error) {
-      toast.error('Failed to delete section');
+      console.error('Error deleting section:', error);
+      alert('Error deleting section. Please try again.');
     }
   };
 
@@ -508,13 +738,13 @@ const deleteSection = async (id) => {
     const handleCategorySelect = (categoryId) => {
       const newSelectedCategory = selectedCategory === categoryId ? null : categoryId;
       setSelectedCategory(newSelectedCategory);
-     
+      
       // Update with selected category
       const updatedItem = {
         ...item,
         selectedCategories: newSelectedCategory ? [newSelectedCategory] : []
       };
-     
+      
       // Auto-fill title with category name if empty
       if (!updatedItem.title && newSelectedCategory) {
         const category = categories.find(cat => cat.id === newSelectedCategory);
@@ -522,17 +752,17 @@ const deleteSection = async (id) => {
           updatedItem.title = category.name;
         }
       }
-     
+      
       onUpdate(updatedItem);
     };
 
     return (
       <div className="space-y-4">
         <label className="block text-sm font-medium mb-2">
-          Select Category
+          Select Category 
           <span className="text-red-500 ml-1">*</span>
         </label>
-       
+        
         {categories.length === 0 ? (
           <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
             No categories found. Please create categories in the Products section first.
@@ -540,19 +770,19 @@ const deleteSection = async (id) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
             {categories.map((category) => (
-              <div
-                key={category.id}
+              <div 
+                key={category.id} 
                 className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                  selectedCategory === category.id
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                  selectedCategory === category.id 
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
                 onClick={() => handleCategorySelect(category.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    selectedCategory === category.id
-                      ? 'border-blue-500 bg-blue-500'
+                    selectedCategory === category.id 
+                      ? 'border-blue-500 bg-blue-500' 
                       : 'border-gray-300'
                   }`}>
                     {selectedCategory === category.id && (
@@ -568,17 +798,15 @@ const deleteSection = async (id) => {
             ))}
           </div>
         )}
-       
-        {selectedCategory && (
+        
+        {/* {selectedCategory && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
             <p className="text-sm text-green-800 font-medium">
               ✓ Selected: {categories.find(cat => cat.id === selectedCategory)?.name}
             </p>
-            <p className="text-xs text-green-600 mt-1">
-              This will be stored in collection_category table with category_id: {selectedCategory}
-            </p>
+           
           </div>
-        )}
+        )} */}
       </div>
     );
   };
@@ -591,9 +819,7 @@ const deleteSection = async (id) => {
       }
       return section.data;
     });
-    
     const [showBulkUpload, setShowBulkUpload] = useState(false);
-    const [saving, setSaving] = useState(false);
 
     const updateItem = (index, field, value) => {
       const newItems = [...(formData.items || [])];
@@ -609,9 +835,9 @@ const deleteSection = async (id) => {
 
     const addItem = () => {
       const newItem = getNewItemTemplate(section.type, (formData.items?.length || 0) + 1);
-      setFormData({
-        ...formData,
-        items: [...(formData.items || []), newItem]
+      setFormData({ 
+        ...formData, 
+        items: [...(formData.items || []), newItem] 
       });
     };
 
@@ -630,17 +856,17 @@ const deleteSection = async (id) => {
           while (itemImages.length < 4) {
             itemImages.push('');
           }
-         
+          
           const itemId = (formData.items?.length || 0) + newItems.length + 1;
           const template = getNewItemTemplate(section.type, itemId);
-          newItems.push({
-            ...template,
+          newItems.push({ 
+            ...template, 
             images: itemImages,
             title: `Collection ${itemId}`,
             subtitle: 'New collection'
           });
         }
-       
+        
         setFormData({
           ...formData,
           items: [...(formData.items || []), ...newItems]
@@ -652,6 +878,7 @@ const deleteSection = async (id) => {
           const template = getNewItemTemplate(section.type, itemId);
           return { ...template, image: path };
         });
+
         setFormData({
           ...formData,
           items: [...(formData.items || []), ...newItems]
@@ -703,60 +930,99 @@ const deleteSection = async (id) => {
       }
     };
 
+    // const renderImageUpload = (currentValue, onUpdate, label = "Image") => (
+    //   <div>
+    //     <label className="block text-sm font-medium mb-1">{label}</label>
+    //     <div className="flex items-center gap-4">
+    //       <div className="flex-1">
+    //         <input
+    //           type="text"
+    //           value={currentValue || ''}
+    //           onChange={(e) => onUpdate(e.target.value)}
+    //           placeholder="Image URL or path"
+    //           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+    //         />
+    //       </div>
+    //       <div className="relative">
+    //         <input
+    //           type="file"
+    //           accept="image/*"
+    //           onChange={(e) => handleImageUpload(e, onUpdate)}
+    //           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+    //           id={`file-${label.replace(/\s/g, '-')}`}
+    //         />
+    //         <span>image size 1900X600</span>
+    //         <label
+    //           htmlFor={`file-${label.replace(/\s/g, '-')}`}
+    //           className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
+    //         >
+    //           <Upload className="w-4 h-4" />
+    //           Upload
+    //         </label>
+    //       </div>
+    //     </div>
+    //     {currentValue && (
+    //       <div className="mt-2">
+    //         <img 
+    //           src={currentValue} 
+    //           alt="Preview" 
+    //           className="h-20 w-auto rounded border"
+    //           onError={(e) => {
+    //             e.target.style.display = 'none';
+    //           }}
+    //         />
+    //       </div>
+    //     )}
+    //   </div>
+    // );
     const renderImageUpload = (currentValue, onUpdate, label = "Image") => (
-      <div>
-        <label className="block text-sm font-medium mb-1">{label}</label>
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={currentValue || ''}
-              onChange={(e) => onUpdate(e.target.value)}
-              placeholder="Image URL or path"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-            />
-          </div>
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageUpload(e, onUpdate)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              id={`file-${label.replace(/\s/g, '-')}`}
-            />
-            <label
-              htmlFor={`file-${label.replace(/\s/g, '-')}`}
-              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 cursor-pointer text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              Upload
-            </label>
-          </div>
-        </div>
-        {currentValue && (
-          <div className="mt-2">
-            <img
-              src={currentValue}
-              alt="Preview"
-              className="h-20 w-auto rounded border"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          </div>
-        )}
+  <div>
+    <label className="block text-sm font-medium mb-1">{label}</label>
+     <span className="text-xs text-gray-500 mt-1">Recommended size: 1900×600</span>
+    <div className="flex items-center gap-4">
+      <div className="flex-1">
+        <input
+          type="text"
+          value={currentValue || ''}
+          onChange={(e) => onUpdate(e.target.value)}
+          placeholder="Image URL or path"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+        />
       </div>
-    );
-
-    const handleSave = async () => {
-      setSaving(true);
-      try {
-        await saveSection(section.id, formData);
-      } finally {
-        setSaving(false);
-      }
-    };
-
+      <div className="flex flex-col items-end">
+        <div className="relative">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageUpload(e, onUpdate)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            id={`file-${label.replace(/\s/g, '-')}`}
+          />
+          <label
+            htmlFor={`file-${label.replace(/\s/g, '-')}`}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            Upload
+          </label>
+        </div>
+       
+      </div>
+    </div>
+    {currentValue && (
+      <div className="mt-2">
+        <img 
+          src={currentValue} 
+          alt="Preview" 
+          className="h-20 w-auto rounded border"
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+      </div>
+    )}
+  </div>
+);
     switch (section.type) {
       case 'hero':
         return (
@@ -774,7 +1040,7 @@ const deleteSection = async (id) => {
                     </button>
                   )}
                 </div>
-               
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Title</label>
@@ -782,7 +1048,7 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.title}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
                   <div>
@@ -791,7 +1057,7 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.subtitle}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
                   <div>
@@ -799,7 +1065,7 @@ const deleteSection = async (id) => {
                     <textarea
                       value={item.description}
                       onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       rows="2"
                     />
                   </div>
@@ -811,7 +1077,7 @@ const deleteSection = async (id) => {
                         type="text"
                         value={item.cta}
                         onChange={(e) => updateItem(idx, 'cta', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       />
                     </div>
                     <div>
@@ -820,34 +1086,33 @@ const deleteSection = async (id) => {
                         type="text"
                         value={item.ctaLink}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       />
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-           
+            
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Add Hero Banner
             </button>
-           
+            
             <div className="flex gap-3 pt-4">
               <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:opacity-50"
+                onClick={() => saveSection(section.id, formData)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
               >
-                {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                <Save className="w-4 h-4" />
+                Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 text-sm"
+                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -855,7 +1120,7 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
-      
+
       case 'feature-section':
         return (
           <div className="space-y-6">
@@ -872,7 +1137,7 @@ const deleteSection = async (id) => {
                     </button>
                   )}
                 </div>
-               
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Title</label>
@@ -880,7 +1145,7 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholder="e.g., rings collection description"
                     />
                   </div>
@@ -890,7 +1155,7 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.subtitle || ''}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholder="e.g., Discover our exclusive collection"
                     />
                   </div>
@@ -900,27 +1165,26 @@ const deleteSection = async (id) => {
                 </div>
               </div>
             ))}
-           
+            
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Add Feature Item
             </button>
-           
+            
             <div className="flex gap-3 pt-4">
               <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:opacity-50"
+                onClick={() => saveSection(section.id, formData)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
               >
-                {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                <Save className="w-4 h-4" />
+                Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 text-sm"
+                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -928,14 +1192,14 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
-      
+
       case 'collection':
         return (
           <div className="space-y-6">
             {/* Bulk Upload Section */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-blue-900 text-sm">Bulk Upload (Max 10 images)</h3>
+                <h3 className="font-semibold text-blue-900">Bulk Upload (Max 10 images)</h3>
                 <button
                   onClick={() => setShowBulkUpload(!showBulkUpload)}
                   className="text-blue-600 hover:text-blue-700 text-sm"
@@ -955,7 +1219,7 @@ const deleteSection = async (id) => {
                   />
                   <label
                     htmlFor="bulk-upload"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Upload className="w-5 h-5" />
                     Upload Multiple Images (Max 10)
@@ -963,7 +1227,7 @@ const deleteSection = async (id) => {
                 </div>
               )}
             </div>
-            
+
             {formData.items?.map((item, idx) => (
               <div key={idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
@@ -977,7 +1241,7 @@ const deleteSection = async (id) => {
                     </button>
                   )}
                 </div>
-               
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Title</label>
@@ -985,7 +1249,7 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
                   <div>
@@ -994,10 +1258,10 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.subtitle || ''}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
-                 
+                  
                   {/* Multiple Images Upload */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Collection Images (Up to 4)</label>
@@ -1008,7 +1272,7 @@ const deleteSection = async (id) => {
                             Image {imageIndex + 1}
                           </label>
                           {renderImageUpload(
-                            item.images?.[imageIndex] || '',
+                            item.images?.[imageIndex] || '', 
                             (value) => {
                               const newImages = [...(item.images || ['', '', '', ''])];
                               newImages[imageIndex] = value;
@@ -1020,7 +1284,7 @@ const deleteSection = async (id) => {
                       ))}
                     </div>
                   </div>
-                 
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">CTA Text</label>
@@ -1028,7 +1292,7 @@ const deleteSection = async (id) => {
                         type="text"
                         value={item.cta || ''}
                         onChange={(e) => updateItem(idx, 'cta', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       />
                     </div>
                     <div>
@@ -1037,34 +1301,33 @@ const deleteSection = async (id) => {
                         type="text"
                         value={item.ctaLink || ''}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       />
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-           
+            
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Add Collection
             </button>
-           
+            
             <div className="flex gap-3 pt-4">
               <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:opacity-50"
+                onClick={() => saveSection(section.id, formData)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
               >
-                {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                <Save className="w-4 h-4" />
+                Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 text-sm"
+                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1072,14 +1335,14 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
-      
+
       case 'category-highlight':
         return (
           <div className="space-y-6">
             {/* Bulk Upload Section */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-blue-900 text-sm">Bulk Upload (Max 10 images)</h3>
+                <h3 className="font-semibold text-blue-900">Bulk Upload (Max 10 images)</h3>
                 <button
                   onClick={() => setShowBulkUpload(!showBulkUpload)}
                   className="text-blue-600 hover:text-blue-700 text-sm"
@@ -1099,7 +1362,7 @@ const deleteSection = async (id) => {
                   />
                   <label
                     htmlFor="bulk-upload"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Upload className="w-5 h-5" />
                     Upload Multiple Images (Max 10)
@@ -1107,7 +1370,7 @@ const deleteSection = async (id) => {
                 </div>
               )}
             </div>
-            
+
             {formData.items?.map((item, idx) => (
               <div key={item.id || idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
@@ -1121,7 +1384,7 @@ const deleteSection = async (id) => {
                     </button>
                   )}
                 </div>
-               
+                
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Display Title</label>
@@ -1129,25 +1392,25 @@ const deleteSection = async (id) => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholder="Enter display title (optional)"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Leave empty to use category name
                     </p>
                   </div>
-                 
+                  
                   {/* Main Category Image */}
                   {renderImageUpload(item.image, (value) => updateItem(idx, 'image', value), "Category Image")}
-                 
+                  
                   {/* Category Selection */}
-                  <CategorySelector
+                  <CategorySelector 
                     item={item}
                     onUpdate={(updatedItem) => {
                       updateEntireItem(idx, updatedItem);
                     }}
                   />
-                 
+                  
                   {/* Display selected category info */}
                   {item.selectedCategories && item.selectedCategories.length > 0 && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -1164,27 +1427,26 @@ const deleteSection = async (id) => {
                 </div>
               </div>
             ))}
-           
+            
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Add Category Highlight
             </button>
-           
+            
             <div className="flex gap-3 pt-4">
               <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:opacity-50"
+                onClick={() => saveSection(section.id, formData)}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
               >
-                {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                <Save className="w-4 h-4" />
+                Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 text-sm"
+                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1192,7 +1454,7 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
-      
+
       default:
         return (
           <div className="text-center py-8 text-gray-500">
@@ -1202,127 +1464,221 @@ const deleteSection = async (id) => {
     }
   };
 
-  // Preview Components
-  const HeroSlider = ({ items }) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
-   
-    useEffect(() => {
-      if (items.length <= 1) return;
-     
-      const timer = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % items.length);
-      }, 5000);
-     
-      return () => clearInterval(timer);
-    }, [items.length]);
-   
-    const nextSlide = () => {
-      setCurrentSlide((prev) => (prev + 1) % items.length);
-    };
-   
-    const prevSlide = () => {
-      setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-    };
-   
-    const goToSlide = (index) => {
-      setCurrentSlide(index);
-    };
+  // Hero Slider Component - IMAGES ONLY
+  // const HeroSlider = ({ items }) => {
+  //   const [currentSlide, setCurrentSlide] = useState(0);
+    
+  //   useEffect(() => {
+  //     if (items.length <= 1) return;
+      
+  //     const timer = setInterval(() => {
+  //       setCurrentSlide((prev) => (prev + 1) % items.length);
+  //     }, 5000);
+      
+  //     return () => clearInterval(timer);
+  //   }, [items.length]);
+    
+  //   const nextSlide = () => {
+  //     setCurrentSlide((prev) => (prev + 1) % items.length);
+  //   };
+    
+  //   const prevSlide = () => {
+  //     setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
+  //   };
+    
+  //   const goToSlide = (index) => {
+  //     setCurrentSlide(index);
+  //   };
 
-    const getImageUrl = (imagePath) => {
-      if (!imagePath) return '';
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-        return imagePath;
-      }
-      return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    };
-   
-    return (
-      <div className="relative w-full h-screen overflow-hidden">
-        {items.map((item, idx) => (
-          <div
-            key={idx}
-            className={`transition-opacity duration-500 ease-in-out w-full h-full ${
-              idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
-            }`}
-          >
-            {item.image && (
-              <img
-                src={getImageUrl(item.image)}
-                alt={item.title || 'Hero'}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-        ))}
-       
-        {/* Navigation Arrows */}
-        {items.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
-       
-        {/* Dots Indicator */}
-        {items.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {items.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToSlide(idx)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
+  //   const getImageUrl = (imagePath) => {
+  //     if (!imagePath) return '';
+  //     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+  //       return imagePath;
+  //     }
+  //     return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  //   };
+    
+  //   return (
+  //     <div className="relative w-full h-screen overflow-hidden">
+  //       {items.map((item, idx) => (
+  //         <div
+  //           key={idx}
+  //           className={`transition-opacity duration-500 ease-in-out w-full h-full ${
+  //             idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
+  //           }`}
+  //         >
+  //           {item.image && (
+  //             <img 
+  //               src={getImageUrl(item.image)} 
+  //               alt={item.title || 'Hero'} 
+  //               className="w-full h-full object-cover"
+  //               onError={(e) => { 
+  //                 e.target.style.display = 'none';
+  //               }}
+  //             />
+  //           )}
+  //         </div>
+  //       ))}
+        
+  //       {/* Navigation Arrows */}
+  //       {items.length > 1 && (
+  //         <>
+  //           <button
+  //             onClick={prevSlide}
+  //             className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
+  //           >
+  //             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  //             </svg>
+  //           </button>
+  //           <button
+  //             onClick={nextSlide}
+  //             className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
+  //           >
+  //             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  //             </svg>
+  //           </button>
+  //         </>
+  //       )}
+        
+  //       {/* Dots Indicator */}
+  //       {items.length > 1 && (
+  //         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+  //           {items.map((_, idx) => (
+  //             <button
+  //               key={idx}
+  //               onClick={() => goToSlide(idx)}
+  //               className={`w-3 h-3 rounded-full transition-all ${
+  //                 idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
+  //               }`}
+  //             />
+  //           ))}
+  //         </div>
+  //       )}
+  //     </div>
+  //   );
+  // };
+  const HeroSlider = ({ items }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  useEffect(() => {
+    if (items.length <= 1) return;
+    
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % items.length);
+    }, 5000);
+    
+    return () => clearInterval(timer);
+  }, [items.length]);
+  
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % items.length);
+  };
+  
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
+  };
+  
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
   };
 
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+    return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+  
+  return (
+    <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-screen overflow-hidden">
+      {items.map((item, idx) => (
+        <div
+          key={idx}
+          className={`transition-opacity duration-500 ease-in-out w-full h-full ${
+            idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
+          }`}
+        >
+          {item.image && (
+            <img 
+              src={getImageUrl(item.image)} 
+              alt={item.title || 'Hero'} 
+              className="w-full h-full object-cover"
+              onError={(e) => { 
+                e.target.style.display = 'none';
+              }}
+            />
+          )}
+        </div>
+      ))}
+      
+      {/* Navigation Arrows */}
+      {items.length > 1 && (
+        <>
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
+          >
+            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
+          >
+            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
+      
+      {/* Dots Indicator */}
+      {items.length > 1 && (
+        <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-2">
+          {items.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToSlide(idx)}
+              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
+                idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+  // Collection Slider Component - MULTIPLE IMAGES PER COLLECTION
   const CollectionSlider = ({ items }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const itemsPerView = 3;
-   
+    
     const nextSlide = () => {
-      setCurrentIndex((prev) =>
+      setCurrentIndex((prev) => 
         prev + itemsPerView >= items.length ? 0 : prev + 1
       );
     };
-   
+    
     const prevSlide = () => {
-      setCurrentIndex((prev) =>
+      setCurrentIndex((prev) => 
         prev === 0 ? Math.max(0, items.length - itemsPerView) : prev - 1
       );
     };
-   
+    
     const visibleItems = items.slice(currentIndex, currentIndex + itemsPerView);
-   
+    
     useEffect(() => {
       if (items.length <= itemsPerView) return;
-     
+      
       const timer = setInterval(() => {
         nextSlide();
       }, 4000);
-     
+      
       return () => clearInterval(timer);
     }, [items.length, currentIndex]);
 
@@ -1337,21 +1693,21 @@ const deleteSection = async (id) => {
     // Function to ensure we always have exactly 4 image slots
     const renderImageGrid = (images) => {
       const imageArray = images || [];
-     
+      
       return (
         <div className="grid grid-cols-4 gap-2 mb-4">
           {/* Always render exactly 4 slots */}
           {Array.from({ length: 4 }).map((_, imageIdx) => {
             const image = imageArray[imageIdx];
-           
+            
             return (
               <div key={imageIdx} className="relative overflow-hidden aspect-square bg-gray-100 rounded-lg">
                 {image ? (
-                  <img
-                    src={getImageUrl(image)}
+                  <img 
+                    src={getImageUrl(image)} 
                     alt={`Collection image ${imageIdx + 1}`}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    onError={(e) => {
+                    onError={(e) => { 
                       e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
                     }}
                   />
@@ -1366,7 +1722,7 @@ const deleteSection = async (id) => {
         </div>
       );
     };
-   
+    
     return (
       <div className="py-16 px-8 bg-white">
         <div className="max-w-6xl mx-auto">
@@ -1376,7 +1732,7 @@ const deleteSection = async (id) => {
                 <div key={idx} className="bg-white rounded-lg overflow-hidden group p-4 border border-gray-100 hover:shadow-lg transition-shadow">
                   {/* 2x2 Image Grid - Always shows 4 slots */}
                   {renderImageGrid(item.images)}
-                 
+                  
                   {/* Collection Title and Info */}
                   <div className="text-center">
                     <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
@@ -1392,7 +1748,7 @@ const deleteSection = async (id) => {
                 </div>
               ))}
             </div>
-           
+            
             {/* Navigation Arrows for Collection */}
             {items.length > itemsPerView && (
               <>
@@ -1415,7 +1771,7 @@ const deleteSection = async (id) => {
               </>
             )}
           </div>
-         
+          
           {/* Dots Indicator for Collection */}
           {items.length > itemsPerView && (
             <div className="flex justify-center mt-8 space-x-2">
@@ -1424,8 +1780,8 @@ const deleteSection = async (id) => {
                   key={idx}
                   onClick={() => setCurrentIndex(idx * itemsPerView)}
                   className={`w-3 h-3 rounded-full transition-all ${
-                    Math.floor(currentIndex / itemsPerView) === idx
-                      ? 'bg-blue-600'
+                    Math.floor(currentIndex / itemsPerView) === idx 
+                      ? 'bg-blue-600' 
                       : 'bg-gray-300'
                   }`}
                 />
@@ -1447,10 +1803,11 @@ const deleteSection = async (id) => {
     };
 
     if (!section.enabled || !section.data?.items?.length) return null;
-    
+
     switch (section.type) {
       case 'hero':
         return <HeroSlider items={section.data.items} />;
+
       case 'feature-section':
         return (
           <div className="py-16 px-8 bg-gray-50">
@@ -1468,44 +1825,44 @@ const deleteSection = async (id) => {
                       )}
                     </div>
                   )}
-                 
+                  
                   {/* Image Layout */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Image - Full Height */}
                     <div className="lg:row-span-2">
                       {item.leftImage && (
-                        <img
-                          src={getImageUrl(item.leftImage)}
-                          alt={item.title || 'Feature'}
+                        <img 
+                          src={getImageUrl(item.leftImage)} 
+                          alt={item.title || 'Feature'} 
                           className="w-full h-full min-h-[400px] object-cover rounded-xl shadow-md"
-                          onError={(e) => {
+                          onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="400"%3E%3Crect fill="%23f3f4f6" width="600" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ELeft Image%3C/text%3E%3C/svg%3E';
                           }}
                         />
                       )}
                     </div>
-                   
+                    
                     {/* Right Side - Two Images */}
                     <div className="space-y-6">
                       {/* Right Top Image */}
                       {item.rightImage && (
-                        <img
-                          src={getImageUrl(item.rightImage)}
-                          alt={`${item.title || 'Feature'} right top`}
+                        <img 
+                          src={getImageUrl(item.rightImage)} 
+                          alt={`${item.title || 'Feature'} right top`} 
                           className="w-full h-64 object-cover rounded-xl shadow-md"
-                          onError={(e) => {
+                          onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Top Image%3C/text%3E%3C/svg%3E';
                           }}
                         />
                       )}
-                     
+                      
                       {/* Right Bottom Image */}
                       {item.rightBottomImage && (
-                        <img
-                          src={getImageUrl(item.rightBottomImage)}
-                          alt={`${item.title || 'Feature'} right bottom`}
+                        <img 
+                          src={getImageUrl(item.rightBottomImage)} 
+                          alt={`${item.title || 'Feature'} right bottom`} 
                           className="w-full h-64 object-cover rounded-xl shadow-md"
-                          onError={(e) => {
+                          onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Bottom Image%3C/text%3E%3C/svg%3E';
                           }}
                         />
@@ -1517,8 +1874,10 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
+
       case 'collection':
         return <CollectionSlider items={section.data.items} />;
+
       case 'category-highlight':
         return (
           <div className="py-16 px-8 bg-gray-50">
@@ -1528,18 +1887,18 @@ const deleteSection = async (id) => {
                 {section.data.items?.map((item, idx) => {
                   const categoryId = item.selectedCategories?.[0];
                   const category = categories.find(cat => cat.id === categoryId);
-                 
+                  
                   if (!category) return null;
-                 
+                  
                   return (
                     <div key={item.id || idx} className="text-center cursor-pointer group">
                       <div className="relative overflow-hidden rounded-lg bg-gray-100 aspect-square mb-3">
                         {item.image && (
-                          <img
-                            src={getImageUrl(item.image)}
-                            alt={category.name}
+                          <img 
+                            src={getImageUrl(item.image)} 
+                            alt={category.name} 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => {
+                            onError={(e) => { 
                               e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
                             }}
                           />
@@ -1554,24 +1913,16 @@ const deleteSection = async (id) => {
             </div>
           </div>
         );
+
       default:
         return null;
     }
   };
 
-  const hasActiveFilters = searchTerm || selectedFilter !== 'all' || sortBy !== 'name';
-
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6">
-            <div className="flex items-center justify-center space-x-2 text-emerald-600">
-              <Loader className="w-5 h-5 animate-spin" />
-              <span className="text-base font-medium">Loading homepage sections...</span>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-gray-600">Loading sections...</div>
       </div>
     );
   }
@@ -1584,7 +1935,7 @@ const deleteSection = async (id) => {
             <h1 className="text-2xl font-bold">Homepage Preview</h1>
             <button
               onClick={() => setShowPreview(false)}
-              className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 text-sm"
+              className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
             >
               <EyeOff className="w-4 h-4" />
               Exit Preview
@@ -1605,40 +1956,66 @@ const deleteSection = async (id) => {
 
   if (view === 'reorder') {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-500 rounded-lg">
-                  <Settings className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-800 mb-1">Reorder Sections</h1>
-                  <p className="text-sm text-gray-600">Drag and drop sections to reorder them on your homepage</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Reorder Sections</h1>
+          <div className="flex gap-3 relative">
+            {/* <button
+              onClick={() => setShowPreview(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Preview Homepage
+            </button> */}
+            {/* <button
+              onClick={() => setShowAddSectionDropdown(!showAddSectionDropdown)}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Section
+              <ChevronDown className="w-4 h-4" />
+            </button> */}
+            {showAddSectionDropdown && (
+              <div className="absolute right-0 top-12 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                 <button
-                  onClick={() => setShowPreview(true)}
-                  className="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                  onClick={() => addNewSection('hero')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
                 >
-                  <Eye className="w-4 h-4" />
-                  <span>Preview</span>
+                  Hero Section
                 </button>
                 <button
-                  onClick={() => setView('dashboard')}
-                  className="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                  onClick={() => addNewSection('feature-section')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
                 >
-                  <X className="w-4 h-4" />
-                  <span>Back to Dashboard</span>
+                  Feature Section
+                </button>
+                <button
+                  onClick={() => addNewSection('collection')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
+                >
+                  Collection
+                </button>
+                <button
+                  onClick={() => addNewSection('category-highlight')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  Category Highlight
                 </button>
               </div>
-            </div>
+            )}
+            <button
+              onClick={() => setView('dashboard')}
+              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Back to Dashboard
+            </button>
           </div>
+        </div>
 
-          {/* Sections List for Reordering */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+          <p className="text-gray-600 mb-4">Drag and drop sections to reorder them on your homepage</p>
+          
           <div className="space-y-3">
             {sections.map((section, index) => (
               <div
@@ -1647,8 +2024,8 @@ const deleteSection = async (id) => {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center justify-between p-4 bg-white border-2 rounded-lg cursor-move hover:shadow-lg transition-all ${
-                  draggedIndex === index ? 'opacity-50 border-blue-500' : 'border-emerald-100'
+                className={`flex items-center justify-between p-4 bg-gray-50 border-2 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
+                  draggedIndex === index ? 'opacity-50 border-blue-500' : 'border-gray-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -1657,60 +2034,33 @@ const deleteSection = async (id) => {
                   <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
                     Order: {section.order + 1}
                   </span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    section.enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {section.enabled ? 'Active' : 'Inactive'}
-                  </span>
                 </div>
-               
+                
                 <div className="flex items-center gap-3">
-                  <button
+                  {/* <button
                     onClick={() => toggleSection(section.id)}
                     className={`px-3 py-1 rounded text-sm font-medium ${
-                      section.enabled
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                      section.enabled 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-700'
                     }`}
                   >
                     {section.enabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                 
+                  </button> */}
+                  
                   <button
                     onClick={() => {
                       setSelectedSection(section);
                       setView('section-edit');
                     }}
-                    className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-md transition-all duration-200 hover:scale-110"
-                    title="Edit Section"
+                    className="text-blue-600 hover:text-blue-700"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-5 h-5" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Empty State */}
-          {sections.length === 0 && (
-            <div className="text-center py-12">
-              <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Settings className="w-8 h-8 text-emerald-500" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">No Sections Yet</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Get started by creating your first section to build your homepage
-                </p>
-                <button
-                  onClick={() => setView('dashboard')}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-                >
-                  Create Your First Section
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -1718,414 +2068,152 @@ const deleteSection = async (id) => {
 
   if (view === 'section-edit' && selectedSection) {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-emerald-500 rounded-lg">
-                  <Edit className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-800 mb-1">Edit {selectedSection.name}</h1>
-                  <p className="text-sm text-gray-600">Modify your section content and settings</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setView('reorder');
-                  setSelectedSection(null);
-                }}
-                className="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-              >
-                <X className="w-4 h-4" />
-                <span>Back to Reorder</span>
-              </button>
-            </div>
-          </div>
+      <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Edit {selectedSection.name}</h1>
+          <button
+            onClick={() => {
+              setView('reorder');
+              setSelectedSection(null);
+            }}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            Back to Reorder
+          </button>
+        </div>
 
-          {/* Section Editor */}
-          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6">
-            <SectionEditor section={selectedSection} />
-          </div>
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+          <SectionEditor section={selectedSection} />
         </div>
       </div>
     );
   }
 
-  // Main Dashboard View
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-emerald-500 rounded-lg">
-                <Settings className="w-6 h-6 text-white" />
-              </div>
+    <div className="p-8">
+      {showTitleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Create New Section</h2>
+            <p className="text-gray-600 mb-4">
+              Enter a title for your {pendingSectionType?.replace('-', ' ')} section
+            </p>
+            <input
+              type="text"
+              value={sectionTitle}
+              onChange={(e) => setSectionTitle(e.target.value)}
+              placeholder="Enter section title..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+              onKeyPress={(e) => e.key === 'Enter' && confirmAddSection()}
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowTitleModal(false);
+                  setPendingSectionType(null);
+                  setSectionTitle('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAddSection}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Create Section
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard Home</h1>
+        
+        <div className="flex gap-3">
+          {/* <button
+            onClick={() => setShowPreview(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            Preview Homepage
+          </button> */}
+          
+          
+        </div>
+      </div>
+      
+     
+      
+      <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">Homepage Sections</h3>
+          {/* <button
+            onClick={() => setView('reorder')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+          >
+            Manage All Sections
+          </button> */}
+        </div>
+        <div className="space-y-3">
+          {sections.map((section) => (
+            <div key={section.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
               <div>
-                <h1 className="text-xl font-bold text-gray-800 mb-1">Homepage Management</h1>
-                <p className="text-sm text-gray-600">Manage your homepage sections and layout</p>
+                <span className="font-medium">{section.name}</span>
+                <span className={`ml-3 text-xs px-2 py-1 rounded ${
+                  section.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {section.enabled ? 'Active' : 'Inactive'}
+                </span>
               </div>
-            </div>
-            <div className="flex gap-3">
               <button
-                onClick={() => setShowPreview(true)}
-                className="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                onClick={() => {
+                  setSelectedSection(section);
+                  setView('section-edit');
+                }}
+                className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
               >
-                <Eye className="w-4 h-4" />
-                <span>Preview Homepage</span>
+                Edit <Edit className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setView('reorder')}
-                className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-              >
-                <GripVertical className="w-4 h-4" />
-                <span>Manage Sections</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Search and Filter Section */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search Input */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search sections by name or type..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Dropdown */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-gray-400" />
-              </div>
-              <select
-                value={selectedFilter}
-                onChange={(e) => setSelectedFilter(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm appearance-none"
-              >
-                <option value="all">All Sections</option>
-                <option value="active">Active Only</option>
-                <option value="inactive">Inactive Only</option>
-              </select>
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="flex space-x-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
-              >
-                <option value="name">Sort by: Name A-Z</option>
-                <option value="name-desc">Sort by: Name Z-A</option>
-                <option value="order">Sort by: Order (Low to High)</option>
-                <option value="order-desc">Sort by: Order (High to Low)</option>
-              </select>
-             
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="px-3 py-2 text-sm text-gray-100 hover:text-gray-800 border border-gray-300 rounded-lg bg-red-500 transition-colors duration-200"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Add Section Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowAddSectionDropdown(!showAddSectionDropdown)}
-                className="w-full flex items-center justify-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Section</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              
-              {showAddSectionDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                  <button
-                    onClick={() => addNewSection('hero')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 text-sm"
-                  >
-                    Hero Section
-                  </button>
-                  <button
-                    onClick={() => addNewSection('feature-section')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 text-sm"
-                  >
-                    Feature Section
-                  </button>
-                  <button
-                    onClick={() => addNewSection('collection')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 text-sm"
-                  >
-                    Collection
-                  </button>
-                  <button
-                    onClick={() => addNewSection('category-highlight')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
-                  >
-                    Category Highlight
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Results Count */}
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-sm text-gray-600">
-              Showing {filteredSections.length} of {sections.length} sections
-              {hasActiveFilters && ' (filtered)'}
-            </p>
-           
-            {hasActiveFilters && filteredSections.length === 0 && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-emerald-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Total Sections</h3>
-            <p className="text-3xl font-bold text-emerald-600 mb-2">{sections.length}</p>
-            <p className="text-sm text-gray-600">Homepage sections configured</p>
-          </div>
-         
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-emerald-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Active Sections</h3>
-            <p className="text-3xl font-bold text-green-600 mb-2">
-              {sections.filter(s => s.enabled).length}
-            </p>
-            <p className="text-sm text-gray-600">Currently visible on homepage</p>
-          </div>
-         
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-emerald-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Section Types</h3>
-            <p className="text-3xl font-bold text-blue-600 mb-2">
-              {new Set(sections.map(s => s.type)).size}
-            </p>
-            <p className="text-sm text-gray-600">Different section types used</p>
-          </div>
-         
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-emerald-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Quick Actions</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => addNewSection('hero')}
-                className="w-full text-left px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors"
-              >
-                + Add Hero Section
-              </button>
-              <button
-                onClick={() => addNewSection('category-highlight')}
-                className="w-full text-left px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 text-sm font-medium transition-colors"
-              >
-                + Add Category Highlight
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Sections Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredSections.map(section => (
-            <div
-              key={section.id}
-              className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 hover:shadow-xl transition-all duration-300 hover:border-emerald-300 group"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-600 transition-colors duration-200 line-clamp-1">
-                  {section.name}
-                </h3>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => {
-                      setSelectedSection(section);
-                      setView('section-edit');
-                    }}
-                    className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-md transition-all duration-200 hover:scale-110"
-                    title="Edit Section"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => deleteSection(section.id)}
-                    className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-all duration-200 hover:scale-110"
-                    title="Delete Section"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-             
-              <div className="space-y-3">
-                {/* Section Type */}
-                <div>
-                  <div className="flex items-center space-x-1 mb-1">
-                    <Settings className="w-4 h-4 text-emerald-500" />
-                    <h4 className="text-xs font-semibold text-gray-700">Type</h4>
-                  </div>
-                  <p className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 capitalize">
-                    {section.type.replace('-', ' ')}
-                  </p>
-                </div>
-               
-                {/* Status */}
-                <div>
-                  <div className="flex items-center space-x-1 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${section.enabled ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <h4 className="text-xs font-semibold text-gray-700">Status</h4>
-                  </div>
-                  <p className={`text-xs px-3 py-2 rounded-lg border ${
-                    section.enabled 
-                      ? 'bg-green-50 text-green-700 border-green-200' 
-                      : 'bg-red-50 text-red-700 border-red-200'
-                  }`}>
-                    {section.enabled ? 'Active' : 'Inactive'}
-                  </p>
-                </div>
-               
-                {/* Order Position */}
-                <div>
-                  <div className="flex items-center space-x-1 mb-1">
-                    <GripVertical className="w-4 h-4 text-emerald-500" />
-                    <h4 className="text-xs font-semibold text-gray-700">Order Position</h4>
-                  </div>
-                  <p className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                    {section.order + 1}
-                  </p>
-                </div>
-               
-                {/* Items Count */}
-                <div>
-                  <div className="flex items-center space-x-1 mb-1">
-                    <Plus className="w-4 h-4 text-emerald-500" />
-                    <h4 className="text-xs font-semibold text-gray-700">Items</h4>
-                  </div>
-                  <p className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                    {section.data?.items?.length || 0} items configured
-                  </p>
-                </div>
-              </div>
             </div>
           ))}
         </div>
-
-        {/* Empty State */}
-        {filteredSections.length === 0 && (
-          <div className="text-center py-12">
-            <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Settings className="w-8 h-8 text-emerald-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                {hasActiveFilters ? 'No sections found' : 'No Sections Yet'}
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                {hasActiveFilters
-                  ? 'Try adjusting your search or filters to find what you\'re looking for.'
-                  : 'Get started by creating your first section to build your homepage'
-                }
-              </p>
-              {hasActiveFilters ? (
-                <button
-                  onClick={clearFilters}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-                >
-                  Clear All Filters
-                </button>
-              ) : (
-                <button
-                  onClick={() => addNewSection('hero')}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
-                >
-                  Create Your First Section
-                </button>
-              )}
+        
+        {sections.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p className="mb-4">No sections configured yet.</p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <button
+                onClick={() => addNewSection('hero')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                Create Hero Section
+              </button>
+              <button
+                onClick={() => addNewSection('feature-section')}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                Create Feature Section
+              </button>
+              <button
+                onClick={() => addNewSection('collection')}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+              >
+                Create Collection
+              </button>
+              <button
+                onClick={() => addNewSection('category-highlight')}
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700"
+              >
+                Create Category Highlight
+              </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Add Section Title Modal */}
-      <AnimatePresence>
-        {showTitleModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 w-full max-w-md"
-            >
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Create New Section</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Enter a title for your {pendingSectionType?.replace('-', ' ')} section
-              </p>
-              <input
-                type="text"
-                value={sectionTitle}
-                onChange={(e) => setSectionTitle(e.target.value)}
-                placeholder="Enter section title..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm mb-4"
-                onKeyPress={(e) => e.key === 'Enter' && confirmAddSection()}
-                autoFocus
-              />
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => {
-                    setShowTitleModal(false);
-                    setPendingSectionType(null);
-                    setSectionTitle('');
-                  }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmAddSection}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors text-sm font-medium"
-                >
-                  Create Section
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

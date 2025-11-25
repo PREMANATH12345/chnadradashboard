@@ -59,6 +59,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
 
             { path: "products", label: "Products", icon: <CubeIcon className="w-4" /> },
             { path: "analytics", label: "Analytics", icon: <ChartBarIcon className="w-4" /> },
+            { path: "orders", label: "Orders", icon: <ChartBarIcon className="w-4" /> },
+
             { path: "settings", label: "Settings", icon: <Cog6ToothIcon className="w-4" /> },
           ].map((item) => (
             <NavLink

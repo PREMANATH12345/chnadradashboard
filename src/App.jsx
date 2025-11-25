@@ -9,7 +9,7 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Categories from "./pages/Categories";
 import Attributes from "./pages/Attributes";
-
+import Orders from "./pages/Orders";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -112,6 +112,7 @@ function App() {
           <Route path="categories" element={<Categories />} />
            <Route path="attributes" element={<Attributes />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="orders" element={<Orders />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
