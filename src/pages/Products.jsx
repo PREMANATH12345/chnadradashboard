@@ -1,40 +1,34 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { DoAll } from '../api/auth';
 
 const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
 const Products = () => {
-  const [view, setView] = useState('main');
+  const [currentStep, setCurrentStep] = useState('dashboard');
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-const fetchCategories = async () => {
-  setLoading(true);
-  try {
-    const response = await DoAll({
-      action: 'get',
-      table: 'category'
-    });
-
-    if (response.data.success) {
-      setCategories(response.data.data);
-    } else {
-      toast.error("Failed to load categories");
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API_URL}/doAll`,
+        { action: 'get', table: 'category' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    toast.error("Something went wrong while fetching categories");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   if (loading) {
     return <div className="p-4 sm:p-8 text-center">Loading...</div>;
@@ -42,87 +36,74 @@ const fetchCategories = async () => {
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Products Management</h1>
-        
-        {/* Add Button - Always Visible */}
-        <button
-          onClick={() => {
+      {/* Navigation Steps */}
+      <div className="mb-6 sm:mb-8">
+        <nav className="flex items-center space-x-2 text-sm overflow-x-auto">
+          <StepButton
+            step="dashboard"
+            currentStep={currentStep}
+            onClick={() => setCurrentStep('dashboard')}
+            icon="📊"
+            label="Dashboard"
+          />
+          <div className="text-gray-400">›</div>
+          <StepButton
+            step="view-products"
+            currentStep={currentStep}
+            onClick={() => setCurrentStep('view-products')}
+            icon="👁️"
+            label="View Products"
+          />
+          <div className="text-gray-400">›</div>
+          <StepButton
+            step="add-products"
+            currentStep={currentStep}
+            onClick={() => {
+              if (categories.length === 0) {
+                alert('Please create a category first!');
+                return;
+              }
+              setCurrentStep('add-products');
+            }}
+            icon="➕"
+            label="Add Products"
+            disabled={categories.length === 0}
+          />
+        </nav>
+      </div>
+
+      {/* Step Content */}
+      {currentStep === 'dashboard' && (
+        <ProductsDashboard 
+          categories={categories}
+          onViewProducts={() => setCurrentStep('view-products')}
+          onAddProducts={() => {
             if (categories.length === 0) {
               alert('Please create a category first!');
               return;
             }
-            setView('add-products');
+            setCurrentStep('add-products');
           }}
-          className={`w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 ${
-            categories.length > 0 
-              ? 'hover:bg-blue-700 transition-colors' 
-              : 'opacity-50 cursor-not-allowed'
-          }`}
-        >
-          <span>+</span>
-          <span>Add Product</span>
-        </button>
-      </div>
-
-      {view === 'main' && (
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-blue-600">{categories.length}</div>
-              <div className="text-sm text-gray-600">Total Categories</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-green-600">0</div>
-              <div className="text-sm text-gray-600">Active Products</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-purple-600">0</div>
-              <div className="text-sm text-gray-600">Featured Products</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-orange-600">0</div>
-              <div className="text-sm text-gray-600">Low Stock</div>
-            </div>
-          </div>
-
-          {/* Products Display Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 className="text-lg font-semibold text-gray-900">All Products</h2>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <select className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-md text-sm">
-                    <option>All Categories</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                  <button className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50">
-                    🔍
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <ViewProducts 
-              categories={categories}
-              onAddProduct={() => {
-                if (categories.length === 0) {
-                  alert('Please create a category first!');
-                  return;
-                }
-                setView('add-products');
-              }}
-            />
-          </div>
-        </div>
+        />
       )}
 
-      {view === 'add-products' && (
+      {currentStep === 'view-products' && (
+        <ViewProducts 
+          categories={categories}
+          onBack={() => setCurrentStep('dashboard')}
+          onAddProduct={() => {
+            if (categories.length === 0) {
+              alert('Please create a category first!');
+              return;
+            }
+            setCurrentStep('add-products');
+          }}
+        />
+      )}
+
+      {currentStep === 'add-products' && (
         <AddProducts 
-          onBack={() => setView('main')}
+          onBack={() => setCurrentStep('dashboard')}
           categories={categories}
           onRefresh={fetchCategories}
         />
@@ -131,8 +112,224 @@ const fetchCategories = async () => {
   );
 };
 
+// Step Navigation Button Component
+const StepButton = ({ step, currentStep, onClick, icon, label, disabled = false }) => {
+  const isActive = currentStep === step;
+  const isCompleted = 
+    (step === 'dashboard' && currentStep !== 'dashboard') ||
+    (step === 'view-products' && currentStep === 'add-products');
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
+        isActive
+          ? 'bg-blue-600 text-white shadow-md'
+          : isCompleted
+          ? 'bg-green-100 text-green-700 border border-green-300'
+          : disabled
+          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
+    >
+      <span className="text-base">{icon}</span>
+      <span className="font-medium">{label}</span>
+      {isCompleted && <span className="text-green-500">✓</span>}
+    </button>
+  );
+};
+
+// ==================== DASHBOARD COMPONENT ====================
+const ProductsDashboard = ({ categories, onViewProducts, onAddProducts }) => {
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    activeProducts: 0,
+    featuredProducts: 0,
+    lowStock: 0
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API_URL}/doAll`,
+        { action: 'get', table: 'products' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        const products = response.data.data || [];
+        const featured = products.filter(p => 
+          p.product_details?.featured?.includes('Latest Designs') || 
+          p.product_details?.featured?.includes('Bestsellers')
+        ).length;
+        
+        setStats({
+          totalProducts: products.length,
+          activeProducts: products.length,
+          featuredProducts: featured,
+          lowStock: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard 
+          icon="📦" 
+          value={stats.totalProducts} 
+          label="Total Products" 
+          color="blue" 
+        />
+        <StatCard 
+          icon="✅" 
+          value={stats.activeProducts} 
+          label="Active Products" 
+          color="green" 
+        />
+        <StatCard 
+          icon="⭐" 
+          value={stats.featuredProducts} 
+          label="Featured Products" 
+          color="purple" 
+        />
+        <StatCard 
+          icon="⚠️" 
+          value={stats.lowStock} 
+          label="Low Stock" 
+          color="orange" 
+        />
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ActionCard
+          icon="👁️"
+          title="View Products"
+          description="Browse, search and manage all your products"
+          buttonText="View Products"
+          onClick={onViewProducts}
+          color="blue"
+        />
+        <ActionCard
+          icon="➕"
+          title="Add Products"
+          description="Add new products to your catalog"
+          buttonText="Add Products"
+          onClick={onAddProducts}
+          color="green"
+        />
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span>📋</span>
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <QuickAction
+            icon="🔍"
+            title="Search Products"
+            description="Find specific products quickly"
+            onClick={onViewProducts}
+          />
+          <QuickAction
+            icon="📊"
+            title="View Analytics"
+            description="Check product performance"
+            onClick={() => alert('Analytics coming soon!')}
+          />
+          <QuickAction
+            icon="🔄"
+            title="Refresh Data"
+            description="Update product information"
+            onClick={fetchStats}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatCard = ({ icon, value, label, color }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 border-blue-200 text-blue-700',
+    green: 'bg-green-50 border-green-200 text-green-700',
+    purple: 'bg-purple-50 border-purple-200 text-purple-700',
+    orange: 'bg-orange-50 border-orange-200 text-orange-700'
+  };
+
+  return (
+    <div className={`p-4 rounded-lg border-2 ${colorClasses[color]}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-sm opacity-80">{label}</div>
+        </div>
+        <div className="text-2xl">{icon}</div>
+      </div>
+    </div>
+  );
+};
+
+const ActionCard = ({ icon, title, description, buttonText, onClick, color }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    green: 'bg-green-50 border-green-200 hover:bg-green-100'
+  };
+
+  const buttonClasses = {
+    blue: 'bg-blue-600 hover:bg-blue-700',
+    green: 'bg-green-600 hover:bg-green-700'
+  };
+
+  return (
+    <div className={`p-6 rounded-lg border-2 transition-colors ${colorClasses[color]}`}>
+      <div className="flex items-start gap-4">
+        <div className="text-3xl">{icon}</div>
+        <div className="flex-1">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
+          <p className="text-gray-600 mb-4">{description}</p>
+          <button
+            onClick={onClick}
+            className={`px-6 py-2 text-white rounded-lg font-semibold transition-colors ${buttonClasses[color]}`}
+          >
+            {buttonText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const QuickAction = ({ icon, title, description, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full"
+    >
+      <div className="text-2xl">{icon}</div>
+      <div>
+        <div className="font-semibold text-gray-900">{title}</div>
+        <div className="text-sm text-gray-600">{description}</div>
+      </div>
+    </button>
+  );
+};
+
 // ==================== VIEW PRODUCTS COMPONENT ====================
-const ViewProducts = ({ categories, onAddProduct }) => {
+const ViewProducts = ({ categories, onBack, onAddProduct }) => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -165,8 +362,6 @@ const ViewProducts = ({ categories, onAddProduct }) => {
         { category_ids: selectedCategoryIds },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      console.log(response)
 
       if (response.data.success) {
         setProducts(response.data.data);
@@ -225,145 +420,168 @@ const ViewProducts = ({ categories, onAddProduct }) => {
     });
 
   return (
-    <div className="bg-white rounded-lg">
-      {/* Mobile Filter Bar */}
-      <div className="lg:hidden p-4 border-b border-gray-200">
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            placeholder="🔍 Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-          />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Back to Dashboard"
           >
-            <option value="name">📝 Name</option>
-            <option value="price-high">💰 High to Low</option>
-            <option value="price-low">💰 Low to High</option>
-            <option value="discount">🎯 Discount</option>
-          </select>
+            ←
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">View Products</h1>
         </div>
-        
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => toggleCategory(cat.id)}
-              className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
-                selectedCategoryIds.includes(cat.id)
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={onAddProduct}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2"
+        >
+          <span>➕</span>
+          <span>Add Product</span>
+        </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row">
-        {/* Desktop Sidebar - Categories */}
-        <div className="hidden lg:block w-64 flex-shrink-0 border-r border-gray-200 p-4">
-          <h3 className="font-semibold text-lg mb-4">📂 Categories</h3>
-          <div className="space-y-2">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* Mobile Filter Bar */}
+        <div className="lg:hidden p-4 border-b border-gray-200">
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              placeholder="🔍 Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="name">📝 Name</option>
+              <option value="price-high">💰 High to Low</option>
+              <option value="price-low">💰 Low to High</option>
+              <option value="discount">🎯 Discount</option>
+            </select>
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {categories.map(cat => (
-              <label
+              <button
                 key={cat.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => toggleCategory(cat.id)}
+                className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
+                  selectedCategoryIds.includes(cat.id)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
               >
-                <input
-                  type="checkbox"
-                  checked={selectedCategoryIds.includes(cat.id)}
-                  onChange={() => toggleCategory(cat.id)}
-                  className="w-5 h-5"
-                />
-                <span className="font-medium text-sm">{cat.name}</span>
-              </label>
+                {cat.name}
+              </button>
             ))}
           </div>
-
-          {selectedCategoryIds.length > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-md">
-              <p className="text-sm text-blue-800">
-                ✅ {selectedCategoryIds.length} {selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Products Grid */}
-        <div className="flex-1">
-          {/* Desktop Toolbar */}
-          <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200">
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                placeholder="🔍 Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm w-64"
-              />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="name">📝 Name</option>
-                <option value="price-high">💰 High to Low</option>
-                <option value="price-low">💰 Low to High</option>
-                <option value="discount">🎯 Discount</option>
-              </select>
+        <div className="flex flex-col lg:flex-row">
+          {/* Desktop Sidebar - Categories */}
+          <div className="hidden lg:block w-64 flex-shrink-0 border-r border-gray-200 p-4">
+            <h3 className="font-semibold text-lg mb-4">📂 Categories</h3>
+            <div className="space-y-2">
+              {categories.map(cat => (
+                <label
+                  key={cat.id}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCategoryIds.includes(cat.id)}
+                    onChange={() => toggleCategory(cat.id)}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-medium text-sm">{cat.name}</span>
+                </label>
+              ))}
             </div>
-            <div className="text-sm text-gray-600">
-              📊 {filteredProducts.length} products found
-            </div>
+
+            {selectedCategoryIds.length > 0 && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                <p className="text-sm text-blue-800">
+                  ✅ {selectedCategoryIds.length} {selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Products Grid */}
-          {selectedCategoryIds.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-6xl mb-4">📁</div>
-              <p className="text-lg mb-4">Select a category to view products</p>
-              <button
-                onClick={onAddProduct}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-              >
-                ➕ Add Your First Product
-              </button>
-            </div>
-          ) : loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-6xl mb-4">😔</div>
-              <p className="text-lg mb-2">No products found</p>
-              <p className="text-sm mb-4">Try selecting different categories or search terms</p>
-              <button
-                onClick={onAddProduct}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-              >
-                ➕ Add New Product
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={setEditProduct}
-                  onDelete={handleDelete}
-                  onViewImages={setImagePopup}
+          <div className="flex-1">
+            {/* Desktop Toolbar */}
+            <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200">
+              <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="🔍 Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm w-64"
                 />
-              ))}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="name">📝 Name</option>
+                  <option value="price-high">💰 High to Low</option>
+                  <option value="price-low">💰 Low to High</option>
+                  <option value="discount">🎯 Discount</option>
+                </select>
+              </div>
+              <div className="text-sm text-gray-600">
+                📊 {filteredProducts.length} products found
+              </div>
             </div>
-          )}
+
+            {/* Products Grid */}
+            {selectedCategoryIds.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-6xl mb-4">📁</div>
+                <p className="text-lg mb-4">Select a category to view products</p>
+                <button
+                  onClick={onAddProduct}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                >
+                  ➕ Add Your First Product
+                </button>
+              </div>
+            ) : loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-6xl mb-4">😔</div>
+                <p className="text-lg mb-2">No products found</p>
+                <p className="text-sm mb-4">Try selecting different categories or search terms</p>
+                <button
+                  onClick={onAddProduct}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                >
+                  ➕ Add New Product
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 p-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onEdit={setEditProduct}
+                    onDelete={handleDelete}
+                    onViewImages={setImagePopup}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -394,13 +612,13 @@ const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
   const mainImage = product.product_details.images?.[0] || '';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 overflow-hidden group">
       {/* Product Image */}
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <img
           src={mainImage ? `https://apichandra.rxsquare.in${mainImage}` : '/api/placeholder/300/200'}
           alt={product.name}
-          className="w-full h-48 object-cover rounded-t-lg"
+          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect fill="%23f3f4f6" width="300" height="200"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="16" x="150" y="100" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
           }}
@@ -408,7 +626,7 @@ const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
         
         {/* Discount Badge */}
         {product.product_details.discount > 0 && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+          <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
             🎯 {product.product_details.discount}% OFF
           </div>
         )}
@@ -417,31 +635,61 @@ const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
         {product.product_details.images?.length > 0 && (
           <button
             onClick={() => onViewImages(product.product_details.images)}
-            className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs"
+            className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-2 py-1 rounded-lg text-xs backdrop-blur-sm hover:bg-opacity-90 transition-colors"
+            title="View Images"
           >
             📷 {product.product_details.images.length}
           </button>
         )}
+
+        {/* Action Overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(product)}
+              className="bg-white bg-opacity-90 p-3 rounded-full hover:bg-opacity-100 transition-all transform hover:scale-110 shadow-lg"
+              title="Edit Product"
+            >
+              <span className="text-lg">✏️</span>
+            </button>
+            <button
+              onClick={() => onDelete(product.id)}
+              className="bg-white bg-opacity-90 p-3 rounded-full hover:bg-opacity-100 transition-all transform hover:scale-110 shadow-lg"
+              title="Delete Product"
+            >
+              <span className="text-lg">🗑️</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Product Info */}
       <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1 text-sm">{product.name}</h3>
+        {/* Header with Expand Toggle */}
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1 text-sm leading-tight">
+            {product.name}
+          </h3>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="ml-2 text-gray-500 hover:text-gray-700 text-xs"
+            className="ml-2 text-gray-500 hover:text-gray-700 text-xs p-1 hover:bg-gray-100 rounded transition-colors"
+            title={isExpanded ? "Collapse" : "Expand"}
           >
             {isExpanded ? '▲' : '▼'}
           </button>
         </div>
 
-        <p className="text-xs text-gray-600 mb-3 line-clamp-1">🔗 {product.slug}</p>
+        {/* Slug */}
+        <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex items-center gap-1">
+          <span>🔗</span>
+          {product.slug}
+        </p>
 
         {/* Price */}
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg font-bold text-green-600">
-            💰 ₹{product.product_details.price?.toLocaleString()}
+          <span className="text-lg font-bold text-green-600 flex items-center gap-1">
+            <span>💰</span>
+            ₹{product.product_details.price?.toLocaleString()}
           </span>
           {product.product_details.originalPrice > product.product_details.price && (
             <span className="text-sm text-gray-500 line-through">
@@ -452,23 +700,28 @@ const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
 
         {/* Category & Gender */}
         <div className="flex flex-wrap gap-1 mb-3">
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-            📂 {product.product_details.category}
+          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+            <span>📂</span>
+            {product.product_details.category}
           </span>
           {product.product_details.gender?.map(gender => (
-            <span key={gender} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-              👤 {gender}
+            <span key={gender} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+              <span>👤</span>
+              {gender}
             </span>
           ))}
         </div>
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 animate-slideDown">
             {/* Featured Tags */}
             {product.product_details.featured?.length > 0 && (
               <div>
-                <p className="text-xs text-gray-600 mb-1">⭐ Featured:</p>
+                <p className="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                  <span>⭐</span>
+                  Featured:
+                </p>
                 <div className="flex flex-wrap gap-1">
                   {product.product_details.featured.map((tag, idx) => (
                     <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
@@ -481,39 +734,50 @@ const ProductCard = ({ product, onEdit, onDelete, onViewImages }) => {
 
             {/* Style & Metal */}
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-gray-600">🎨 Style:</span>
-                <p className="font-medium">{product.product_details.style_id || 'N/A'}</p>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600">🎨</span>
+                <span className="font-medium truncate" title={product.product_details.style_id}>
+                  {product.product_details.style_id || 'N/A'}
+                </span>
               </div>
-              <div>
-                <span className="text-gray-600">💎 Metal:</span>
-                <p className="font-medium">{product.product_details.metal_id || 'N/A'}</p>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600">💎</span>
+                <span className="font-medium truncate" title={product.product_details.metal_id}>
+                  {product.product_details.metal_id || 'N/A'}
+                </span>
               </div>
             </div>
 
             {/* Description */}
             {product.product_details.description && (
               <div>
-                <span className="text-xs text-gray-600">📝 Description:</span>
-                <p className="text-xs font-medium mt-1 line-clamp-2">{product.product_details.description}</p>
+                <p className="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                  <span>📝</span>
+                  Description:
+                </p>
+                <p className="text-xs font-medium line-clamp-2 text-gray-700">
+                  {product.product_details.description}
+                </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-4">
+        {/* Quick Actions - Mobile */}
+        <div className="flex lg:hidden gap-2 mt-3 pt-3 border-t border-gray-200">
           <button
             onClick={() => onEdit(product)}
-            className="flex-1 py-2 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
+            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1 transition-colors"
           >
-            ✏️ Edit
+            <span>✏️</span>
+            <span>Edit</span>
           </button>
           <button
             onClick={() => onDelete(product.id)}
-            className="flex-1 py-2 bg-red-600 text-white rounded text-sm font-semibold hover:bg-red-700 flex items-center justify-center gap-1"
+            className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 flex items-center justify-center gap-1 transition-colors"
           >
-            🗑️ Delete
+            <span>🗑️</span>
+            <span>Delete</span>
           </button>
         </div>
       </div>
@@ -538,7 +802,7 @@ const ImagePopup = ({ images, onClose }) => {
       <div className="relative max-w-4xl w-full max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
-          className="absolute -top-12 right-0 text-white text-2xl z-10 hover:text-gray-300"
+          className="absolute -top-12 right-0 text-white text-2xl z-10 hover:text-gray-300 transition-colors"
         >
           ✕
         </button>
@@ -554,13 +818,13 @@ const ImagePopup = ({ images, onClose }) => {
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors"
               >
                 ‹
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors"
               >
                 ›
               </button>
@@ -575,8 +839,8 @@ const ImagePopup = ({ images, onClose }) => {
               <button
                 key={idx}
                 onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
-                className={`flex-shrink-0 w-16 h-16 border-2 rounded ${
-                  idx === currentIndex ? 'border-blue-500' : 'border-transparent'
+                className={`flex-shrink-0 w-16 h-16 border-2 rounded-lg transition-all ${
+                  idx === currentIndex ? 'border-blue-500 scale-110' : 'border-transparent hover:border-gray-400'
                 }`}
               >
                 <img
@@ -589,7 +853,7 @@ const ImagePopup = ({ images, onClose }) => {
           </div>
         )}
 
-        <div className="text-white text-center mt-2">
+        <div className="text-white text-center mt-3 font-medium">
           {currentIndex + 1} / {images.length}
         </div>
       </div>
@@ -610,7 +874,14 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
     gender: product.product_details.gender || [],
     style_id: product.product_details.style_id || '',
     metal_id: product.product_details.metal_id || '',
-    category_id: product.category_id || ''
+    category_id: product.category_id || '',
+    // Variant configuration
+    hasMetalChoice: product.product_details.hasMetalChoice || false,
+    hasDiamondChoice: product.product_details.hasDiamondChoice || false,
+    selectedMetalOptions: product.product_details.selectedMetalOptions || [],
+    selectedDiamondOptions: product.product_details.selectedDiamondOptions || [],
+    selectedSizes: product.product_details.selectedSizes || {},
+    variantPricing: product.product_details.variantPricing || {}
   });
 
   const [categoryData, setCategoryData] = useState(null);
@@ -618,6 +889,9 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
   const [saving, setSaving] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUrls, setImageUrls] = useState(product.product_details.images || []);
+  const [activeVariantTab, setActiveVariantTab] = useState('basic');
+
+  const FILE_TYPE_OPTIONS = ['STL File', 'CAM Product', 'Rubber Mold', 'Casting Model'];
 
   // Fetch category details when category changes
   useEffect(() => {
@@ -626,39 +900,50 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
     }
   }, [formData.category_id]);
 
-const fetchCategoryDetails = useCallback(async (catId) => {
-  if (!catId) return;
+  const fetchCategoryDetails = async (catId) => {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    
+    try {
+      const [stylesRes, metalsRes, attributesRes] = await Promise.all([
+        axios.post(`${API_URL}/doAll`, {
+          action: 'get',
+          table: 'by_style',
+          where: { category_id: catId }
+        }, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.post(`${API_URL}/doAll`, {
+          action: 'get',
+          table: 'by_metal_and_stone',
+          where: { category_id: catId }
+        }, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/attributes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
 
-  setLoading(true);
+      const attributes = {
+        metal: { id: null, options: [] },
+        diamond: { id: null, options: [] },
+        size: { id: null, options: [] }
+      };
+      
+      if (attributesRes.data.success) {
+        attributesRes.data.data.forEach(attr => {
+          attributes[attr.type] = { id: attr.id, options: attr.options };
+        });
+      }
 
-  try {
-    // Fetch both API calls in parallel
-    const [stylesRes, metalsRes] = await Promise.all([
-      DoAll({
-        action: 'get',
-        table: 'by_style',
-        where: { category_id: catId }
-      }),
-      DoAll({
-        action: 'get',
-        table: 'by_metal_and_stone',
-        where: { category_id: catId }
-      })
-    ]);
-
-    setCategoryData({
-      styles: stylesRes?.data || [],
-      metals: metalsRes?.data || []
-    });
-
-  } catch (error) {
-    console.error("Error fetching category details:", error);
-    alert("Failed to load category details.");
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
+      setCategoryData({
+        styles: stylesRes.data.data,
+        metals: metalsRes.data.data,
+        attributes: attributes
+      });
+    } catch (error) {
+      console.error('Error fetching category details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleImageSelect = (files) => {
     const fileArray = Array.from(files);
@@ -687,6 +972,85 @@ const fetchCategoryDetails = useCallback(async (catId) => {
       gender: prev.gender.includes(gender)
         ? prev.gender.filter(g => g !== gender)
         : [...prev.gender, gender]
+    }));
+  };
+
+  const toggleMetalChoice = () => {
+    setFormData(prev => ({
+      ...prev,
+      hasMetalChoice: !prev.hasMetalChoice,
+      selectedMetalOptions: !prev.hasMetalChoice ? [] : prev.selectedMetalOptions
+    }));
+  };
+
+  const toggleDiamondChoice = () => {
+    setFormData(prev => ({
+      ...prev,
+      hasDiamondChoice: !prev.hasDiamondChoice,
+      selectedDiamondOptions: !prev.hasDiamondChoice ? [] : prev.selectedDiamondOptions
+    }));
+  };
+
+  const toggleMetalOption = (optionId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedMetalOptions: prev.selectedMetalOptions.includes(optionId)
+        ? prev.selectedMetalOptions.filter(id => id !== optionId)
+        : [...prev.selectedMetalOptions, optionId]
+    }));
+  };
+
+  const toggleDiamondOption = (optionId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedDiamondOptions: prev.selectedDiamondOptions.includes(optionId)
+        ? prev.selectedDiamondOptions.filter(id => id !== optionId)
+        : [...prev.selectedDiamondOptions, optionId]
+    }));
+  };
+
+  const toggleSize = (metalId, diamondId, sizeId) => {
+    const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+    setFormData(prev => ({
+      ...prev,
+      selectedSizes: {
+        ...prev.selectedSizes,
+        [key]: !prev.selectedSizes[key]
+      }
+    }));
+  };
+
+  const updateVariantPricing = (metalId, diamondId, sizeId, field, value) => {
+    const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+    setFormData(prev => ({
+      ...prev,
+      variantPricing: {
+        ...prev.variantPricing,
+        [key]: {
+          ...prev.variantPricing[key],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const toggleVariantFileType = (metalId, diamondId, sizeId, fileType) => {
+    const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+    const current = formData.variantPricing[key] || {};
+    const currentFiles = current.file_types || [];
+    const newFiles = currentFiles.includes(fileType)
+      ? currentFiles.filter(f => f !== fileType)
+      : [...currentFiles, fileType];
+    
+    setFormData(prev => ({
+      ...prev,
+      variantPricing: {
+        ...prev.variantPricing,
+        [key]: {
+          ...current,
+          file_types: newFiles
+        }
+      }
     }));
   };
 
@@ -720,16 +1084,24 @@ const fetchCategoryDetails = useCallback(async (catId) => {
         ...product.product_details,
         description: formData.description,
         price: parseFloat(formData.price),
-        originalPrice: parseFloat(formData.originalPrice),
-        discount: parseInt(formData.discount),
+        originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
+        discount: parseInt(formData.discount) || 0,
         featured: formData.featured,
         gender: formData.gender,
         style_id: formData.style_id,
         metal_id: formData.metal_id,
         images: uploadedImageUrls,
-        category: categories.find(c => c.id == formData.category_id)?.name || ''
+        category: categories.find(c => c.id == formData.category_id)?.name || '',
+        // Variant configuration
+        hasMetalChoice: formData.hasMetalChoice,
+        hasDiamondChoice: formData.hasDiamondChoice,
+        selectedMetalOptions: formData.selectedMetalOptions,
+        selectedDiamondOptions: formData.selectedDiamondOptions,
+        selectedSizes: formData.selectedSizes,
+        variantPricing: formData.variantPricing
       };
 
+      // Update main product
       const response = await axios.post(
         `${API_URL}/products/update`,
         {
@@ -743,6 +1115,35 @@ const fetchCategoryDetails = useCallback(async (catId) => {
       );
 
       if (response.data.success) {
+        // Update variants if any
+        const variants = [];
+        for (const [key, isSelected] of Object.entries(formData.selectedSizes)) {
+          if (!isSelected) continue;
+
+          const pricing = formData.variantPricing[key];
+          if (!pricing || !pricing.original_price) continue;
+
+          const [metalPart, diamondPart, sizePart] = key.split('-');
+          
+          variants.push({
+            metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+            diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+            size_option_id: parseInt(sizePart),
+            original_price: parseFloat(pricing.original_price),
+            discount_price: parseFloat(pricing.discount_price) || parseFloat(pricing.original_price),
+            discount_percentage: parseInt(pricing.discount_percentage) || 0,
+            file_types: pricing.file_types || []
+          });
+        }
+
+        if (variants.length > 0) {
+          await axios.post(
+            `${API_URL}/product-variants/pricing`,
+            { product_id: product.id, variants },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+
         alert('✅ Product updated successfully');
         onSave();
       }
@@ -754,243 +1155,617 @@ const fetchCategoryDetails = useCallback(async (catId) => {
     }
   };
 
+  const renderVariantConfiguration = () => (
+    <div className="mt-6 p-4 bg-white border-2 border-blue-300 rounded-lg">
+      <h5 className="font-bold text-lg mb-4 text-blue-800 flex items-center gap-2">
+        ⚙️ Variant Configuration (Optional)
+      </h5>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        {/* Choice of Metal */}
+        <div className="border-2 border-gray-200 rounded p-3">
+          <label className="flex items-center gap-2 mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.hasMetalChoice}
+              onChange={toggleMetalChoice}
+              className="w-5 h-5"
+            />
+            <span className="font-bold">🔩 Choice of Metal</span>
+          </label>
+          
+          {formData.hasMetalChoice && (
+            <div className="space-y-2">
+              {categoryData?.attributes?.metal?.options?.map(opt => (
+                <label key={opt.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50">
+                  <input
+                    type="checkbox"
+                    checked={formData.selectedMetalOptions.includes(opt.id)}
+                    onChange={() => toggleMetalOption(opt.id)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">{opt.option_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Diamond Quality */}
+        <div className="border-2 border-gray-200 rounded p-3">
+          <label className="flex items-center gap-2 mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.hasDiamondChoice}
+              onChange={toggleDiamondChoice}
+              className="w-5 h-5"
+            />
+            <span className="font-bold">💎 Diamond Quality</span>
+          </label>
+          
+          {formData.hasDiamondChoice && (
+            <div className="space-y-2">
+              {categoryData?.attributes?.diamond?.options?.map(opt => (
+                <label key={opt.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-purple-50">
+                  <input
+                    type="checkbox"
+                    checked={formData.selectedDiamondOptions.includes(opt.id)}
+                    onChange={() => toggleDiamondOption(opt.id)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">{opt.option_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Size Info */}
+        <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
+          <h6 className="font-bold mb-2">📏 Sizes</h6>
+          <p className="text-xs text-gray-600">Configure sizes below with pricing details</p>
+        </div>
+      </div>
+
+      {/* Size & Pricing Configuration */}
+      <div className="mt-4">
+        <h6 className="font-bold mb-3">📐 Configure Sizes & Pricing:</h6>
+        
+        {/* Size Only (No Metal/Diamond) */}
+        {!formData.hasMetalChoice && !formData.hasDiamondChoice && (
+          <div className="space-y-3">
+            {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+              const key = `none-none-${sizeOpt.id}`;
+              const isSelected = formData.selectedSizes[key];
+              const pricing = formData.variantPricing[key] || {};
+              
+              return (
+                <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3">
+                  <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSelected || false}
+                      onChange={() => toggleSize(null, null, sizeOpt.id)}
+                      className="w-5 h-5"
+                    />
+                    <span className="font-bold">
+                      {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                    </span>
+                  </label>
+
+                  {isSelected && (
+                    <div className="ml-8 space-y-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
+                          <input
+                            type="number"
+                            placeholder="15000"
+                            value={pricing.original_price || ''}
+                            onChange={(e) => updateVariantPricing(null, null, sizeOpt.id, 'original_price', e.target.value)}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
+                          <input
+                            type="number"
+                            placeholder="13000"
+                            value={pricing.discount_price || ''}
+                            onChange={(e) => updateVariantPricing(null, null, sizeOpt.id, 'discount_price', e.target.value)}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                          <input
+                            type="number"
+                            placeholder="13"
+                            value={pricing.discount_percentage || ''}
+                            onChange={(e) => updateVariantPricing(null, null, sizeOpt.id, 'discount_percentage', e.target.value)}
+                            className="w-full px-2 py-1 border rounded text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium mb-2">📁 File Types:</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {FILE_TYPE_OPTIONS.map(fileType => (
+                            <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pricing.file_types?.includes(fileType) || false}
+                                onChange={() => toggleVariantFileType(null, null, sizeOpt.id, fileType)}
+                                className="w-4 h-4"
+                              />
+                              <span>{fileType}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Metal Only (No Diamond) */}
+        {formData.hasMetalChoice && !formData.hasDiamondChoice && formData.selectedMetalOptions.map(metalId => {
+          const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+          return (
+            <div key={metalId} className="mb-4 border-2 border-blue-200 rounded p-4 bg-blue-50">
+              <h6 className="font-bold mb-3">{metalOpt?.option_name}</h6>
+              <div className="space-y-3">
+                {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+                  const key = `${metalId}-none-${sizeOpt.id}`;
+                  const isSelected = formData.selectedSizes[key];
+                  const pricing = formData.variantPricing[key] || {};
+                  
+                  return (
+                    <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                      <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isSelected || false}
+                          onChange={() => toggleSize(metalId, null, sizeOpt.id)}
+                          className="w-5 h-5"
+                        />
+                        <span className="font-bold">
+                          {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                        </span>
+                      </label>
+
+                      {isSelected && (
+                        <div className="ml-8 space-y-3">
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
+                              <input
+                                type="number"
+                                placeholder="15000"
+                                value={pricing.original_price || ''}
+                                onChange={(e) => updateVariantPricing(metalId, null, sizeOpt.id, 'original_price', e.target.value)}
+                                className="w-full px-2 py-1 border rounded text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
+                              <input
+                                type="number"
+                                placeholder="13000"
+                                value={pricing.discount_price || ''}
+                                onChange={(e) => updateVariantPricing(metalId, null, sizeOpt.id, 'discount_price', e.target.value)}
+                                className="w-full px-2 py-1 border rounded text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                              <input
+                                type="number"
+                                placeholder="13"
+                                value={pricing.discount_percentage || ''}
+                                onChange={(e) => updateVariantPricing(metalId, null, sizeOpt.id, 'discount_percentage', e.target.value)}
+                                className="w-full px-2 py-1 border rounded text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium mb-2">📁 File Types:</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {FILE_TYPE_OPTIONS.map(fileType => (
+                                <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={pricing.file_types?.includes(fileType) || false}
+                                    onChange={() => toggleVariantFileType(metalId, null, sizeOpt.id, fileType)}
+                                    className="w-4 h-4"
+                                  />
+                                  <span>{fileType}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Metal + Diamond */}
+        {formData.hasMetalChoice && formData.hasDiamondChoice && formData.selectedMetalOptions.map(metalId => {
+          const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+          return formData.selectedDiamondOptions.map(diamondId => {
+            const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => o.id === diamondId);
+            return (
+              <div key={`${metalId}-${diamondId}`} className="mb-4 border-2 border-purple-200 rounded p-4 bg-purple-50">
+                <h6 className="font-bold mb-3">{metalOpt?.option_name} + {diamondOpt?.option_name}</h6>
+                <div className="space-y-3">
+                  {categoryData?.attributes?.size?.options?.map(sizeOpt => {
+                    const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
+                    const isSelected = formData.selectedSizes[key];
+                    const pricing = formData.variantPricing[key] || {};
+                    
+                    return (
+                      <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                        <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isSelected || false}
+                            onChange={() => toggleSize(metalId, diamondId, sizeOpt.id)}
+                            className="w-5 h-5"
+                          />
+                          <span className="font-bold">
+                            {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                          </span>
+                        </label>
+
+                        {isSelected && (
+                          <div className="ml-8 space-y-3">
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
+                                <input
+                                  type="number"
+                                  placeholder="15000"
+                                  value={pricing.original_price || ''}
+                                  onChange={(e) => updateVariantPricing(metalId, diamondId, sizeOpt.id, 'original_price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
+                                <input
+                                  type="number"
+                                  placeholder="13000"
+                                  value={pricing.discount_price || ''}
+                                  onChange={(e) => updateVariantPricing(metalId, diamondId, sizeOpt.id, 'discount_price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                                <input
+                                  type="number"
+                                  placeholder="13"
+                                  value={pricing.discount_percentage || ''}
+                                  onChange={(e) => updateVariantPricing(metalId, diamondId, sizeOpt.id, 'discount_percentage', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded text-sm"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium mb-2">📁 File Types:</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {FILE_TYPE_OPTIONS.map(fileType => (
+                                  <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={pricing.file_types?.includes(fileType) || false}
+                                      onChange={() => toggleVariantFileType(metalId, diamondId, sizeOpt.id, fileType)}
+                                      className="w-4 h-4"
+                                    />
+                                    <span>{fileType}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          });
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-            ✏️ Edit Product
+            <span>✏️</span>
+            Edit Product - {product.name}
           </h3>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl p-1"
+            className="text-gray-500 hover:text-gray-700 text-xl p-1 transition-colors"
           >
             ✕
           </button>
         </div>
 
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-200 bg-white">
+          <nav className="flex space-x-1 px-4 overflow-x-auto">
+            {['basic', 'variants'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveVariantTab(tab)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeVariantTab === tab
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span>{tab === 'basic' ? '📋' : '⚙️'}</span>
+                <span>{tab === 'basic' ? 'Basic Information' : 'Variant Configuration'}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Left Column - Basic Info */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Category Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📂 Category *
-                </label>
-                <select
-                  value={formData.category_id}
-                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Basic Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          {activeVariantTab === 'basic' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {/* Left Column - Basic Info */}
+              <div className="space-y-4 sm:space-y-6">
+                {/* Category Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    📝 Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      name: e.target.value, 
-                      slug: e.target.value.toLowerCase().replace(/\s+/g, '-') 
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    placeholder="Product name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    🔗 Slug
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                    readOnly
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    🎨 Style *
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <span>📂</span>
+                    Category *
                   </label>
                   <select
-                    value={formData.style_id}
-                    onChange={(e) => setFormData({ ...formData, style_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    disabled={!categoryData}
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="">Select Style</option>
-                    {categoryData?.styles.map(style => (
-                      <option key={style.id} value={style.id}>{style.name}</option>
+                    <option value="">Select Category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    💎 Metal/Stone *
-                  </label>
-                  <select
-                    value={formData.metal_id}
-                    onChange={(e) => setFormData({ ...formData, metal_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    disabled={!categoryData}
-                  >
-                    <option value="">Select Metal</option>
-                    {categoryData?.metals.map(metal => (
-                      <option key={metal.id} value={metal.id}>{metal.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📄 Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Product description..."
-                />
-              </div>
-
-              {/* Pricing Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    💰 Price *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    📊 Original Price
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.originalPrice}
-                    onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    🎯 Discount %
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.discount}
-                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - Features & Images */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Featured Options */}
-              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  ⭐ Featured Tags
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
-                    <label key={feature} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.featured.includes(feature)}
-                        onChange={() => toggleFeatured(feature)}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="text-sm">{feature}</span>
+                {/* Basic Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>📝</span>
+                      Name *
                     </label>
-                  ))}
-                </div>
-              </div>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        name: e.target.value, 
+                        slug: e.target.value.toLowerCase().replace(/\s+/g, '-') 
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Product name"
+                    />
+                  </div>
 
-              {/* Gender Selection */}
-              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  👥 Target Gender/Age
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {['Kids', 'Men', 'Women'].map(gender => (
-                    <label key={gender} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.gender.includes(gender)}
-                        onChange={() => toggleGender(gender)}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="text-sm">{gender}</span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>🔗</span>
+                      Slug
                     </label>
-                  ))}
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>🎨</span>
+                      Style *
+                    </label>
+                    <select
+                      value={formData.style_id}
+                      onChange={(e) => setFormData({ ...formData, style_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      disabled={!categoryData}
+                    >
+                      <option value="">Select Style</option>
+                      {categoryData?.styles.map(style => (
+                        <option key={style.id} value={style.id}>{style.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>💎</span>
+                      Metal/Stone *
+                    </label>
+                    <select
+                      value={formData.metal_id}
+                      onChange={(e) => setFormData({ ...formData, metal_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      disabled={!categoryData}
+                    >
+                      <option value="">Select Metal</option>
+                      {categoryData?.metals.map(metal => (
+                        <option key={metal.id} value={metal.id}>{metal.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <span>📄</span>
+                    Description
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Product description..."
+                  />
+                </div>
+
+                {/* Pricing Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>💰</span>
+                      Price *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>📊</span>
+                      Original Price
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.originalPrice}
+                      onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <span>🎯</span>
+                      Discount %
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.discount}
+                      onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Image Management */}
-              <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  🖼️ Product Images
-                </label>
-                
-                {/* Image Upload */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleImageSelect(e.target.files)}
-                  className="w-full text-sm mb-3"
-                />
-
-                {/* Image Previews */}
-                {imageUrls.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
-                    {imageUrls.map((url, idx) => (
-                      <div key={idx} className="relative group">
-                        <img 
-                          src={url.startsWith('blob:') ? url : `https://apichandra.rxsquare.in${url}`}
-                          alt={`Preview ${idx + 1}`}
-                          className="h-20 w-full object-cover rounded border"
+              {/* Right Column - Features & Images */}
+              <div className="space-y-4 sm:space-y-6">
+                {/* Featured Options */}
+                <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <span>⭐</span>
+                    Featured Tags
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {['Latest Designs', 'Bestsellers', 'Fast Delivery', 'Special Deals'].map(feature => (
+                      <label key={feature} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={formData.featured.includes(feature)}
+                          onChange={() => toggleFeatured(feature)}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                         />
-                        <button
-                          onClick={() => removeImage(idx)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          ×
-                        </button>
-                      </div>
+                        <span className="text-sm">{feature}</span>
+                      </label>
                     ))}
                   </div>
-                )}
+                </div>
+
+                {/* Gender Selection */}
+                <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <span>👥</span>
+                    Target Gender/Age
+                  </label>
+                  <div className="flex flex-wrap gap-4">
+                    {['Kids', 'Men', 'Women'].map(gender => (
+                      <label key={gender} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.gender.includes(gender)}
+                          onChange={() => toggleGender(gender)}
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{gender}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Image Management */}
+                <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                    <span>🖼️</span>
+                    Product Images
+                  </label>
+                  
+                  {/* Image Upload */}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleImageSelect(e.target.files)}
+                    className="w-full text-sm mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
+                  />
+
+                  {/* Image Previews */}
+                  {imageUrls.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
+                      {imageUrls.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <img 
+                            src={url.startsWith('blob:') ? url : `https://apichandra.rxsquare.in${url}`}
+                            alt={`Preview ${idx + 1}`}
+                            className="h-20 w-full object-cover rounded border shadow-sm group-hover:shadow-md transition-all"
+                          />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            renderVariantConfiguration()
+          )}
         </div>
 
         {/* Footer Actions */}
@@ -998,7 +1773,7 @@ const fetchCategoryDetails = useCallback(async (catId) => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base flex items-center justify-center gap-2"
+            className="flex-1 py-2 sm:py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-colors shadow-sm hover:shadow-md"
           >
             {saving ? (
               <>
@@ -1007,21 +1782,27 @@ const fetchCategoryDetails = useCallback(async (catId) => {
               </>
             ) : (
               <>
-                💾 Save Changes
+                <span>💾</span>
+                Save Changes
               </>
             )}
           </button>
           <button
             onClick={onClose}
-            className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-semibold text-sm sm:text-base"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 font-semibold text-sm sm:text-base transition-colors"
           >
-            ❌ Cancel
+            <span>❌</span>
+            Cancel
           </button>
         </div>
       </div>
     </div>
   );
 };
+// ==================== ADD PRODUCTS COMPONENT ====================
+// (Keep the existing AddProducts component as it is, as it's quite long)
+// The AddProducts component remains the same as in your original code
+
 
 const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -2171,5 +2952,4 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     </div>
   );
 };
-
 export default Products;
