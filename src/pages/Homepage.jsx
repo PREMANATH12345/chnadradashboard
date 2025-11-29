@@ -49,214 +49,130 @@ const Homepage = () => {
   };
 
   // Enhanced loadSections function - Load category data from collection_category
-  // const loadSections = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const token = getAuthToken();
-      
-  //     // Load sections
-  //     const response = await fetch(`${API_URL}/doAll`, {
-  //       method: 'POST',
-  //       headers: { 
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${token}`
-  //       },
-  //       body: JSON.stringify({
-  //         action: 'get',
-  //         table: 'homepage_sections',
-  //         order_by: { order_position: 'ASC' }
-  //       })
-  //     });
-
-  //     const result = await response.json();
-      
-  //     if (result.success && result.data.length > 0) {
-  //       const loadedSections = await Promise.all(
-  //         result.data.map(async (row) => {
-  //           const sectionData = JSON.parse(row.section_data || '{}');
-            
-  //           // For category-highlight sections, load ALL data from collection_category
-  //           if (row.type === 'category-highlight') {
-  //             const categoryResponse = await fetch(`${API_URL}/doAll`, {
-  //               method: 'POST',
-  //               headers: { 
-  //                 'Content-Type': 'application/json',
-  //                 'Authorization': `Bearer ${token}`
-  //               },
-  //               body: JSON.stringify({
-  //                 action: 'get',
-  //                 table: 'collection_category',
-  //                 where: { 
-  //                   section_id: row.id,
-  //                   is_deleted: 0 
-  //                 },
-  //                 order_by: { display_order: 'ASC' }
-  //               })
-  //             });
-              
-  //             const categoryResult = await categoryResponse.json();
-              
-  //             if (categoryResult.success && categoryResult.data.length > 0) {
-  //               // Create items array from collection_category data
-  //               sectionData.items = categoryResult.data.map(catItem => {
-  //                 const images = JSON.parse(catItem.images || '[]');
-  //                 return {
-  //                   id: catItem.id,
-  //                   title: catItem.title, // From collection_category
-  //                   image: images[0] || '', // From collection_category
-  //                   selectedCategories: [catItem.category_id] // From collection_category
-  //                 };
-  //               });
-  //             } else {
-  //               sectionData.items = [];
-  //             }
-  //           }
-            
-  //           return {
-  //             id: row.id,
-  //             name: row.name,
-  //             type: row.type,
-  //             enabled: row.enabled === 1,
-  //             order: row.order_position,
-  //             data: sectionData
-  //           };
-  //         })
-  //       );
-        
-  //       setSections(loadedSections);
-  //     } else {
-  //       setSections([]);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error loading sections:', error);
-  //     alert('Failed to load sections from database');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const loadSections = async () => {
-  try {
-    setLoading(true);
-    const token = getAuthToken();
-    
-    // Load sections
-    const response = await fetch(`${API_URL}/doAll`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        action: 'get',
-        table: 'homepage_sections',
-        order_by: { order_position: 'ASC' }
-      })
-    });
+    try {
+      setLoading(true);
+      const token = getAuthToken();
+      
+      // Load sections
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'get',
+          table: 'homepage_sections',
+          order_by: { order_position: 'ASC' }
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.message || 'API returned unsuccessful response');
-    }
-    
-    if (result.data && result.data.length > 0) {
-      const loadedSections = await Promise.all(
-        result.data.map(async (row) => {
-          try {
-            // Parse section data with fallback
-            const sectionData = JSON.parse(row.section_data || '{}');
-            
-            // For category-highlight sections, load ALL data from collection_category
-            if (row.type === 'category-highlight') {
-              const categoryResponse = await fetch(`${API_URL}/doAll`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  action: 'get',
-                  table: 'collection_category',
-                  where: { 
-                    section_id: row.id,
-                    is_deleted: 0 
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'API returned unsuccessful response');
+      }
+      
+      if (result.data && result.data.length > 0) {
+        const loadedSections = await Promise.all(
+          result.data.map(async (row) => {
+            try {
+              // Parse section data with fallback
+              const sectionData = JSON.parse(row.section_data || '{}');
+              
+              // For category-highlight sections, load ALL data from collection_category
+              if (row.type === 'category-highlight') {
+                const categoryResponse = await fetch(`${API_URL}/doAll`, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                   },
-                  order_by: { display_order: 'ASC' }
-                })
-              });
+                  body: JSON.stringify({
+                    action: 'get',
+                    table: 'collection_category',
+                    where: { 
+                      section_id: row.id,
+                      is_deleted: 0 
+                    },
+                    order_by: { display_order: 'ASC' }
+                  })
+                });
 
-              if (!categoryResponse.ok) {
-                console.warn(`Failed to load category data for section ${row.id}`);
-                sectionData.items = [];
-              } else {
-                const categoryResult = await categoryResponse.json();
-                
-                if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
-                  // Use Set to prevent duplicates based on ID
-                  const uniqueItems = new Map();
-                  
-                  categoryResult.data.forEach(catItem => {
-                    const images = JSON.parse(catItem.images || '[]');
-                    const item = {
-                      id: catItem.id,
-                      title: catItem.title,
-                      image: images[0] || '',
-                      selectedCategories: [catItem.category_id]
-                    };
-                    
-                    // Prevent duplicates by ID
-                    if (!uniqueItems.has(catItem.id)) {
-                      uniqueItems.set(catItem.id, item);
-                    }
-                  });
-                  
-                  sectionData.items = Array.from(uniqueItems.values());
-                } else {
+                if (!categoryResponse.ok) {
+                  console.warn(`Failed to load category data for section ${row.id}`);
                   sectionData.items = [];
+                } else {
+                  const categoryResult = await categoryResponse.json();
+                  
+                  if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
+                    // Use Set to prevent duplicates based on ID
+                    const uniqueItems = new Map();
+                    
+                    categoryResult.data.forEach(catItem => {
+                      const images = JSON.parse(catItem.images || '[]');
+                      const item = {
+                        id: catItem.id,
+                        title: catItem.title,
+                        image: images[0] || '',
+                        selectedCategories: [catItem.category_id]
+                      };
+                      
+                      // Prevent duplicates by ID
+                      if (!uniqueItems.has(catItem.id)) {
+                        uniqueItems.set(catItem.id, item);
+                      }
+                    });
+                    
+                    sectionData.items = Array.from(uniqueItems.values());
+                  } else {
+                    sectionData.items = [];
+                  }
                 }
               }
+              
+              return {
+                id: row.id,
+                name: row.name,
+                type: row.type,
+                enabled: row.enabled === 1,
+                order: row.order_position,
+                data: sectionData
+              };
+            } catch (sectionError) {
+              console.error(`Error processing section ${row.id}:`, sectionError);
+              // Return a basic section even if category data fails
+              return {
+                id: row.id,
+                name: row.name,
+                type: row.type,
+                enabled: row.enabled === 1,
+                order: row.order_position,
+                data: { items: [] }
+              };
             }
-            
-            return {
-              id: row.id,
-              name: row.name,
-              type: row.type,
-              enabled: row.enabled === 1,
-              order: row.order_position,
-              data: sectionData
-            };
-          } catch (sectionError) {
-            console.error(`Error processing section ${row.id}:`, sectionError);
-            // Return a basic section even if category data fails
-            return {
-              id: row.id,
-              name: row.name,
-              type: row.type,
-              enabled: row.enabled === 1,
-              order: row.order_position,
-              data: { items: [] }
-            };
-          }
-        })
-      );
-      
-      // Filter out any null sections and set state
-      const validSections = loadedSections.filter(section => section !== null);
-      setSections(validSections);
-    } else {
-      setSections([]);
+          })
+        );
+        
+        // Filter out any null sections and set state
+        const validSections = loadedSections.filter(section => section !== null);
+        setSections(validSections);
+      } else {
+        setSections([]);
+      }
+    } catch (error) {
+      console.error('Error loading sections:', error);
+      alert('Failed to load sections from database: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error loading sections:', error);
-    alert('Failed to load sections from database: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   useEffect(() => {
     loadSections();
     // Load categories when component mounts
@@ -768,7 +684,7 @@ const Homepage = () => {
             No categories found. Please create categories in the Products section first.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
             {categories.map((category) => (
               <div 
                 key={category.id} 
@@ -798,15 +714,6 @@ const Homepage = () => {
             ))}
           </div>
         )}
-        
-        {/* {selectedCategory && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-            <p className="text-sm text-green-800 font-medium">
-              ✓ Selected: {categories.find(cat => cat.id === selectedCategory)?.name}
-            </p>
-           
-          </div>
-        )} */}
       </div>
     );
   };
@@ -930,111 +837,196 @@ const Homepage = () => {
       }
     };
 
-    // const renderImageUpload = (currentValue, onUpdate, label = "Image") => (
-    //   <div>
-    //     <label className="block text-sm font-medium mb-1">{label}</label>
-    //     <div className="flex items-center gap-4">
-    //       <div className="flex-1">
-    //         <input
-    //           type="text"
-    //           value={currentValue || ''}
-    //           onChange={(e) => onUpdate(e.target.value)}
-    //           placeholder="Image URL or path"
-    //           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-    //         />
-    //       </div>
-    //       <div className="relative">
-    //         <input
-    //           type="file"
-    //           accept="image/*"
-    //           onChange={(e) => handleImageUpload(e, onUpdate)}
-    //           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-    //           id={`file-${label.replace(/\s/g, '-')}`}
-    //         />
-    //         <span>image size 1900X600</span>
-    //         <label
-    //           htmlFor={`file-${label.replace(/\s/g, '-')}`}
-    //           className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
-    //         >
-    //           <Upload className="w-4 h-4" />
-    //           Upload
-    //         </label>
-    //       </div>
-    //     </div>
-    //     {currentValue && (
-    //       <div className="mt-2">
-    //         <img 
-    //           src={currentValue} 
-    //           alt="Preview" 
-    //           className="h-20 w-auto rounded border"
-    //           onError={(e) => {
-    //             e.target.style.display = 'none';
-    //           }}
-    //         />
-    //       </div>
-    //     )}
-    //   </div>
-    // );
-    const renderImageUpload = (currentValue, onUpdate, label = "Image") => (
-  <div>
-    <label className="block text-sm font-medium mb-1">{label}</label>
-     <span className="text-xs text-gray-500 mt-1">Recommended size: 1900×600</span>
-    <div className="flex items-center gap-4">
-      <div className="flex-1">
-        <input
-          type="text"
-          value={currentValue || ''}
-          onChange={(e) => onUpdate(e.target.value)}
-          placeholder="Image URL or path"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-        />
-      </div>
-      <div className="flex flex-col items-end">
-        <div className="relative">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleImageUpload(e, onUpdate)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            id={`file-${label.replace(/\s/g, '-')}`}
-          />
-          <label
-            htmlFor={`file-${label.replace(/\s/g, '-')}`}
-            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
-          >
-            <Upload className="w-4 h-4" />
-            Upload
-          </label>
-        </div>
-       
-      </div>
-    </div>
-    {currentValue && (
-      <div className="mt-2">
+    const getImageUrl = (imagePath) => {
+      if (!imagePath) return '';
+      if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
+        return imagePath;
+      }
+      return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
+    };
+
+const renderImageUpload = (currentValue, onUpdate, label = "Image", recommendedSize = "1900×600") => {
+  const [uploading, setUploading] = useState(false);
+  
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    
+    // Show immediate preview
+    const previewUrl = URL.createObjectURL(file);
+    onUpdate(previewUrl);
+
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/upload-images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.data.paths.length > 0) {
+        const serverPath = result.data.paths[0];
+        onUpdate(serverPath);
+        URL.revokeObjectURL(previewUrl);
+      } else {
+        alert('Failed to upload image: ' + (result.message || 'Unknown error'));
+        onUpdate('');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Error uploading image. Please try again.');
+      onUpdate('');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const renderImagePreview = () => {
+    const imageUrl = getImageUrl(currentValue);
+
+    return (
+      <div className="relative group">
         <img 
-          src={currentValue} 
-          alt="Preview" 
-          className="h-20 w-auto rounded border"
+          src={imageUrl} 
+          alt={`${label} preview`}
+          className="w-full h-full object-cover"
           onError={(e) => {
             e.target.style.display = 'none';
+            if (e.target.nextSibling) {
+              e.target.nextSibling.style.display = 'block';
+            }
           }}
         />
+        <div 
+          className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs hidden"
+          style={{ display: 'none' }}
+        >
+          Failed to load
+        </div>
+        
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onUpdate('');
+            }}
+            className="bg-red-500 text-white p-1 sm:p-2 rounded-full hover:bg-red-600"
+          >
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+          </button>
+        </div>
       </div>
-    )}
-  </div>
-);
+    );
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      {recommendedSize && (
+        <span className="text-xs text-gray-500 mt-1">Recommended size: {recommendedSize}</span>
+      )}
+      
+      <div className="flex flex-col sm:flex-row items-start gap-4 mt-2">
+        {/* Preview Section - Fixed to fill container */}
+        <div className="flex-shrink-0 w-full sm:w-auto">
+          <div className={`relative   overflow-hidden ${
+            currentValue ? 'border-gray-300' : 'border-gray-200'
+          }`} style={{ width: '120px', height: '120px' }}>
+            {currentValue ? (
+              renderImagePreview()
+            ) : (
+              <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
+                <Upload className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+            )}
+            
+            {uploading && (
+              <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-2 w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="flex-1 w-full">
+              <input
+                type="text"
+                value={currentValue || ''}
+                onChange={(e) => onUpdate(e.target.value)}
+                placeholder="Image URL or path"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                disabled={uploading}
+              />
+            </div>
+            
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                id={`file-${label.replace(/\s/g, '-')}`}
+                disabled={uploading}
+              />
+              <label
+                htmlFor={`file-${label.replace(/\s/g, '-')}`}
+                className={`px-4 py-2 rounded-md flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto ${
+                  uploading 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                }`}
+              >
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {uploading ? 'Uploading...' : 'Upload'}
+              </label>
+            </div>
+          </div>
+          
+          {currentValue && (
+            <div className="text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                <span>✓ Image uploaded</span>
+                {currentValue.startsWith('blob:') && (
+                  <span className="text-orange-500">(Preview - uploading...)</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
     switch (section.type) {
       case 'hero':
         return (
           <div className="space-y-6">
             {formData.items?.map((item, idx) => (
-              <div key={idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
+              <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <h3 className="font-semibold text-lg">Hero Banner {idx + 1}</h3>
                   {formData.items.length > 1 && (
                     <button
                       onClick={() => removeItem(idx)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -1048,7 +1040,7 @@ const Homepage = () => {
                       type="text"
                       value={item.title}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -1057,7 +1049,7 @@ const Homepage = () => {
                       type="text"
                       value={item.subtitle}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -1065,19 +1057,19 @@ const Homepage = () => {
                     <textarea
                       value={item.description}
                       onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       rows="2"
                     />
                   </div>
                   {renderImageUpload(item.image, (value) => updateItem(idx, 'image', value), "Hero Image")}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">CTA Text</label>
                       <input
                         type="text"
                         value={item.cta}
                         onChange={(e) => updateItem(idx, 'cta', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       />
                     </div>
                     <div>
@@ -1086,7 +1078,7 @@ const Homepage = () => {
                         type="text"
                         value={item.ctaLink}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       />
                     </div>
                   </div>
@@ -1096,23 +1088,23 @@ const Homepage = () => {
             
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Hero Banner
             </button>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={() => saveSection(section.id, formData)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1125,13 +1117,13 @@ const Homepage = () => {
         return (
           <div className="space-y-6">
             {formData.items?.map((item, idx) => (
-              <div key={idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
+              <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <h3 className="font-semibold text-lg">Feature Item {idx + 1}</h3>
                   {formData.items.length > 1 && (
                     <button
                       onClick={() => removeItem(idx)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -1145,7 +1137,7 @@ const Homepage = () => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       placeholder="e.g., rings collection description"
                     />
                   </div>
@@ -1155,7 +1147,7 @@ const Homepage = () => {
                       type="text"
                       value={item.subtitle || ''}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       placeholder="e.g., Discover our exclusive collection"
                     />
                   </div>
@@ -1168,23 +1160,23 @@ const Homepage = () => {
             
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Feature Item
             </button>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={() => saveSection(section.id, formData)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1198,11 +1190,11 @@ const Homepage = () => {
           <div className="space-y-6">
             {/* Bulk Upload Section */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-blue-900">Bulk Upload (Max 10 images)</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Bulk Upload (Max 10 images)</h3>
                 <button
                   onClick={() => setShowBulkUpload(!showBulkUpload)}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  className="text-blue-600 hover:text-blue-700 text-sm self-end sm:self-auto"
                 >
                   {showBulkUpload ? 'Hide' : 'Show'} Bulk Upload
                 </button>
@@ -1219,9 +1211,9 @@ const Homepage = () => {
                   />
                   <label
                     htmlFor="bulk-upload"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer"
+                    className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base"
                   >
-                    <Upload className="w-5 h-5" />
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                     Upload Multiple Images (Max 10)
                   </label>
                 </div>
@@ -1229,13 +1221,13 @@ const Homepage = () => {
             </div>
 
             {formData.items?.map((item, idx) => (
-              <div key={idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
+              <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <h3 className="font-semibold text-lg">Collection {idx + 1}</h3>
                   {(formData.items?.length || 0) > 1 && (
                     <button
                       onClick={() => removeItem(idx)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -1249,7 +1241,7 @@ const Homepage = () => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -1258,14 +1250,14 @@ const Homepage = () => {
                       type="text"
                       value={item.subtitle || ''}
                       onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                     />
                   </div>
                   
                   {/* Multiple Images Upload */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Collection Images (Up to 4)</label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[0, 1, 2, 3].map((imageIndex) => (
                         <div key={imageIndex} className="space-y-2">
                           <label className="block text-xs font-medium text-gray-500">
@@ -1285,14 +1277,14 @@ const Homepage = () => {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">CTA Text</label>
                       <input
                         type="text"
                         value={item.cta || ''}
                         onChange={(e) => updateItem(idx, 'cta', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       />
                     </div>
                     <div>
@@ -1301,7 +1293,7 @@ const Homepage = () => {
                         type="text"
                         value={item.ctaLink || ''}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       />
                     </div>
                   </div>
@@ -1311,23 +1303,23 @@ const Homepage = () => {
             
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Collection
             </button>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={() => saveSection(section.id, formData)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1341,11 +1333,11 @@ const Homepage = () => {
           <div className="space-y-6">
             {/* Bulk Upload Section */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-blue-900">Bulk Upload (Max 10 images)</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Bulk Upload (Max 10 images)</h3>
                 <button
                   onClick={() => setShowBulkUpload(!showBulkUpload)}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  className="text-blue-600 hover:text-blue-700 text-sm self-end sm:self-auto"
                 >
                   {showBulkUpload ? 'Hide' : 'Show'} Bulk Upload
                 </button>
@@ -1362,9 +1354,9 @@ const Homepage = () => {
                   />
                   <label
                     htmlFor="bulk-upload"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer"
+                    className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base"
                   >
-                    <Upload className="w-5 h-5" />
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                     Upload Multiple Images (Max 10)
                   </label>
                 </div>
@@ -1372,13 +1364,13 @@ const Homepage = () => {
             </div>
 
             {formData.items?.map((item, idx) => (
-              <div key={item.id || idx} className="border-2 border-gray-200 p-6 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
+              <div key={item.id || idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <h3 className="font-semibold text-lg">Category Highlight {idx + 1}</h3>
                   {(formData.items?.length || 0) > 1 && (
                     <button
                       onClick={() => removeItem(idx)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -1392,7 +1384,7 @@ const Homepage = () => {
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
                       placeholder="Enter display title (optional)"
                     />
                     <p className="text-xs text-gray-500 mt-1">
@@ -1430,23 +1422,23 @@ const Homepage = () => {
             
             <button
               onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               Add Category Highlight
             </button>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={() => saveSection(section.id, formData)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
               </button>
               <button
                 onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Section
@@ -1465,198 +1457,105 @@ const Homepage = () => {
   };
 
   // Hero Slider Component - IMAGES ONLY
-  // const HeroSlider = ({ items }) => {
-  //   const [currentSlide, setCurrentSlide] = useState(0);
-    
-  //   useEffect(() => {
-  //     if (items.length <= 1) return;
-      
-  //     const timer = setInterval(() => {
-  //       setCurrentSlide((prev) => (prev + 1) % items.length);
-  //     }, 5000);
-      
-  //     return () => clearInterval(timer);
-  //   }, [items.length]);
-    
-  //   const nextSlide = () => {
-  //     setCurrentSlide((prev) => (prev + 1) % items.length);
-  //   };
-    
-  //   const prevSlide = () => {
-  //     setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-  //   };
-    
-  //   const goToSlide = (index) => {
-  //     setCurrentSlide(index);
-  //   };
-
-  //   const getImageUrl = (imagePath) => {
-  //     if (!imagePath) return '';
-  //     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-  //       return imagePath;
-  //     }
-  //     return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-  //   };
-    
-  //   return (
-  //     <div className="relative w-full h-screen overflow-hidden">
-  //       {items.map((item, idx) => (
-  //         <div
-  //           key={idx}
-  //           className={`transition-opacity duration-500 ease-in-out w-full h-full ${
-  //             idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
-  //           }`}
-  //         >
-  //           {item.image && (
-  //             <img 
-  //               src={getImageUrl(item.image)} 
-  //               alt={item.title || 'Hero'} 
-  //               className="w-full h-full object-cover"
-  //               onError={(e) => { 
-  //                 e.target.style.display = 'none';
-  //               }}
-  //             />
-  //           )}
-  //         </div>
-  //       ))}
-        
-  //       {/* Navigation Arrows */}
-  //       {items.length > 1 && (
-  //         <>
-  //           <button
-  //             onClick={prevSlide}
-  //             className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-  //           >
-  //             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-  //             </svg>
-  //           </button>
-  //           <button
-  //             onClick={nextSlide}
-  //             className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-3 transition-all text-white"
-  //           >
-  //             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  //             </svg>
-  //           </button>
-  //         </>
-  //       )}
-        
-  //       {/* Dots Indicator */}
-  //       {items.length > 1 && (
-  //         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
-  //           {items.map((_, idx) => (
-  //             <button
-  //               key={idx}
-  //               onClick={() => goToSlide(idx)}
-  //               className={`w-3 h-3 rounded-full transition-all ${
-  //                 idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
-  //               }`}
-  //             />
-  //           ))}
-  //         </div>
-  //       )}
-  //     </div>
-  //   );
-  // };
   const HeroSlider = ({ items }) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  
-  useEffect(() => {
-    if (items.length <= 1) return;
+    const [currentSlide, setCurrentSlide] = useState(0);
     
-    const timer = setInterval(() => {
+    useEffect(() => {
+      if (items.length <= 1) return;
+      
+      const timer = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % items.length);
+      }, 5000);
+      
+      return () => clearInterval(timer);
+    }, [items.length]);
+    
+    const nextSlide = () => {
       setCurrentSlide((prev) => (prev + 1) % items.length);
-    }, 5000);
+    };
     
-    return () => clearInterval(timer);
-  }, [items.length]);
-  
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % items.length);
-  };
-  
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-  };
-  
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
+    const prevSlide = () => {
+      setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
+    };
+    
+    const goToSlide = (index) => {
+      setCurrentSlide(index);
+    };
+
+    const getImageUrl = (imagePath) => {
+      if (!imagePath) return '';
+      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+        return imagePath;
+      }
+      return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    };
+    
+    return (
+      <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[80vh] overflow-hidden">
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className={`transition-opacity duration-500 ease-in-out w-full h-full ${
+              idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
+            }`}
+          >
+            {item.image && (
+              <img 
+                src={getImageUrl(item.image)} 
+                alt={item.title || 'Hero'} 
+                className="w-full h-full object-cover"
+                onError={(e) => { 
+                  e.target.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
+        ))}
+        
+        {/* Navigation Arrows */}
+        {items.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+        
+        {/* Dots Indicator */}
+        {items.length > 1 && (
+          <div className="absolute bottom-2 sm:bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-2">
+            {items.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => goToSlide(idx)}
+                className={`w-2 h-2 sm:w-2 sm:h-2 md:w-3 md:h-3 rounded-full transition-all ${
+                  idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '';
-    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-    return `http://apichandra.rxsquare.in${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-  };
-  
-  return (
-    <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-screen overflow-hidden">
-      {items.map((item, idx) => (
-        <div
-          key={idx}
-          className={`transition-opacity duration-500 ease-in-out w-full h-full ${
-            idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
-          }`}
-        >
-          {item.image && (
-            <img 
-              src={getImageUrl(item.image)} 
-              alt={item.title || 'Hero'} 
-              className="w-full h-full object-cover"
-              onError={(e) => { 
-                e.target.style.display = 'none';
-              }}
-            />
-          )}
-        </div>
-      ))}
-      
-      {/* Navigation Arrows */}
-      {items.length > 1 && (
-        <>
-          <button
-            onClick={prevSlide}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
-          >
-            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
-          >
-            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </>
-      )}
-      
-      {/* Dots Indicator */}
-      {items.length > 1 && (
-        <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-2">
-          {items.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => goToSlide(idx)}
-              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
-                idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
   // Collection Slider Component - MULTIPLE IMAGES PER COLLECTION
   const CollectionSlider = ({ items }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const itemsPerView = 3;
+    const itemsPerView = typeof window !== 'undefined' ? (window.innerWidth < 640 ? 1 : window.innerWidth < 1024 ? 2 : 3) : 3;
     
     const nextSlide = () => {
       setCurrentIndex((prev) => 
@@ -1695,7 +1594,7 @@ const Homepage = () => {
       const imageArray = images || [];
       
       return (
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-1 sm:gap-2 mb-3 sm:mb-4">
           {/* Always render exactly 4 slots */}
           {Array.from({ length: 4 }).map((_, imageIdx) => {
             const image = imageArray[imageIdx];
@@ -1724,23 +1623,23 @@ const Homepage = () => {
     };
     
     return (
-      <div className="py-16 px-8 bg-white">
+      <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
               {visibleItems.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-lg overflow-hidden group p-4 border border-gray-100 hover:shadow-lg transition-shadow">
+                <div key={idx} className="bg-white rounded-lg overflow-hidden group p-3 sm:p-4 border border-gray-100 hover:shadow-lg transition-shadow">
                   {/* 2x2 Image Grid - Always shows 4 slots */}
                   {renderImageGrid(item.images)}
                   
                   {/* Collection Title and Info */}
                   <div className="text-center">
-                    <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+                    <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">{item.title}</h3>
                     {item.subtitle && (
-                      <p className="text-gray-600 text-sm mb-3">{item.subtitle}</p>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3">{item.subtitle}</p>
                     )}
                     {item.cta && (
-                      <button className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm">
+                      <button className="bg-black text-white px-4 sm:px-6 py-1 sm:py-2 rounded-md hover:bg-gray-800 transition-colors text-xs sm:text-sm">
                         {item.cta}
                       </button>
                     )}
@@ -1754,17 +1653,17 @@ const Homepage = () => {
               <>
                 <button
                   onClick={prevSlide}
-                  className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 sm:-translate-x-4 bg-white shadow-lg rounded-full p-2 sm:p-3 hover:bg-gray-50 transition-colors z-10"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={nextSlide}
-                  className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors z-10"
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-2 sm:translate-x-4 bg-white shadow-lg rounded-full p-2 sm:p-3 hover:bg-gray-50 transition-colors z-10"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -1774,12 +1673,12 @@ const Homepage = () => {
           
           {/* Dots Indicator for Collection */}
           {items.length > itemsPerView && (
-            <div className="flex justify-center mt-8 space-x-2">
+            <div className="flex justify-center mt-4 sm:mt-6 md:mt-8 space-x-1 sm:space-x-2">
               {Array.from({ length: Math.ceil(items.length / itemsPerView) }).map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx * itemsPerView)}
-                  className={`w-3 h-3 rounded-full transition-all ${
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
                     Math.floor(currentIndex / itemsPerView) === idx 
                       ? 'bg-blue-600' 
                       : 'bg-gray-300'
@@ -1810,31 +1709,31 @@ const Homepage = () => {
 
       case 'feature-section':
         return (
-          <div className="py-16 px-8 bg-gray-50">
+          <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
             <div className="max-w-6xl mx-auto">
               {section.data.items?.map((item, idx) => (
-                <div key={idx} className="mb-16 last:mb-0">
+                <div key={idx} className="mb-8 sm:mb-12 md:mb-16 last:mb-0">
                   {/* Item Title and Subtitle */}
                   {(item.title || item.subtitle) && (
-                    <div className="text-center mb-8">
+                    <div className="text-center mb-6 sm:mb-8">
                       {item.title && (
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">{item.title}</h2>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">{item.title}</h2>
                       )}
                       {item.subtitle && (
-                        <p className="text-xl text-gray-600">{item.subtitle}</p>
+                        <p className="text-base sm:text-lg md:text-xl text-gray-600">{item.subtitle}</p>
                       )}
                     </div>
                   )}
                   
                   {/* Image Layout */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {/* Left Image - Full Height */}
                     <div className="lg:row-span-2">
                       {item.leftImage && (
                         <img 
                           src={getImageUrl(item.leftImage)} 
                           alt={item.title || 'Feature'} 
-                          className="w-full h-full min-h-[400px] object-cover rounded-xl shadow-md"
+                          className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-lg sm:rounded-xl shadow-md"
                           onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="400"%3E%3Crect fill="%23f3f4f6" width="600" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ELeft Image%3C/text%3E%3C/svg%3E';
                           }}
@@ -1843,13 +1742,13 @@ const Homepage = () => {
                     </div>
                     
                     {/* Right Side - Two Images */}
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {/* Right Top Image */}
                       {item.rightImage && (
                         <img 
                           src={getImageUrl(item.rightImage)} 
                           alt={`${item.title || 'Feature'} right top`} 
-                          className="w-full h-64 object-cover rounded-xl shadow-md"
+                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
                           onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Top Image%3C/text%3E%3C/svg%3E';
                           }}
@@ -1861,7 +1760,7 @@ const Homepage = () => {
                         <img 
                           src={getImageUrl(item.rightBottomImage)} 
                           alt={`${item.title || 'Feature'} right bottom`} 
-                          className="w-full h-64 object-cover rounded-xl shadow-md"
+                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
                           onError={(e) => { 
                             e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Bottom Image%3C/text%3E%3C/svg%3E';
                           }}
@@ -1880,10 +1779,10 @@ const Homepage = () => {
 
       case 'category-highlight':
         return (
-          <div className="py-16 px-8 bg-gray-50">
+          <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
             <div className="max-w-6xl mx-auto">
-              <h2 className="text-4xl font-bold text-center mb-12">{section.name}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8 md:mb-12">{section.name}</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                 {section.data.items?.map((item, idx) => {
                   const categoryId = item.selectedCategories?.[0];
                   const category = categories.find(cat => cat.id === categoryId);
@@ -1892,7 +1791,7 @@ const Homepage = () => {
                   
                   return (
                     <div key={item.id || idx} className="text-center cursor-pointer group">
-                      <div className="relative overflow-hidden rounded-lg bg-gray-100 aspect-square mb-3">
+                      <div className="relative overflow-hidden rounded-lg bg-gray-100 aspect-square mb-2 sm:mb-3">
                         {item.image && (
                           <img 
                             src={getImageUrl(item.image)} 
@@ -1904,8 +1803,8 @@ const Homepage = () => {
                           />
                         )}
                       </div>
-                      <h3 className="font-semibold text-gray-900">{item.title || category.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{category.name}</p>
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{item.title || category.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">{category.name}</p>
                     </div>
                   );
                 })}
@@ -1931,11 +1830,11 @@ const Homepage = () => {
     return (
       <div className="min-h-screen bg-white">
         <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
-          <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Homepage Preview</h1>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold">Homepage Preview</h1>
             <button
               onClick={() => setShowPreview(false)}
-              className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
+              className="bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
             >
               <EyeOff className="w-4 h-4" />
               Exit Preview
@@ -1956,56 +1855,13 @@ const Homepage = () => {
 
   if (view === 'reorder') {
     return (
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Reorder Sections</h1>
-          <div className="flex gap-3 relative">
-            {/* <button
-              onClick={() => setShowPreview(true)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Preview Homepage
-            </button> */}
-            {/* <button
-              onClick={() => setShowAddSectionDropdown(!showAddSectionDropdown)}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add Section
-              <ChevronDown className="w-4 h-4" />
-            </button> */}
-            {showAddSectionDropdown && (
-              <div className="absolute right-0 top-12 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                <button
-                  onClick={() => addNewSection('hero')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
-                >
-                  Hero Section
-                </button>
-                <button
-                  onClick={() => addNewSection('feature-section')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
-                >
-                  Feature Section
-                </button>
-                <button
-                  onClick={() => addNewSection('collection')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100"
-                >
-                  Collection
-                </button>
-                <button
-                  onClick={() => addNewSection('category-highlight')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                >
-                  Category Highlight
-                </button>
-              </div>
-            )}
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Reorder Sections</h1>
+          <div className="flex flex-col sm:flex-row gap-3 relative w-full sm:w-auto">
             <button
               onClick={() => setView('dashboard')}
-              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
+              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
             >
               <X className="w-4 h-4" />
               Back to Dashboard
@@ -2013,8 +1869,8 @@ const Homepage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <p className="text-gray-600 mb-4">Drag and drop sections to reorder them on your homepage</p>
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6">
+          <p className="text-gray-600 mb-4 text-sm sm:text-base">Drag and drop sections to reorder them on your homepage</p>
           
           <div className="space-y-3">
             {sections.map((section, index) => (
@@ -2024,30 +1880,19 @@ const Homepage = () => {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center justify-between p-4 bg-gray-50 border-2 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
+                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 border-2 rounded-lg cursor-move hover:bg-gray-100 transition-colors ${
                   draggedIndex === index ? 'opacity-50 border-blue-500' : 'border-gray-200'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-2 sm:mb-0">
                   <GripVertical className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">{section.name}</span>
+                  <span className="font-medium text-gray-900 text-sm sm:text-base">{section.name}</span>
                   <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
                     Order: {section.order + 1}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  {/* <button
-                    onClick={() => toggleSection(section.id)}
-                    className={`px-3 py-1 rounded text-sm font-medium ${
-                      section.enabled 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {section.enabled ? 'Enabled' : 'Disabled'}
-                  </button> */}
-                  
+                <div className="flex items-center gap-3 self-end sm:self-auto">
                   <button
                     onClick={() => {
                       setSelectedSection(section);
@@ -2055,7 +1900,7 @@ const Homepage = () => {
                     }}
                     className="text-blue-600 hover:text-blue-700"
                   >
-                    <Edit className="w-5 h-5" />
+                    <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               </div>
@@ -2068,22 +1913,22 @@ const Homepage = () => {
 
   if (view === 'section-edit' && selectedSection) {
     return (
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Edit {selectedSection.name}</h1>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edit {selectedSection.name}</h1>
           <button
             onClick={() => {
-              setView('reorder');
+              setView('dashboard');
               setSelectedSection(null);
             }}
-            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
           >
             <X className="w-4 h-4" />
-            Back to Reorder
+            Back to Dashboard
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6">
           <SectionEditor section={selectedSection} />
         </div>
       </div>
@@ -2091,12 +1936,12 @@ const Homepage = () => {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {showTitleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Create New Section</h2>
-            <p className="text-gray-600 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md sm:max-w-lg shadow-xl">
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Create New Section</h2>
+            <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">
               Enter a title for your {pendingSectionType?.replace('-', ' ')} section
             </p>
             <input
@@ -2104,24 +1949,24 @@ const Homepage = () => {
               value={sectionTitle}
               onChange={(e) => setSectionTitle(e.target.value)}
               placeholder="Enter section title..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 sm:mb-4 text-sm sm:text-base"
               onKeyPress={(e) => e.key === 'Enter' && confirmAddSection()}
               autoFocus
             />
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
               <button
                 onClick={() => {
                   setShowTitleModal(false);
                   setPendingSectionType(null);
                   setSectionTitle('');
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm sm:text-base order-2 sm:order-1"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmAddSection}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base order-1 sm:order-2"
               >
                 Create Section
               </button>
@@ -2130,83 +1975,73 @@ const Homepage = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Home</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Home</h1>
         
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           {/* <button
             onClick={() => setShowPreview(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center gap-2"
+            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
           >
             <Eye className="w-4 h-4" />
             Preview Homepage
           </button> */}
-          
-          
         </div>
       </div>
       
-     
-      
-      <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">Homepage Sections</h3>
-          {/* <button
-            onClick={() => setView('reorder')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
-          >
-            Manage All Sections
-          </button> */}
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Homepage Sections</h3>
         </div>
         <div className="space-y-3">
-          {sections.map((section) => (
-            <div key={section.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-              <div>
-                <span className="font-medium">{section.name}</span>
-                <span className={`ml-3 text-xs px-2 py-1 rounded ${
-                  section.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {section.enabled ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedSection(section);
-                  setView('section-edit');
-                }}
-                className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
-              >
-                Edit <Edit className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
+  {sections.map((section) => (
+    <div key={section.id} className="flex items-center justify-between p-3 bg-gray-50 rounded gap-2">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="font-medium text-sm sm:text-base truncate">{section.name}</span>
+        <span className={`flex-shrink-0 text-xs px-2 py-1 rounded ${
+          section.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+        }`}>
+          {section.enabled ? 'Active' : 'Inactive'}
+        </span>
+      </div>
+      <button
+        onClick={() => {
+          setSelectedSection(section);
+          setView('section-edit');
+        }}
+        className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+      >
+        Edit <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+      </button>
+    </div>
+  ))}
+</div>
         
         {sections.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <p className="mb-4">No sections configured yet.</p>
-            <div className="flex gap-3 justify-center flex-wrap">
+          <div className="text-center py-6 sm:py-8 text-gray-500">
+            <p className="mb-3 sm:mb-4 text-sm sm:text-base">No sections configured yet.</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center flex-wrap">
               <button
                 onClick={() => addNewSection('hero')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700 text-sm sm:text-base"
               >
                 Create Hero Section
               </button>
               <button
                 onClick={() => addNewSection('feature-section')}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-green-700 text-sm sm:text-base"
               >
                 Create Feature Section
               </button>
               <button
                 onClick={() => addNewSection('collection')}
-                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+                className="bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-purple-700 text-sm sm:text-base"
               >
                 Create Collection
               </button>
               <button
                 onClick={() => addNewSection('category-highlight')}
-                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700"
+                className="bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-orange-700 text-sm sm:text-base"
               >
                 Create Category Highlight
               </button>

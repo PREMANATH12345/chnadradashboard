@@ -6,7 +6,7 @@ import Dashboard from "./Dashboard";
 import Homepage from "./pages/Homepage";
 import Products from "./pages/Products";
 import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+// import Settings from "./pages/Settings";
 import Categories from "./pages/Categories";
 import Attributes from "./pages/Attributes";
 import Orders from "./pages/Orders";
@@ -113,7 +113,7 @@ function App() {
            <Route path="attributes" element={<Attributes />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="settings" element={<Settings />} />
+          {/* <Route path="settings" element={<Settings />} /> */}
         </Route>
 
         {/* Redirect root → login */}

@@ -1,9 +1,9 @@
-// Categories.js
 import { useState, useEffect } from 'react';
-import { DoAll } from '../api/auth';
+import { DoAll } from '../auth/api';
 import { Plus, Edit2, Trash2, Loader, Tag, Gem, Sparkles, Search, Filter, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import CategoryModal from "../Models/Categories/CategoryModal"
+import CategoryModal from "../Models/Categories/CategoryModal";
+import { data } from 'react-router-dom';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -11,7 +11,7 @@ const Categories = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState(null);
+  const [deletingId, setDeletingId] = useState();
   const [categoryDetails, setCategoryDetails] = useState({});
   
   // Search and Filter states
@@ -20,7 +20,10 @@ const Categories = () => {
   const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
-    fetchCategories();
+    const loadData = async () => {
+      await fetchCategories();
+    };
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -29,21 +32,29 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
+      setLoading(true);
       const response = await DoAll({ 
         action: 'get', 
         table: 'category' 
       });
       
-      if (response.data.success) {
-        const categoriesData = response.data.data;
-        setCategories(categoriesData);
-        
-        // Fetch details for each category
+      if (!response?.data?.success) {
+        throw new Error('Invalid API response structure');
+      }
+      
+      const categoriesData = response.data.data || [];
+      setCategories(categoriesData);
+      
+      if (categoriesData.length > 0) {
         await fetchAllCategoryDetails(categoriesData);
+      } else {
+        setCategoryDetails({});
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Error loading categories');
+      setCategories([]);
+      setCategoryDetails({});
     } finally {
       setLoading(false);
     }
@@ -52,24 +63,28 @@ const Categories = () => {
   const fetchAllCategoryDetails = async (categoriesData) => {
     const details = {};
     
-    for (const category of categoriesData) {
+    const promises = categoriesData.map(async (category) => {
       try {
-        // Fetch style items for this specific category
-        const styleResponse = await DoAll({
-          action: 'get',
-          table: 'by_style',
-          where: { category_id: category.id }
-        });
+        const [styleResponse, metalResponse] = await Promise.allSettled([
+          DoAll({
+            action: 'get',
+            table: 'by_style',
+            where: { category_id: category.id }
+          }),
+          DoAll({
+            action: 'get',
+            table: 'by_metal_and_stone',
+            where: { category_id: category.id }
+          })
+        ]);
 
-        // Fetch metal items for this specific category
-        const metalResponse = await DoAll({
-          action: 'get',
-          table: 'by_metal_and_stone',
-          where: { category_id: category.id }
-        });
-
-        const styles = styleResponse.data.success && styleResponse.data.data ? styleResponse.data.data : [];
-        const metals = metalResponse.data.success && metalResponse.data.data ? metalResponse.data.data : [];
+        const styles = styleResponse.status === 'fulfilled' && 
+                      styleResponse.value?.data?.success ? 
+                      (styleResponse.value.data.data || []) : [];
+        
+        const metals = metalResponse.status === 'fulfilled' && 
+                      metalResponse.value?.data?.success ? 
+                      (metalResponse.value.data.data || []) : [];
 
         details[category.id] = {
           styles: Array.isArray(styles) ? styles : [],
@@ -79,8 +94,9 @@ const Categories = () => {
         console.error(`Error fetching details for category ${category.id}:`, error);
         details[category.id] = { styles: [], metals: [] };
       }
-    }
+    });
 
+    await Promise.allSettled(promises);
     setCategoryDetails(details);
   };
 
@@ -90,8 +106,8 @@ const Categories = () => {
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(category =>
-        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        category.slug.toLowerCase().includes(searchTerm.toLowerCase())
+        category.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.slug?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -121,9 +137,9 @@ const Categories = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          return (a.name || '').localeCompare(b.name || '');
         case 'name-desc':
-          return b.name.localeCompare(a.name);
+          return (b.name || '').localeCompare(a.name || '');
         case 'styles-count':
           const aStyles = Array.isArray(categoryDetails[a.id]?.styles) ? categoryDetails[a.id].styles.length : 0;
           const bStyles = Array.isArray(categoryDetails[b.id]?.styles) ? categoryDetails[b.id].styles.length : 0;
@@ -150,43 +166,69 @@ const Categories = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (categoryId) => {
-    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-      return;
-    }
+  // const handleDelete = async (categoryId) => {
+  //   if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+  //     return;
+  //   }
 
-    setDeletingId(categoryId);
-    try {
-      // Delete related records first
-      await DoAll({
-        action: 'delete',
-        table: 'by_style',
-        where: { category_id: categoryId }
-      });
+  //   setDeletingId(categoryId);
+  //   try {
+  //     // Delete related records first
+  //     await Promise.allSettled([
+  //       DoAll({
+  //         action: 'soft_delete',
+  //         table: 'by_style',
+  //         where: { category_id: categoryId }
+  //       }),
+  //       DoAll({
+  //         action: 'soft_delete',
+  //         table: 'by_metal_and_stone',
+  //         where: { category_id: categoryId }
+  //       })
+  //     ]);
 
-      await DoAll({
-        action: 'delete',
-        table: 'by_metal_and_stone',
-        where: { category_id: categoryId }
-      });
-
-      // Then delete the category
-      await DoAll({
-        action: 'delete',
-        table: 'category',
-        id: categoryId
-      });
+  //     // Then delete the category
+  //     await DoAll({
+  //       action: 'soft_delete',
+  //       table: 'category',
+  //       id: categoryId
+  //     });
       
-      toast.success('Category deleted successfully!');
-      fetchCategories();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      toast.error('Error deleting category');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  //     toast.success('Category deleted successfully!');
+  //     // await fetchCategories();
+  //   } catch (error) {
+  //     console.error('Error deleting category:', error);
+  //     toast.error('Error deleting category');
+  //   } finally {
+  //     setDeletingId(null);
+  //   }
+  // };
 
+
+  const handleDelete = async (categoryId) => {
+  if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+    return;
+  }
+
+  setDeletingId(categoryId);
+  try {
+
+     const response = await DoAll({
+        action: 'soft_delete',
+        table: 'category',
+        where: { id:categoryId }
+      });
+
+      console.log(response, "categoryId")
+  
+    
+    toast.success('Category deleted successfully!');
+    await fetchCategories();
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    toast.error('Error deleting category');
+  } 
+};
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedFilter('all');
@@ -299,25 +341,23 @@ const Categories = () => {
               )}
             </div>
 
-              {/* Results Count */}
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-600">
-              Showing {filteredCategories.length} of {categories.length} categories
-              {hasActiveFilters && ' (filtered)'}
-            </p>
-            
-            {hasActiveFilters && filteredCategories.length === 0 && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-              >
-                Clear all filters
-              </button>
-            )}
+            {/* Results Count */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                Showing {filteredCategories.length} of {categories.length} categories
+                {hasActiveFilters && ' (filtered)'}
+              </p>
+              
+              {hasActiveFilters && filteredCategories.length === 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
           </div>
-          </div>
-
-        
         </div>
 
         {/* Categories Grid */}
