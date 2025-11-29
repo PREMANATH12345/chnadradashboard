@@ -1075,6 +1075,8 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
           }
         });
 
+        console.log(uploadRes)
+
         if (uploadRes.data.success) {
           uploadedImageUrls = [...uploadedImageUrls, ...uploadRes.data.data.images.map(img => img.url)];
         }
@@ -1287,7 +1289,6 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
                           />
                         </div>
                       </div>
-
                       <div>
                         <label className="block text-xs font-medium mb-2">📁 File Types:</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -1372,7 +1373,6 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
                               />
                             </div>
                           </div>
-
                           <div>
                             <label className="block text-xs font-medium mb-2">📁 File Types:</label>
                             <div className="grid grid-cols-2 gap-2">
@@ -1812,8 +1812,16 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeProductTab, setActiveProductTab] = useState(0);
+  const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
 
-  const FILE_TYPE_OPTIONS = ['STL File', 'CAM Product', 'Rubber Mold', 'Casting Model'];
+
+const FILE_TYPE_OPTIONS = [
+  { value: 'stl_file', label: 'STL File', emoji: '📄', requiresPrice: true },
+  { value: 'cam_product', label: 'CAM Product', emoji: '⚙️', requiresPrice: true },
+  { value: 'rubber_mold', label: 'Rubber Mold', emoji: '🔧', requiresPrice: false },
+  { value: 'casting_model', label: 'Casting Model', emoji: '🏭', requiresPrice: false }
+];
+
 
   const fetchCategoryDetails = async (catId) => {
     setLoading(true);
@@ -1899,6 +1907,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       gender: [],
       imageFiles: [],
       imageUrls: [],
+      pdfFiles: {},
       hasMetalChoice: false,
       hasDiamondChoice: false,
       selectedMetalOptions: [],
@@ -1955,20 +1964,41 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     }));
   };
 
-  const handleImageSelect = (productId, files) => {
-    const fileArray = Array.from(files);
-    setProducts(products.map(p => {
-      if (p.id === productId) {
-        const newImageUrls = fileArray.map(file => URL.createObjectURL(file));
-        return {
-          ...p,
-          imageFiles: [...p.imageFiles, ...fileArray],
-          imageUrls: [...p.imageUrls, ...newImageUrls]
-        };
-      }
-      return p;
-    }));
-  };
+  // ✅ ADD THIS NEW FUNCTION:
+const handlePdfFileSelect = (productId, metalId, diamondId, sizeId, fileType, file) => {
+  setProducts(products.map(p => {
+    if (p.id === productId) {
+      const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+      const fileKey = `${key}-${fileType}`;
+      
+      return {
+        ...p,
+        pdfFiles: {
+          ...p.pdfFiles,
+          [fileKey]: file
+        }
+      };
+    }
+    return p;
+  }));
+};
+
+    const handleImageSelect = (productId, files) => {
+      const fileArray = Array.from(files);
+      setProducts(products.map(p => {
+        if (p.id === productId) {
+          const newImageUrls = fileArray.map(file => URL.createObjectURL(file));
+          return {
+            ...p,
+            imageFiles: [...p.imageFiles, ...fileArray],
+            imageUrls: [...p.imageUrls, ...newImageUrls]
+          };
+        }
+        return p;
+      }));
+    };
+  console.log(products)
+
 
   const removeImage = (productId, index) => {
     setProducts(products.map(p => {
@@ -1982,6 +2012,66 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
       return p;
     }));
   };
+
+
+  const handlePdfUpload = async (productId, metalId, diamondId, sizeId, fileType, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const token = localStorage.getItem('token');
+  
+  try {
+    const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    if (response.data.success) {
+      const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-${fileType}`;
+      setUploadedPdfFiles(prev => ({
+        ...prev,
+        [fileKey]: {
+          file_path: response.data.data.file_path,
+          file_name: response.data.data.file_name
+        }
+      }));
+      
+      // Update product's variant pricing with file path
+      setProducts(products.map(p => {
+        if (p.id === productId) {
+          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+          const current = p.variantPricing[variantKey] || {};
+          const currentFiles = current.files || [];
+          
+          const updatedFiles = currentFiles.map(f => 
+            f.file_type === fileType 
+              ? { ...f, file_path: response.data.data.file_path }
+              : f
+          );
+          
+          return {
+            ...p,
+            variantPricing: {
+              ...p.variantPricing,
+              [variantKey]: {
+                ...current,
+                files: updatedFiles
+              }
+            }
+          };
+        }
+        return p;
+      }));
+      
+      alert('✅ File uploaded successfully!');
+    }
+  } catch (error) {
+    console.error('PDF upload error:', error);
+    alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+  }
+};
 
   const toggleProductMetalChoice = (productId) => {
     setProducts(products.map(p => {
@@ -2068,30 +2158,61 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     }));
   };
 
-  const toggleVariantFileType = (productId, metalId, diamondId, sizeId, fileType) => {
-    setProducts(products.map(p => {
-      if (p.id === productId) {
-        const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
-        const current = p.variantPricing[key] || {};
-        const currentFiles = current.file_types || [];
-        const newFiles = currentFiles.includes(fileType)
-          ? currentFiles.filter(f => f !== fileType)
-          : [...currentFiles, fileType];
-        
-        return {
-          ...p,
-          variantPricing: {
-            ...p.variantPricing,
-            [key]: {
-              ...current,
-              file_types: newFiles
-            }
+
+  const updateFilePrice = (productId, metalId, diamondId, sizeId, fileType, price) => {
+  setProducts(products.map(p => {
+    if (p.id === productId) {
+      const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+      const current = p.variantPricing[key] || {};
+      const currentFiles = current.files || [];
+      
+      const updatedFiles = currentFiles.map(f => 
+        f.file_type === fileType ? { ...f, price: parseFloat(price) || null } : f
+      );
+      
+      return {
+        ...p,
+        variantPricing: {
+          ...p.variantPricing,
+          [key]: {
+            ...current,
+            files: updatedFiles
           }
-        };
-      }
-      return p;
-    }));
-  };
+        }
+      };
+    }
+    return p;
+  }));
+};
+
+// REPLACE the existing toggleVariantFileType function with this:
+const toggleVariantFileType = (productId, metalId, diamondId, sizeId, fileType) => {
+  setProducts(products.map(p => {
+    if (p.id === productId) {
+      const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+      const current = p.variantPricing[key] || {};
+      const currentFiles = current.files || [];
+      
+      const fileExists = currentFiles.some(f => f.file_type === fileType);
+      
+      const newFiles = fileExists
+        ? currentFiles.filter(f => f.file_type !== fileType)
+        : [...currentFiles, { file_type: fileType, price: null }];
+      
+      return {
+        ...p,
+        variantPricing: {
+          ...p.variantPricing,
+          [key]: {
+            ...current,
+            files: newFiles
+          }
+        }
+      };
+    }
+    return p;
+  }));
+};
 
   const saveProducts = async () => {
     if (products.length === 0) {
@@ -2100,7 +2221,8 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
     }
 
     for (const product of products) {
-      if (!product.name || !product.style_id || !product.metal_id || !product.price) {
+      console.log(product.name, product.style_id, product.metal_id, product.price)
+      if (!product.name || !product.style_id || !product.metal_id ) {
         alert('Please fill all required fields for all products');
         return;
       }
@@ -2111,6 +2233,9 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
     try {
       for (const product of products) {
+        console.log('🔍 Processing product:', product.name);
+        console.log('📊 Product selectedSizes:', product.selectedSizes);
+        console.log('💰 Product variantPricing:', product.variantPricing);
         let uploadedImageUrls = [];
         if (product.imageFiles.length > 0) {
           const formData = new FormData();
@@ -2125,10 +2250,36 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
             }
           });
 
-          if (uploadRes.data.success) {
+          console.log(uploadRes)
+
+          // if (uploadRes.data.success) {
+          //   uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
+          // }
+
+          if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
             uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
           }
-        }
+
+          // Upload PDF files
+const uploadedPdfFiles = {};
+if (product.pdfFiles && Object.keys(product.pdfFiles).length > 0) {
+  for (const [fileKey, pdfFile] of Object.entries(product.pdfFiles)) {
+    const pdfFormData = new FormData();
+    pdfFormData.append('file', pdfFile);
+    
+    const pdfUploadRes = await axios.post(`${API_URL}/upload-pdf`, pdfFormData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    if (pdfUploadRes.data.success) {
+      uploadedPdfFiles[fileKey] = pdfUploadRes.data.data.file_path;
+    }
+  }
+}
+      }
 
         const productDetails = {
           slug: product.slug,
@@ -2154,38 +2305,51 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
             product_details: JSON.stringify(productDetails)
           }
         }, { headers: { Authorization: `Bearer ${token}` } });
+if (productRes.data.success && productRes.data.insertId) {
+  const productDbId = productRes.data.insertId;
+  const variants = [];
 
-        if (productRes.data.success && productRes.data.insertId) {
-          const productDbId = productRes.data.insertId;
-          const variants = [];
+  // ✅ SAFETY CHECK: Only process variants if selectedSizes exists and is an object
+  if (product.selectedSizes && typeof product.selectedSizes === 'object' && Object.keys(product.selectedSizes).length > 0) {
+    
+    for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
+      if (!isSelected) continue;
 
-          for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
-            if (!isSelected) continue;
+      const pricing = product.variantPricing?.[key];
+      if (!pricing) continue;
 
-            const pricing = product.variantPricing[key];
-            if (!pricing || !pricing.original_price) continue;
+      const [metalPart, diamondPart, sizePart] = key.split('-');
+      
+      // ✅ SAFETY CHECK: Ensure files is an array
+      const files = Array.isArray(pricing.files) ? pricing.files : [];
+      
+      // Only add variant if it has files configured
+      if (files.length === 0) continue;
+      
+variants.push({
+  metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+  diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+  size_option_id: parseInt(sizePart),
+  end_product_price: parseFloat(pricing.end_product_price) || null,
+  end_product_discount: parseFloat(pricing.end_product_discount) || null,
+  end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+  files: files.map(f => ({
+    ...f,
+    file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
+  }))
+});
+    }
+  }
 
-            const [metalPart, diamondPart, sizePart] = key.split('-');
-            
-            variants.push({
-              metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
-              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-              size_option_id: parseInt(sizePart),
-              original_price: parseFloat(pricing.original_price),
-              discount_price: parseFloat(pricing.discount_price) || parseFloat(pricing.original_price),
-              discount_percentage: parseInt(pricing.discount_percentage) || 0,
-              file_types: pricing.file_types || []
-            });
-          }
-
-          if (variants.length > 0) {
-            await axios.post(
-              `${API_URL}/product-variants/pricing`,
-              { product_id: productDbId, variants },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-          }
-        }
+  // Only call API if variants exist
+  if (variants.length > 0) {
+    await axios.post(
+      `${API_URL}/product-variants/pricing`,
+      { product_id: productDbId, variants },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+}
       }
 
       alert('✅ Products and variants saved successfully!');
@@ -2445,44 +2609,7 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
               </div>
 
               {/* Pricing Grid */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    💰 Price *
-                  </label>
-                  <input
-                    type="number"
-                    value={product.price}
-                    onChange={(e) => updateProduct(product.id, 'price', e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="10000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    📊 Original
-                  </label>
-                  <input
-                    type="number"
-                    value={product.originalPrice}
-                    onChange={(e) => updateProduct(product.id, 'originalPrice', e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="12000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    🎯 Discount %
-                  </label>
-                  <input
-                    type="number"
-                    value={product.discount}
-                    onChange={(e) => updateProduct(product.id, 'discount', e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="15"
-                  />
-                </div>
-              </div>
+
             </div>
 
             {/* Featured & Gender Section */}
@@ -2688,53 +2815,125 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
                         {isSelected && (
                           <div className="ml-8 space-y-3">
-                            <div className="grid grid-cols-3 gap-3">
-                              <div>
-                                <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
-                                <input
-                                  type="number"
-                                  placeholder="15000"
-                                  value={pricing.original_price || ''}
-                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'original_price', e.target.value)}
-                                  className="w-full px-2 py-1 border rounded text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
-                                <input
-                                  type="number"
-                                  placeholder="13000"
-                                  value={pricing.discount_price || ''}
-                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'discount_price', e.target.value)}
-                                  className="w-full px-2 py-1 border rounded text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
-                                <input
-                                  type="number"
-                                  placeholder="13"
-                                  value={pricing.discount_percentage || ''}
-                                  onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'discount_percentage', e.target.value)}
-                                  className="w-full px-2 py-1 border rounded text-sm"
-                                />
+                            {/* End Product Price Section */}
+                            <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                              <label className="block text-sm font-semibold text-blue-800 mb-2">
+                                🟦 End Product Price
+                              </label>
+                              <p className="text-xs text-gray-600 mb-3">
+                                This price will be shown to the customer if they buy the final product without selecting any file.
+                              </p>
+                              
+                              <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium mb-1">💰 Price *</label>
+                                  <input
+                                    type="number"
+                                    placeholder="15000"
+                                    value={pricing.end_product_price || ''}
+                                    onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'end_product_price', e.target.value)}
+                                    className="w-full px-2 py-1 border rounded text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium mb-1">📊 Discount</label>
+                                  <input
+                                    type="number"
+                                    placeholder="2000"
+                                    value={pricing.end_product_discount || ''}
+                                    onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'end_product_discount', e.target.value)}
+                                    className="w-full px-2 py-1 border rounded text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                                  <input
+                                    type="number"
+                                    placeholder="13"
+                                    value={pricing.end_product_discount_percentage || ''}
+                                    onChange={(e) => updateVariantPricing(product.id, null, null, sizeOpt.id, 'end_product_discount_percentage', e.target.value)}
+                                    className="w-full px-2 py-1 border rounded text-sm"
+                                  />
+                                </div>
                               </div>
                             </div>
 
+                            {/* File Type Pricing Section */}
                             <div>
-                              <label className="block text-xs font-medium mb-2">📁 File Types:</label>
-                              <div className="grid grid-cols-2 gap-2">
-                                {FILE_TYPE_OPTIONS.map(fileType => (
-                                  <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={pricing.file_types?.includes(fileType) || false}
-                                      onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileType)}
-                                      className="w-4 h-4"
-                                    />
-                                    <span>{fileType}</span>
-                                  </label>
-                                ))}
+                              <label className="block text-sm font-semibold mb-2">📁 File Types & Pricing:</label>
+                              <div className="space-y-3">
+                                {FILE_TYPE_OPTIONS.map(fileOption => {
+                                  const isFileSelected = pricing.files?.some(f => f.file_type === fileOption.value) || false;
+                                  const filePrice = pricing.files?.find(f => f.file_type === fileOption.value)?.price || '';
+                                  const fileKey = `${product.id}-none-none-${sizeOpt.id}-${fileOption.value}`;
+                                  const uploadedFile = uploadedPdfFiles[fileKey];
+                                  
+                                  return (
+                                    <div key={fileOption.value} className="border rounded p-3 bg-white">
+                                      <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                                        <input
+                                          type="checkbox"
+                                          checked={isFileSelected}
+                                          onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileOption.value)}
+                                          className="w-4 h-4"
+                                        />
+                                        <span className="text-lg">{fileOption.emoji}</span>
+                                        <span className="font-medium">{fileOption.label}</span>
+                                      </label>
+                                      
+                                      {isFileSelected && (
+                                        <div className="ml-6 space-y-3">
+                                          {fileOption.requiresPrice && (
+                                            <div className="p-3 bg-green-50 rounded border border-green-200">
+                                              <p className="text-xs text-gray-700 mb-2 font-semibold">
+                                                🟩 {fileOption.label} Price
+                                              </p>
+                                              <p className="text-xs text-gray-500 mb-2">
+                                                If the customer selects {fileOption.label.toLowerCase()}, only this price will be shown.
+                                              </p>
+                                              <input
+                                                type="number"
+                                                placeholder="Enter price"
+                                                value={filePrice}
+                                                onChange={(e) => updateFilePrice(product.id, null, null, sizeOpt.id, fileOption.value, e.target.value)}
+                                                className="w-full px-3 py-2 border rounded text-sm"
+                                              />
+                                            </div>
+                                          )}
+                                          
+                                          {/* PDF Upload Section */}
+                                          <div className="p-3 bg-purple-50 rounded border border-purple-200">
+                                            <label className="block text-xs font-semibold text-purple-800 mb-2">
+                                              📎 Upload {fileOption.label}
+                                            </label>
+                                            <input
+                                              type="file"
+                                              accept=".pdf,.stl,.cam"
+                                              onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                  handlePdfUpload(product.id, null, null, sizeOpt.id, fileOption.value, e.target.files[0]);
+                                                }
+                                              }}
+                                              className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
+                                            />
+                                            {uploadedFile && (
+                                              <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                                                <span>✓</span>
+                                                <span className="font-medium">{uploadedFile.file_name}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {!fileOption.requiresPrice && (
+                                            <p className="text-xs text-blue-600 p-2 bg-blue-50 rounded border border-blue-200">
+                                              💡 Enquiry only - no price needed
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -2750,7 +2949,10 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                 const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
                 return (
                   <div key={metalId} className="mb-4 border-2 border-blue-200 rounded p-4 bg-blue-50">
-                    <h6 className="font-bold mb-3">{metalOpt?.option_name}</h6>
+                    <h6 className="font-bold mb-3 flex items-center gap-2">
+                      <span>🔩</span>
+                      <span>{metalOpt?.option_name}</span>
+                    </h6>
                     <div className="space-y-3">
                       {categoryData?.attributes?.size?.options?.map(sizeOpt => {
                         const key = `${metalId}-none-${sizeOpt.id}`;
@@ -2773,53 +2975,125 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
                             {isSelected && (
                               <div className="ml-8 space-y-3">
-                                <div className="grid grid-cols-3 gap-3">
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
-                                    <input
-                                      type="number"
-                                      placeholder="15000"
-                                      value={pricing.original_price || ''}
-                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'original_price', e.target.value)}
-                                      className="w-full px-2 py-1 border rounded text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
-                                    <input
-                                      type="number"
-                                      placeholder="13000"
-                                      value={pricing.discount_price || ''}
-                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'discount_price', e.target.value)}
-                                      className="w-full px-2 py-1 border rounded text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
-                                    <input
-                                      type="number"
-                                      placeholder="13"
-                                      value={pricing.discount_percentage || ''}
-                                      onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'discount_percentage', e.target.value)}
-                                      className="w-full px-2 py-1 border rounded text-sm"
-                                    />
+                                {/* End Product Price Section */}
+                                <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                                  <label className="block text-sm font-semibold text-blue-800 mb-2">
+                                    🟦 End Product Price
+                                  </label>
+                                  <p className="text-xs text-gray-600 mb-3">
+                                    This price will be shown to the customer if they buy the final product without selecting any file.
+                                  </p>
+                                  
+                                  <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">💰 Price *</label>
+                                      <input
+                                        type="number"
+                                        placeholder="15000"
+                                        value={pricing.end_product_price || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'end_product_price', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">📊 Discount</label>
+                                      <input
+                                        type="number"
+                                        placeholder="2000"
+                                        value={pricing.end_product_discount || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'end_product_discount', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                                      <input
+                                        type="number"
+                                        placeholder="13"
+                                        value={pricing.end_product_discount_percentage || ''}
+                                        onChange={(e) => updateVariantPricing(product.id, metalId, null, sizeOpt.id, 'end_product_discount_percentage', e.target.value)}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
 
+                                {/* File Type Pricing Section */}
                                 <div>
-                                  <label className="block text-xs font-medium mb-2">📁 File Types:</label>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {FILE_TYPE_OPTIONS.map(fileType => (
-                                      <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={pricing.file_types?.includes(fileType) || false}
-                                          onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileType)}
-                                          className="w-4 h-4"
-                                        />
-                                        <span>{fileType}</span>
-                                      </label>
-                                    ))}
+                                  <label className="block text-sm font-semibold mb-2">📁 File Types & Pricing:</label>
+                                  <div className="space-y-3">
+                                    {FILE_TYPE_OPTIONS.map(fileOption => {
+                                      const isFileSelected = pricing.files?.some(f => f.file_type === fileOption.value) || false;
+                                      const filePrice = pricing.files?.find(f => f.file_type === fileOption.value)?.price || '';
+                                      const fileKey = `${product.id}-${metalId}-none-${sizeOpt.id}-${fileOption.value}`;
+                                      const uploadedFile = uploadedPdfFiles[fileKey];
+                                      
+                                      return (
+                                        <div key={fileOption.value} className="border rounded p-3 bg-white">
+                                          <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={isFileSelected}
+                                              onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileOption.value)}
+                                              className="w-4 h-4"
+                                            />
+                                            <span className="text-lg">{fileOption.emoji}</span>
+                                            <span className="font-medium">{fileOption.label}</span>
+                                          </label>
+                                          
+                                          {isFileSelected && (
+                                            <div className="ml-6 space-y-3">
+                                              {fileOption.requiresPrice && (
+                                                <div className="p-3 bg-green-50 rounded border border-green-200">
+                                                  <p className="text-xs text-gray-700 mb-2 font-semibold">
+                                                    🟩 {fileOption.label} Price
+                                                  </p>
+                                                  <p className="text-xs text-gray-500 mb-2">
+                                                    If the customer selects {fileOption.label.toLowerCase()}, only this price will be shown.
+                                                  </p>
+                                                  <input
+                                                    type="number"
+                                                    placeholder="Enter price"
+                                                    value={filePrice}
+                                                    onChange={(e) => updateFilePrice(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.value)}
+                                                    className="w-full px-3 py-2 border rounded text-sm"
+                                                  />
+                                                </div>
+                                              )}
+                                              
+                                              {/* PDF Upload Section */}
+                                              <div className="p-3 bg-purple-50 rounded border border-purple-200">
+                                                <label className="block text-xs font-semibold text-purple-800 mb-2">
+                                                  📎 Upload {fileOption.label}
+                                                </label>
+                                                <input
+                                                  type="file"
+                                                  accept=".pdf,.stl,.cam"
+                                                  onChange={(e) => {
+                                                    if (e.target.files[0]) {
+                                                      handlePdfUpload(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.files[0]);
+                                                    }
+                                                  }}
+                                                  className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
+                                                />
+                                                {uploadedFile && (
+                                                  <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                                                    <span>✓</span>
+                                                    <span className="font-medium">{uploadedFile.file_name}</span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                              
+                                              {!fileOption.requiresPrice && (
+                                                <p className="text-xs text-blue-600 p-2 bg-blue-50 rounded border border-blue-200">
+                                                  💡 Enquiry only - no price needed
+                                                </p>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               </div>
@@ -2839,7 +3113,13 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
                   const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => o.id === diamondId);
                   return (
                     <div key={`${metalId}-${diamondId}`} className="mb-4 border-2 border-purple-200 rounded p-4 bg-purple-50">
-                      <h6 className="font-bold mb-3">{metalOpt?.option_name} + {diamondOpt?.option_name}</h6>
+                      <h6 className="font-bold mb-3 flex items-center gap-2">
+                        <span>🔩</span>
+                        <span>{metalOpt?.option_name}</span>
+                        <span>+</span>
+                        <span>💎</span>
+                        <span>{diamondOpt?.option_name}</span>
+                      </h6>
                       <div className="space-y-3">
                         {categoryData?.attributes?.size?.options?.map(sizeOpt => {
                           const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
@@ -2862,53 +3142,125 @@ const AddProducts = ({ onBack, categories, onRefresh }) => {
 
                               {isSelected && (
                                 <div className="ml-8 space-y-3">
-                                  <div className="grid grid-cols-3 gap-3">
-                                    <div>
-                                      <label className="block text-xs font-medium mb-1">💰 Original Price *</label>
-                                      <input
-                                        type="number"
-                                        placeholder="15000"
-                                        value={pricing.original_price || ''}
-                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'original_price', e.target.value)}
-                                        className="w-full px-2 py-1 border rounded text-sm"
-                                      />
-                                    </div>
-                                   <div>
-                                      <label className="block text-xs font-medium mb-1">📊 Discount Price</label>
-                                      <input
-                                        type="number"
-                                        placeholder="13000"
-                                        value={pricing.discount_price || ''}
-                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'discount_price', e.target.value)}
-                                        className="w-full px-2 py-1 border rounded text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
-                                      <input
-                                        type="number"
-                                        placeholder="13"
-                                        value={pricing.discount_percentage || ''}
-                                        onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'discount_percentage', e.target.value)}
-                                        className="w-full px-2 py-1 border rounded text-sm"
-                                      />
+                                  {/* End Product Price Section */}
+                                  <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                                    <label className="block text-sm font-semibold text-blue-800 mb-2">
+                                      🟦 End Product Price
+                                    </label>
+                                    <p className="text-xs text-gray-600 mb-3">
+                                      This price will be shown to the customer if they buy the final product without selecting any file.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-3 gap-3">
+                                      <div>
+                                        <label className="block text-xs font-medium mb-1">💰 Price *</label>
+                                        <input
+                                          type="number"
+                                          placeholder="15000"
+                                          value={pricing.end_product_price || ''}
+                                          onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'end_product_price', e.target.value)}
+                                          className="w-full px-2 py-1 border rounded text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium mb-1">📊 Discount</label>
+                                        <input
+                                          type="number"
+                                          placeholder="2000"
+                                          value={pricing.end_product_discount || ''}
+                                          onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'end_product_discount', e.target.value)}
+                                          className="w-full px-2 py-1 border rounded text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium mb-1">🎯 Discount %</label>
+                                        <input
+                                          type="number"
+                                          placeholder="13"
+                                          value={pricing.end_product_discount_percentage || ''}
+                                          onChange={(e) => updateVariantPricing(product.id, metalId, diamondId, sizeOpt.id, 'end_product_discount_percentage', e.target.value)}
+                                          className="w-full px-2 py-1 border rounded text-sm"
+                                        />
+                                      </div>
                                     </div>
                                   </div>
 
+                                  {/* File Type Pricing Section */}
                                   <div>
-                                    <label className="block text-xs font-medium mb-2">📁 File Types:</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      {FILE_TYPE_OPTIONS.map(fileType => (
-                                        <label key={fileType} className="flex items-center gap-2 text-sm cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={pricing.file_types?.includes(fileType) || false}
-                                            onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileType)}
-                                            className="w-4 h-4"
-                                          />
-                                          <span>{fileType}</span>
-                                        </label>
-                                      ))}
+                                    <label className="block text-sm font-semibold mb-2">📁 File Types & Pricing:</label>
+                                    <div className="space-y-3">
+                                      {FILE_TYPE_OPTIONS.map(fileOption => {
+                                        const isFileSelected = pricing.files?.some(f => f.file_type === fileOption.value) || false;
+                                        const filePrice = pricing.files?.find(f => f.file_type === fileOption.value)?.price || '';
+                                        const fileKey = `${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOption.value}`;
+                                        const uploadedFile = uploadedPdfFiles[fileKey];
+                                        
+                                        return (
+                                          <div key={fileOption.value} className="border rounded p-3 bg-white">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={isFileSelected}
+                                                onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileOption.value)}
+                                                className="w-4 h-4"
+                                              />
+                                              <span className="text-lg">{fileOption.emoji}</span>
+                                              <span className="font-medium">{fileOption.label}</span>
+                                            </label>
+                                            
+                                            {isFileSelected && (
+                                              <div className="ml-6 space-y-3">
+                                                {fileOption.requiresPrice && (
+                                                  <div className="p-3 bg-green-50 rounded border border-green-200">
+                                                    <p className="text-xs text-gray-700 mb-2 font-semibold">
+                                                      🟩 {fileOption.label} Price
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mb-2">
+                                                      If the customer selects {fileOption.label.toLowerCase()}, only this price will be shown.
+                                                    </p>
+                                                    <input
+                                                      type="number"
+                                                      placeholder="Enter price"
+                                                      value={filePrice}
+                                                      onChange={(e) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, fileOption.value, e.target.value)}
+                                                      className="w-full px-3 py-2 border rounded text-sm"
+                                                    />
+                                                  </div>
+                                                )}
+                                                
+                                                {/* PDF Upload Section */}
+                                                <div className="p-3 bg-purple-50 rounded border border-purple-200">
+                                                  <label className="block text-xs font-semibold text-purple-800 mb-2">
+                                                    📎 Upload {fileOption.label}
+                                                  </label>
+                                                  <input
+                                                    type="file"
+                                                    accept=".pdf,.stl,.cam"
+                                                    onChange={(e) => {
+                                                      if (e.target.files[0]) {
+                                                        handlePdfUpload(product.id, metalId, diamondId, sizeOpt.id, fileOption.value, e.target.files[0]);
+                                                      }
+                                                    }}
+                                                    className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
+                                                  />
+                                                  {uploadedFile && (
+                                                    <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                                                      <span>✓</span>
+                                                      <span className="font-medium">{uploadedFile.file_name}</span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                
+                                                {!fileOption.requiresPrice && (
+                                                  <p className="text-xs text-blue-600 p-2 bg-blue-50 rounded border border-blue-200">
+                                                    💡 Enquiry only - no price needed
+                                                  </p>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 </div>
