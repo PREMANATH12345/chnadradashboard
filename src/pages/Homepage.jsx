@@ -335,7 +335,6 @@ const Homepage = () => {
   const saveCategoryData = async (sectionId, categoryData) => {
     try {
       const token = getAuthToken();
-      console.log("Saving category data to collection_category:", sectionId, categoryData);
       
       // First, soft delete existing entries for this section
       await fetch(`${API_URL}/doAll`, {

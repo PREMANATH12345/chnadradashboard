@@ -219,7 +219,6 @@ const Categories = () => {
         where: { id:categoryId }
       });
 
-      console.log(response, "categoryId")
   
     
     toast.success('Category deleted successfully!');

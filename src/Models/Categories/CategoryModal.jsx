@@ -338,7 +338,6 @@ const uploadImage = async (file) => {
     formData.append('images', file);
     formData.append('folder', 'categories');
 
-    console.log('Uploading image...', file);
 
     const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
       headers: {
@@ -347,7 +346,6 @@ const uploadImage = async (file) => {
       }
     });
 
-    console.log('Upload response:', uploadRes.data);
 
     if (uploadRes.data.success) {
       // Based on your console log, the response is:
@@ -376,7 +374,6 @@ const uploadImage = async (file) => {
         throw new Error('Unexpected response format from image upload');
       }
 
-      console.log('Extracted image URL:', imageUrl);
       return imageUrl;
     } else {
       throw new Error(uploadRes.data.message || 'Image upload failed');
