@@ -205,50 +205,55 @@ const CategoryModal = ({
     }
   }, [editingCategory, showModal]);
 
-  const fetchCategoryDetails = async () => {
-    setLoading(true);
-    try {
-      setCategoryName(editingCategory.name);
-      setCategorySlug(editingCategory.slug);
-      
-      // Set existing image if available
-      if (editingCategory.image_url) {
-        setCategoryImage(editingCategory.image_url);
-      }
-
-      // Fetch existing style options
-      const styleResponse = await DoAll({
-        action: 'get',
-        table: 'by_style',
-        where: { category_id: editingCategory.id }
-      });
-
-      // Fetch existing metal options
-      const metalResponse = await DoAll({
-        action: 'get',
-        table: 'by_metal_and_stone',
-        where: { category_id: editingCategory.id }
-      });
-
-      setByStyleItems(
-        styleResponse.data.success && styleResponse.data.data?.length > 0 
-          ? styleResponse.data.data.map(item => item.name)
-          : ['']
-      );
-
-      setByMetalItems(
-        metalResponse.data.success && metalResponse.data.data?.length > 0
-          ? metalResponse.data.data.map(item => item.name)
-          : ['']
-      );
-
-    } catch (error) {
-      console.error('Error fetching category details:', error);
-      toast.error('Error loading category details');
-    } finally {
-      setLoading(false);
+const fetchCategoryDetails = async () => {
+  setLoading(true);
+  try {
+    setCategoryName(editingCategory.name);
+    setCategorySlug(editingCategory.slug);
+    
+    if (editingCategory.image_url) {
+      setCategoryImage(editingCategory.image_url);
     }
-  };
+
+    // Fetch existing style options
+    const styleResponse = await DoAll({
+      action: 'get',
+      table: 'by_style',
+      where: { 
+        category_id: editingCategory.id,
+        is_deleted: 0  
+      }
+    });
+
+    // Fetch existing metal options
+    const metalResponse = await DoAll({
+      action: 'get',
+      table: 'by_metal_and_stone',
+      where: { 
+        category_id: editingCategory.id,
+        is_deleted: 0 
+      }
+    });
+
+    setByStyleItems(
+      styleResponse.data.success && styleResponse.data.data?.length > 0 
+        ? styleResponse.data.data.map(item => item.name)
+        : ['']
+    );
+
+    setByMetalItems(
+      metalResponse.data.success && metalResponse.data.data?.length > 0
+        ? metalResponse.data.data.map(item => item.name)
+        : ['']
+    );
+
+  } catch (error) {
+    console.error('Error fetching category details:', error);
+    toast.error('Error loading category details');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const generateSlug = (name) => {
     return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -303,33 +308,7 @@ const CategoryModal = ({
     resetForm();
   };
 
-  // const uploadImage = async (file) => {
-  //   // Create form data for file upload
-  //   const formData = new FormData();
-  //   formData.append('image', file);
-  //   formData.append('folder', 'categories');
 
-  //   try {
-  //     // Adjust this API call based on your backend implementation
-  //     const uploadResponse = await DoAll({
-  //       action: 'upload_image',
-  //       data: formData,
-  //       // You might need to set headers for file upload
-  //       headers: {
-  //         'Content-Type': 'multipart/form-data',
-  //       }
-  //     });
-
-  //     if (uploadResponse.data.success) {
-  //       return uploadResponse.data.imageUrl; // Adjust based on your API response
-  //     } else {
-  //       throw new Error('Image upload failed');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error uploading image:', error);
-  //     throw error;
-  //   }
-  // };
 const uploadImage = async (file) => {
   const token = localStorage.getItem('token');
   
@@ -385,135 +364,99 @@ const uploadImage = async (file) => {
     throw error;
   }
 };
-  const saveStyles = async (categoryId, styles) => {
-    const validStyles = styles.filter(style => style.trim());
-    
-    const stylePromises = validStyles.map(styleName => 
-      DoAll({
+
+
+const saveStyles = async (categoryId, styles) => {
+  const validStyles = styles.filter(style => style.trim());
+  
+  if (validStyles.length === 0) {
+    console.warn('No valid styles to save');
+    return;
+  }
+
+  try {
+    const stylePromises = validStyles.map(async (styleName) => {
+      const response = await DoAll({
         action: 'insert',
         table: 'by_style',
         data: {
           category_id: categoryId,
           name: styleName.trim(),
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          is_deleted: 0  
         }
-      })
-    );
+      });
+      
+      // ✅ FIX: Check response.success instead of response.data.success
+      if (!response.success) {
+        console.error(`Failed to save style "${styleName}":`, response);
+      }
+      
+      return response;
+    });
 
-    await Promise.all(stylePromises);
-  };
-
-  const saveMetals = async (categoryId, metals) => {
-    const validMetals = metals.filter(metal => metal.trim());
+    const results = await Promise.allSettled(stylePromises);
     
-    const metalPromises = validMetals.map(metalName => 
-      DoAll({
+    // Check for any failures
+    const failures = results.filter(r => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.error('Some styles failed to save:', failures);
+      toast.warning(`${validStyles.length - failures.length} of ${validStyles.length} styles saved`);
+    }
+  } catch (error) {
+    console.error('Error saving styles:', error);
+    throw new Error('Failed to save style options');
+  }
+};
+
+const saveMetals = async (categoryId, metals) => {
+  const validMetals = metals.filter(metal => metal.trim());
+  
+  if (validMetals.length === 0) {
+    console.warn('No valid metals to save');
+    return;
+  }
+
+  try {
+    const metalPromises = validMetals.map(async (metalName) => {
+      const response = await DoAll({
         action: 'insert',
         table: 'by_metal_and_stone',
         data: {
           category_id: categoryId,
           name: metalName.trim(),
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          is_deleted: 0  
         }
-      })
-    );
+      });
+      
+      // ✅ FIX: Check response.success instead of response.data.success
+      if (!response.success) {
+        console.error(`Failed to save metal "${metalName}":`, response);
+      }
+      
+      return response;
+    });
 
-    await Promise.all(metalPromises);
-  };
+    const results = await Promise.allSettled(metalPromises);
+    
+    // Check for any failures
+    const failures = results.filter(r => r.status === 'rejected');
+    if (failures.length > 0) {
+      console.error('Some metals failed to save:', failures);
+      toast.warning(`${validMetals.length - failures.length} of ${validMetals.length} metals saved`);
+    }
+  } catch (error) {
+    console.error('Error saving metals:', error);
+    throw new Error('Failed to save metal/stone options');
+  }
+};
 
-  // const handleSave = async () => {
-  //   if (!categoryName.trim()) {
-  //     toast.error('Please enter category name');
-  //     return;
-  //   }
 
-  //   const validStyles = byStyleItems.filter(item => item.trim());
-  //   const validMetals = byMetalItems.filter(item => item.trim());
 
-  //   if (validStyles.length === 0 || validMetals.length === 0) {
-  //     toast.error('Please add at least one style and one metal/stone option');
-  //     return;
-  //   }
-
-  //   setSaving(true);
-
-  //   try {
-  //     let imageUrl = editingCategory?.image_url || null;
-
-  //     // Upload new image if provided
-  //     if (categoryImage && typeof categoryImage !== 'string') {
-  //       imageUrl = await uploadImage(categoryImage);
-  //     }
-
-  //     let categoryId;
-
-  //     if (editingCategory) {
-  //       // Update existing category
-  //       const updateResponse = await DoAll({
-  //         action: 'update',
-  //         table: 'category',
-  //         where: { id: editingCategory.id },
-  //         data: {
-  //           name: categoryName.trim(),
-  //           slug: categorySlug,
-  //           image_url: imageUrl,
-  //           updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
-  //         }
-  //       });
-
-  //       if (!updateResponse.data.success) {
-  //         throw new Error('Failed to update category');
-  //       }
-
-  //       categoryId = editingCategory.id;
-        
-  //       // Update styles and metals
-  //       await saveStyles(categoryId, validStyles);
-  //       await saveMetals(categoryId, validMetals);
-
-  //       toast.success('Category updated successfully!');
-  //     } else {
-  //       // Create new category
-  //       const createResponse = await DoAll({
-  //         action: 'insert',
-  //         table: 'category',
-  //         data: {
-  //           name: categoryName.trim(),
-  //           slug: categorySlug,
-  //           image_url: imageUrl,
-  //           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-  //           updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-  //           is_deleted: 0
-  //         }
-  //       });
-
-  //       if (!createResponse.data.success || !createResponse.data.insertId) {
-  //         throw new Error('Failed to create category');
-  //       }
-
-  //       categoryId = createResponse.data.insertId;
-        
-  //       // Save styles and metals
-  //       await saveStyles(categoryId, validStyles);
-  //       await saveMetals(categoryId, validMetals);
-
-  //       toast.success('Category created successfully!');
-  //     }
-
-  //     if (fetchCategories) {
-  //       await fetchCategories();
-  //     }
-  //     handleClose();
-  //   } catch (error) {
-  //     console.error('Error saving category:', error);
-  //     toast.error(`Error ${editingCategory ? 'updating' : 'creating'} category`);
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // };
-  const handleSave = async () => {
+const handleSave = async () => {
   if (!categoryName.trim()) {
     toast.error('Please enter category name');
     return;
@@ -532,15 +475,20 @@ const uploadImage = async (file) => {
   try {
     let imageUrl = editingCategory?.image_url || null;
 
-    // Upload new image if provided (and it's a File object, not a URL string)
+    // Upload new image if provided
     if (categoryImage && typeof categoryImage !== 'string') {
-      imageUrl = await uploadImage(categoryImage);
+      try {
+        imageUrl = await uploadImage(categoryImage);
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
+        toast.error('Failed to upload image. Continuing without image...');
+      }
     }
 
     let categoryId;
 
     if (editingCategory) {
-      // Update existing category
+      // ========== UPDATE EXISTING CATEGORY ==========
       const updateResponse = await DoAll({
         action: 'update',
         table: 'category',
@@ -553,32 +501,38 @@ const uploadImage = async (file) => {
         }
       });
 
-      if (!updateResponse.data.success) {
+      // ✅ FIX: Check response.success instead of response.data.success
+      if (!updateResponse.success) {
         throw new Error('Failed to update category');
       }
 
       categoryId = editingCategory.id;
       
-      // First, delete existing styles and metals
-      await DoAll({
-    action: 'soft_delete',
-    table: 'by_style',
-    where: { category_id: categoryId }
-  });
+      // Delete existing styles and metals (soft delete)
+      try {
+        await DoAll({
+          action: 'soft_delete',
+          table: 'by_style',
+          where: { category_id: categoryId }
+        });
 
-  await DoAll({
-    action: 'soft_delete',
-    table: 'by_metal_and_stone',
-    where: { category_id: categoryId }
-  });
+        await DoAll({
+          action: 'soft_delete',
+          table: 'by_metal_and_stone',
+          where: { category_id: categoryId }
+        });
+      } catch (deleteError) {
+        console.warn('Error deleting old options:', deleteError);
+      }
 
-      // Then insert new ones
+      // Insert new styles and metals
       await saveStyles(categoryId, validStyles);
       await saveMetals(categoryId, validMetals);
 
       toast.success('Category updated successfully!');
+      
     } else {
-      // Create new category
+      // ========== CREATE NEW CATEGORY ==========
       const createResponse = await DoAll({
         action: 'insert',
         table: 'category',
@@ -592,11 +546,20 @@ const uploadImage = async (file) => {
         }
       });
 
-      if (!createResponse.data.success || !createResponse.data.insertId) {
-        throw new Error('Failed to create category');
+      console.log('Create Response:', createResponse); // Debug log
+
+      // ✅ FIX: Check response.success instead of response.data.success
+      if (!createResponse.success) {
+        throw new Error(createResponse.message || 'Failed to create category');
       }
 
-      categoryId = createResponse.data.insertId;
+      // ✅ FIX: Get insertId from response.insertId instead of response.data.insertId
+      if (!createResponse.insertId) {
+        throw new Error('No category ID returned from database');
+      }
+
+      categoryId = createResponse.insertId;
+      console.log('Created category with ID:', categoryId); // Debug log
       
       // Save styles and metals
       await saveStyles(categoryId, validStyles);
@@ -605,17 +568,30 @@ const uploadImage = async (file) => {
       toast.success('Category created successfully!');
     }
 
+    // Refresh categories list
     if (fetchCategories) {
       await fetchCategories();
     }
+    
     handleClose();
+    
   } catch (error) {
     console.error('Error saving category:', error);
-    toast.error(`Error ${editingCategory ? 'updating' : 'creating'} category`);
+    
+    // More specific error message
+    if (error.message.includes('insertId')) {
+      toast.error('Category created but ID not returned. Please refresh the page.');
+    } else if (error.message.includes('image')) {
+      toast.error('Error uploading image. Please try again.');
+    } else {
+      toast.error(`Error ${editingCategory ? 'updating' : 'creating'} category: ${error.message}`);
+    }
   } finally {
     setSaving(false);
   }
 };
+
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       handleClose();
