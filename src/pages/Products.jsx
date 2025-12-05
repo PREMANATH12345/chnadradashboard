@@ -4591,42 +4591,44 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
     });
   };
 
-  const fetchProducts = useCallback(async () => {
-    if (selectedCategoryIds.length === 0) {
-      setProducts([]);
-      return;
+const fetchProducts = useCallback(async () => {
+  if (selectedCategoryIds.length === 0) {
+    setProducts([]);
+    return;
+  }
+
+  setLoading(true);
+  const token = localStorage.getItem('token');
+
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const payload = { 
+      category_ids: selectedCategoryIds,
+      // Ensure status is always an array with at least 'approved'
+      status: statusFilter && statusFilter.length > 0 ? statusFilter : ['approved']
+    };
+    
+    if (userRole === 'vendor') {
+      payload.vendor_id = user.id;
     }
 
-    setLoading(true);
-    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/products/by-category`,  // ← Changed endpoint
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const payload = { 
-        category_ids: selectedCategoryIds,
-        status: statusFilter
-      };
-      
-      if (userRole === 'vendor') {
-        payload.vendor_id = user.id;
-      }
-
-      const response = await axios.post(
-        `${API_URL}/products/by-status`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setProducts(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      alert('Error loading products');
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      setProducts(response.data.data);
     }
-  }, [selectedCategoryIds, statusFilter, userRole]);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    alert('Error loading products');
+  } finally {
+    setLoading(false);
+  }
+}, [selectedCategoryIds, statusFilter, userRole]);
+
 
   useEffect(() => {
     fetchProducts();
