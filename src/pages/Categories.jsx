@@ -387,7 +387,7 @@ const handleDelete = async (categoryId) => {
                   
                   {/* Style Options */}
                   <div>
-                    <div className="flex items-center space-x-1 mb-2">
+                    <div className="flex items-center space-x-1 mb-2">  
                       <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
                       <h4 className="text-xs font-semibold text-gray-700">
                         Style Options ({styles.length})
