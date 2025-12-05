@@ -1129,7 +1129,7 @@ const EditProductPanel = ({ product, onClose, onSave, categories }) => {
           variants.push({
             metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
             diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-            size_option_id: parseInt(sizePart),
+  size_option_id: sizePart === 'none' ? null : parseInt(sizePart), 
             original_price: parseFloat(pricing.original_price),
             discount_price: parseFloat(pricing.discount_price) || parseFloat(pricing.original_price),
             discount_percentage: parseInt(pricing.discount_percentage) || 0,
@@ -2589,9 +2589,18 @@ if (productRes.data.success && productRes.data.insertId) {
   const productDbId = productRes.data.insertId;
   const variants = [];
 
-  // ✅ SAFETY CHECK: Only process variants if selectedSizes exists and is an object
-  if (product.selectedSizes && typeof product.selectedSizes === 'object' && Object.keys(product.selectedSizes).length > 0) {
-    
+if (productRes.data.success && productRes.data.insertId) {
+  const productDbId = productRes.data.insertId;
+  const variants = [];
+
+  // ✅ IMPORTANT: We need to check BOTH sources:
+  // 1. Variants WITH sizes (from selectedSizes)
+  // 2. Variants WITHOUT sizes (from variantPricing with "none" keys)
+
+
+  
+  // ========== 1. PROCESS VARIANTS WITH SIZES ==========
+  if (product.selectedSizes && typeof product.selectedSizes === 'object') {
     for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
       if (!isSelected) continue;
 
@@ -2600,26 +2609,70 @@ if (productRes.data.success && productRes.data.insertId) {
 
       const [metalPart, diamondPart, sizePart] = key.split('-');
       
-      // ✅ SAFETY CHECK: Ensure files is an array
-      const files = Array.isArray(pricing.files) ? pricing.files : [];
+      // Skip if this is a "none" size (should be handled separately)
+      if (sizePart === 'none') {
+        continue;
+      }
       
-      // Only add variant if it has files configured
+      const files = Array.isArray(pricing.files) ? pricing.files : [];
       if (files.length === 0) continue;
       
-variants.push({
-  metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
-  diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-  size_option_id: parseInt(sizePart),
-  end_product_price: parseFloat(pricing.end_product_price) || null,
-  end_product_discount: parseFloat(pricing.end_product_discount) || null,
-  end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-  files: files.map(f => ({
-    ...f,
-    file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
-  }))
-});
+      variants.push({
+        metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+        diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+        size_option_id: parseInt(sizePart), // ✅ Always has a size
+        end_product_price: parseFloat(pricing.end_product_price) || null,
+        end_product_discount: parseFloat(pricing.end_product_discount) || null,
+        end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+        files: files.map(f => ({
+          ...f,
+          file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
+        }))
+      });
     }
   }
+
+  // ========== 2. PROCESS VARIANTS WITHOUT SIZES ==========
+  // Look for keys in variantPricing that end with "-none" (no size)
+  if (product.variantPricing && typeof product.variantPricing === 'object') {
+    for (const [key, pricing] of Object.entries(product.variantPricing)) {
+      // Check if this is a "no size" variant (ends with "-none")
+      if (key.endsWith('-none')) {
+        
+        const [metalPart, diamondPart, sizePart] = key.split('-');
+        
+        // Verify it's truly a "no size" variant
+        if (sizePart !== 'none') continue;
+        
+        const files = Array.isArray(pricing.files) ? pricing.files : [];
+        if (files.length === 0) continue;
+        
+        variants.push({
+          metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+          diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+          size_option_id: null, // ✅ NULL for no size
+          end_product_price: parseFloat(pricing.end_product_price) || null,
+          end_product_discount: parseFloat(pricing.end_product_discount) || null,
+          end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+          files: files.map(f => ({
+            ...f,
+            file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
+          }))
+        });
+      }
+    }
+  }
+
+
+  // Only call API if variants exist
+  if (variants.length > 0) {
+    await axios.post(
+      `${API_URL}/product-variants/pricing`,
+      { product_id: productDbId, variants },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+}
 
   // Only call API if variants exist
   if (variants.length > 0) {
