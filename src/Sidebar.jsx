@@ -158,6 +158,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <Cog6ToothIcon className="w-4" />,
       roles: ["admin"] // Only admin can see
     },
+   
   ];
 
   // Filter menu items based on user role

@@ -302,6 +302,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+         
           
           {/* Shared route (both admin and vendor) */}
           <Route path="products" element={<Products />} />
