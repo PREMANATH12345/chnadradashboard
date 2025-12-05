@@ -30,75 +30,82 @@ const Categories = () => {
     applyFiltersAndSearch();
   }, [categories, searchTerm, selectedFilter, sortBy]);
 
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const response = await DoAll({ 
-        action: 'get', 
-        table: 'category' 
-      });
-      
-      if (!response?.data?.success) {
-        throw new Error('Invalid API response structure');
-      }
-      
-      const categoriesData = response.data.data || [];
-      setCategories(categoriesData);
-      
-      if (categoriesData.length > 0) {
-        await fetchAllCategoryDetails(categoriesData);
-      } else {
-        setCategoryDetails({});
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast.error('Error loading categories');
-      setCategories([]);
-      setCategoryDetails({});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAllCategoryDetails = async (categoriesData) => {
-    const details = {};
-    
-    const promises = categoriesData.map(async (category) => {
-      try {
-        const [styleResponse, metalResponse] = await Promise.allSettled([
-          DoAll({
-            action: 'get',
-            table: 'by_style',
-            where: { category_id: category.id }
-          }),
-          DoAll({
-            action: 'get',
-            table: 'by_metal_and_stone',
-            where: { category_id: category.id }
-          })
-        ]);
-
-        const styles = styleResponse.status === 'fulfilled' && 
-                      styleResponse.value?.data?.success ? 
-                      (styleResponse.value.data.data || []) : [];
-        
-        const metals = metalResponse.status === 'fulfilled' && 
-                      metalResponse.value?.data?.success ? 
-                      (metalResponse.value.data.data || []) : [];
-
-        details[category.id] = {
-          styles: Array.isArray(styles) ? styles : [],
-          metals: Array.isArray(metals) ? metals : []
-        };
-      } catch (error) {
-        console.error(`Error fetching details for category ${category.id}:`, error);
-        details[category.id] = { styles: [], metals: [] };
-      }
+const fetchCategories = async () => {
+  try {
+    setLoading(true);
+    const response = await DoAll({ 
+      action: 'get', 
+      table: 'category',
+      where: { is_deleted: 0 }
     });
+    
+    // ✅ FIX: The response structure is { success, data, count }
+    // NOT response.data.success
+    console.log('API Response:', response);
+    
+    if (!response?.success) {
+      throw new Error('Invalid API response structure');
+    }
+    
+    const categoriesData = response.data || [];
+    setCategories(categoriesData);
+    
+    if (categoriesData.length > 0) {
+      await fetchAllCategoryDetails(categoriesData);
+    } else {
+      setCategoryDetails({});
+    }
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    toast.error('Error loading categories');
+    setCategories([]);
+    setCategoryDetails({});
+  } finally {
+    setLoading(false);
+  }
+};
 
-    await Promise.allSettled(promises);
-    setCategoryDetails(details);
-  };
+const fetchAllCategoryDetails = async (categoriesData) => {
+  const details = {};
+  
+  const promises = categoriesData.map(async (category) => {
+    try {
+      const [styleResponse, metalResponse] = await Promise.allSettled([
+        DoAll({
+          action: 'get',
+          table: 'by_style',
+          where: { category_id: category.id, is_deleted: 0 }
+        }),
+        DoAll({
+          action: 'get',
+          table: 'by_metal_and_stone',
+          where: { category_id: category.id, is_deleted: 0 }
+        })
+      ]);
+
+      // ✅ FIX: Check response.success not response.value.data.success
+      const styles = styleResponse.status === 'fulfilled' && 
+                    styleResponse.value?.success ? 
+                    (styleResponse.value.data || []) : [];
+      
+      const metals = metalResponse.status === 'fulfilled' && 
+                    metalResponse.value?.success ? 
+                    (metalResponse.value.data || []) : [];
+
+      details[category.id] = {
+        styles: Array.isArray(styles) ? styles : [],
+        metals: Array.isArray(metals) ? metals : []
+      };
+    } catch (error) {
+      console.error(`Error fetching details for category ${category.id}:`, error);
+      details[category.id] = { styles: [], metals: [] };
+    }
+  });
+
+  await Promise.allSettled(promises);
+  setCategoryDetails(details);
+};
+
 
   const applyFiltersAndSearch = () => {
     let filtered = [...categories];
@@ -166,68 +173,36 @@ const Categories = () => {
     setShowModal(true);
   };
 
-  // const handleDelete = async (categoryId) => {
-  //   if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-  //     return;
-  //   }
-
-  //   setDeletingId(categoryId);
-  //   try {
-  //     // Delete related records first
-  //     await Promise.allSettled([
-  //       DoAll({
-  //         action: 'soft_delete',
-  //         table: 'by_style',
-  //         where: { category_id: categoryId }
-  //       }),
-  //       DoAll({
-  //         action: 'soft_delete',
-  //         table: 'by_metal_and_stone',
-  //         where: { category_id: categoryId }
-  //       })
-  //     ]);
-
-  //     // Then delete the category
-  //     await DoAll({
-  //       action: 'soft_delete',
-  //       table: 'category',
-  //       id: categoryId
-  //     });
-      
-  //     toast.success('Category deleted successfully!');
-  //     // await fetchCategories();
-  //   } catch (error) {
-  //     console.error('Error deleting category:', error);
-  //     toast.error('Error deleting category');
-  //   } finally {
-  //     setDeletingId(null);
-  //   }
-  // };
 
 
-  const handleDelete = async (categoryId) => {
+const handleDelete = async (categoryId) => {
   if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
     return;
   }
 
   setDeletingId(categoryId);
   try {
-
-     const response = await DoAll({
-        action: 'soft_delete',
-        table: 'category',
-        where: { id:categoryId }
-      });
-
-  
+    const response = await DoAll({
+      action: 'soft_delete',
+      table: 'category',
+      where: { id: categoryId }
+    });
     
-    toast.success('Category deleted successfully!');
-    await fetchCategories();
+    if (response.data.success) {
+      toast.success('Category deleted successfully!');
+      await fetchCategories();
+    } else {
+      throw new Error('Failed to delete category');
+    }
   } catch (error) {
     console.error('Error deleting category:', error);
     toast.error('Error deleting category');
-  } 
+  } finally {
+    setDeletingId(null);
+  }
 };
+
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedFilter('all');
