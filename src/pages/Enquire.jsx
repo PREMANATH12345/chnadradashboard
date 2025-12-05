@@ -13,6 +13,8 @@ const EnquiryPage
         action: 'get', 
         table: 'enquiries' 
       });
+
+      
       
       if (!response?.data?.success) {
         throw new Error('Invalid API response structure');
