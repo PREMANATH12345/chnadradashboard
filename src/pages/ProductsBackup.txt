@@ -2602,78 +2602,23 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     }));
   };
 
-const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
-  if (!file) return;
-  
-  // Create FormData for upload
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const token = localStorage.getItem('token');
-  
-  try {
-    // Upload immediately
-    const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
+  const handlePdfFileSelect = (productId, metalId, diamondId, sizeId, fileType, file) => {
+    setProducts(products.map(p => {
+      if (p.id === productId) {
+        const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+        const fileKey = `${key}-${fileType}`;
+        
+        return {
+          ...p,
+          pdfFiles: {
+            ...p.pdfFiles,
+            [fileKey]: file
+          }
+        };
       }
-    });
-    
-    if (response.data.success) {
-      const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
-      
-      // Store the uploaded file info
-      setUploadedPdfFiles(prev => ({
-        ...prev,
-        [fileKey]: {
-          file_path: response.data.data.file_path,
-          file_name: response.data.data.file_name,
-          file_size: response.data.data.file_size
-        }
-      }));
-      
-      // Update product variant pricing with file info
-      setProducts(products.map(p => {
-        if (p.id === productId) {
-          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
-          const current = p.variantPricing[variantKey] || {};
-          const currentFiles = current.files || [];
-          
-          const updatedFiles = currentFiles.map(f => 
-            f.file_type === fileType 
-              ? { 
-                  ...f, 
-                  file_path: response.data.data.file_path,
-                  file_name: response.data.data.file_name,
-                  file_size: response.data.data.file_size
-                }
-              : f
-          );
-          
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [variantKey]: {
-                ...current,
-                files: updatedFiles
-              }
-            }
-          };
-        }
-        return p;
-      }));
-      
-      alert('✅ File uploaded successfully!');
-    }
-  } catch (error) {
-    console.error('PDF upload error:', error);
-    alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
-  }
-};
-
-
+      return p;
+    }));
+  };
 
   const handleImageSelect = (productId, files) => {
     const fileArray = Array.from(files);
@@ -2742,63 +2687,63 @@ const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileTy
     );
   };
 
-  // const handlePdfUpload = async (productId, metalId, diamondId, sizeId, fileType, file) => {
-  //   const formData = new FormData();
-  //   formData.append('file', file);
+  const handlePdfUpload = async (productId, metalId, diamondId, sizeId, fileType, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
     
-  //   const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
-  //   try {
-  //     const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //         'Content-Type': 'multipart/form-data'
-  //       }
-  //     });
+    try {
+      const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       
-  //     if (response.data.success) {
-  //       const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-${fileType}`;
-  //       setUploadedPdfFiles(prev => ({
-  //         ...prev,
-  //         [fileKey]: {
-  //           file_path: response.data.data.file_path,
-  //           file_name: response.data.data.file_name
-  //         }
-  //       }));
+      if (response.data.success) {
+        const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-${fileType}`;
+        setUploadedPdfFiles(prev => ({
+          ...prev,
+          [fileKey]: {
+            file_path: response.data.data.file_path,
+            file_name: response.data.data.file_name
+          }
+        }));
         
-  //       setProducts(products.map(p => {
-  //         if (p.id === productId) {
-  //           const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
-  //           const current = p.variantPricing[variantKey] || {};
-  //           const currentFiles = current.files || [];
+        setProducts(products.map(p => {
+          if (p.id === productId) {
+            const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
+            const current = p.variantPricing[variantKey] || {};
+            const currentFiles = current.files || [];
             
-  //           const updatedFiles = currentFiles.map(f => 
-  //             f.file_type === fileType 
-  //               ? { ...f, file_path: response.data.data.file_path }
-  //               : f
-  //           );
+            const updatedFiles = currentFiles.map(f => 
+              f.file_type === fileType 
+                ? { ...f, file_path: response.data.data.file_path }
+                : f
+            );
             
-  //           return {
-  //             ...p,
-  //             variantPricing: {
-  //               ...p.variantPricing,
-  //               [variantKey]: {
-  //                 ...current,
-  //                 files: updatedFiles
-  //               }
-  //             }
-  //           };
-  //         }
-  //         return p;
-  //       }));
+            return {
+              ...p,
+              variantPricing: {
+                ...p.variantPricing,
+                [variantKey]: {
+                  ...current,
+                  files: updatedFiles
+                }
+              }
+            };
+          }
+          return p;
+        }));
         
-  //       alert('✅ File uploaded successfully!');
-  //     }
-  //   } catch (error) {
-  //     console.error('PDF upload error:', error);
-  //     alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
-  //   }
-  // };
+        alert('✅ File uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+    }
+  };
 
   const toggleProductMetalChoice = (productId) => {
     setProducts(products.map(p => {
@@ -2986,203 +2931,193 @@ const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileTy
     }));
   };
 
-const saveProducts = async () => {
-  if (products.length === 0) {
-    alert('Please add at least one product');
-    return;
-  }
-
-  for (const product of products) {
-    if (!product.name || !product.style_id || !product.metal_id) {
-      alert('Please fill all required fields for all products');
+  const saveProducts = async () => {
+    if (products.length === 0) {
+      alert('Please add at least one product');
       return;
     }
-  }
 
-  setLoading(true);
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user'));
-  const isVendor = userRole === 'vendor';
-
-  try {
     for (const product of products) {
-      let uploadedImageUrls = [];
-      if (product.imageFiles.length > 0) {
-        const formData = new FormData();
-        product.imageFiles.forEach(file => {
-          formData.append('images', file);
-        });
-
-        const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-
-        if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
-          uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
-        }
+      if (!product.name || !product.style_id || !product.metal_id ) {
+        alert('Please fill all required fields for all products');
+        return;
       }
+    }
 
-      const productDetails = {
-        slug: product.slug,
-        description: product.description || '',
-        price: parseFloat(product.price),
-        originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
-        discount: parseInt(product.discount) || 0,
-        style_id: product.style_id,
-        metal_id: product.metal_id,
-        featured: product.featured,
-        gender: product.gender,
-        images: uploadedImageUrls,
-        category: categories.find(c => c.id == selectedCategoryId)?.name || '',
-        hasMetalChoice: product.hasMetalChoice,
-        hasDiamondChoice: product.hasDiamondChoice,
-        selectedMetalOptions: product.selectedMetalOptions,
-        selectedDiamondOptions: product.selectedDiamondOptions,
-        selectedSizes: product.selectedSizes,
-        variantPricing: product.variantPricing
-      };
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+    const isVendor = userRole === 'vendor';
 
-      const status = isVendor ? 'pending' : 'approved';
-      const vendorId = isVendor ? user.id : null;
+    try {
+      for (const product of products) {
+        let uploadedImageUrls = [];
+        if (product.imageFiles.length > 0) {
+          const formData = new FormData();
+          product.imageFiles.forEach(file => {
+            formData.append('images', file);
+          });
 
-      const productRes = await axios.post(`${API_URL}/doAll`, {
-        action: 'insert',
-        table: 'products',
-        data: {
-          category_id: selectedCategoryId,
-          name: product.name,
-          slug: product.slug,
-          product_details: JSON.stringify(productDetails),
-          vendor_id: vendorId,
-          status: status,
-          created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
-        }
-      }, { headers: { Authorization: `Bearer ${token}` } });
+          const uploadRes = await axios.post(`${API_URL}/upload-images`, formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          });
 
-      if (productRes.data.success && productRes.data.insertId) {
-        const productDbId = productRes.data.insertId;
-        const variants = [];
-
-        // ========== 1. PROCESS VARIANTS WITH SIZES ==========
-        if (product.selectedSizes && typeof product.selectedSizes === 'object') {
-          for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
-            if (!isSelected) continue;
-
-            const pricing = product.variantPricing?.[key];
-            if (!pricing) continue;
-
-            const [metalPart, diamondPart, sizePart] = key.split('-');
-            
-            if (sizePart === 'none') continue;
-            
-            const files = Array.isArray(pricing.files) ? pricing.files : [];
-            if (files.length === 0) continue;
-            
-            // ✅ FIX: Use the CURRENT uploadedPdfFiles state
-            const mappedFiles = files.map(f => {
-              const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
-              
-              // ✅ CRITICAL: Access uploadedPdfFiles from the closure
-              const uploadedFile = uploadedPdfFiles[fileKey];
-              
-              console.log('🔍 WITH-SIZE - Looking for:', fileKey);
-              console.log('📁 WITH-SIZE - Found:', uploadedFile);
-              
-              return {
-                file_type: f.file_type,
-                price: f.price,
-                file_path: uploadedFile?.file_path || null,
-                file_name: uploadedFile?.file_name || null,
-                file_size: uploadedFile?.file_size || null
-              };
-            });
-            
-            variants.push({
-              metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
-              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-              size_option_id: parseInt(sizePart),
-              end_product_price: parseFloat(pricing.end_product_price) || null,
-              end_product_discount: parseFloat(pricing.end_product_discount) || null,
-              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-              files: mappedFiles
-            });
+          if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
+            uploadedImageUrls = uploadRes.data.data.images.map(img => img.url);
           }
         }
 
-        // ========== 2. PROCESS VARIANTS WITHOUT SIZES ==========
-        if (product.variantPricing && typeof product.variantPricing === 'object') {
-          for (const [key, pricing] of Object.entries(product.variantPricing)) {
-            if (key.endsWith('-none')) {
-              const [metalPart, diamondPart, sizePart] = key.split('-');
-              
-              if (sizePart !== 'none') continue;
-              
-              const files = Array.isArray(pricing.files) ? pricing.files : [];
-              if (files.length === 0) continue;
-              
-              // ✅ FIX: Use the CURRENT uploadedPdfFiles state
-              const mappedFiles = files.map(f => {
-                const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
-                
-                // ✅ CRITICAL: Access uploadedPdfFiles from the closure
-                const uploadedFile = uploadedPdfFiles[fileKey];
-                
-                console.log('🔍 NO-SIZE - Looking for:', fileKey);
-                console.log('📁 NO-SIZE - Found:', uploadedFile);
-                console.log('📦 ALL uploadedPdfFiles:', Object.keys(uploadedPdfFiles));
-                
-                return {
-                  file_type: f.file_type,
-                  price: f.price,
-                  file_path: uploadedFile?.file_path || null,
-                  file_name: uploadedFile?.file_name || null,
-                  file_size: uploadedFile?.file_size || null
-                };
-              });
-              
-              variants.push({
-                metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
-                diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-                size_option_id: null,
-                end_product_price: parseFloat(pricing.end_product_price) || null,
-                end_product_discount: parseFloat(pricing.end_product_discount) || null,
-                end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-                files: mappedFiles
-              });
+        const uploadedPdfFiles = {};
+        if (product.pdfFiles && Object.keys(product.pdfFiles).length > 0) {
+          for (const [fileKey, pdfFile] of Object.entries(product.pdfFiles)) {
+            const pdfFormData = new FormData();
+            pdfFormData.append('file', pdfFile);
+            
+            const pdfUploadRes = await axios.post(`${API_URL}/upload-pdf`, pdfFormData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            
+            if (pdfUploadRes.data.success) {
+              uploadedPdfFiles[fileKey] = pdfUploadRes.data.data.file_path;
             }
           }
         }
 
-        // Only call API if variants exist
-        if (variants.length > 0) {
-          console.log('🚀 Sending variants to API:', JSON.stringify(variants, null, 2));
-          
-          await axios.post(
-            `${API_URL}/product-variants/pricing`,
-            { product_id: productDbId, variants },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        }
+        const productDetails = {
+          slug: product.slug,
+          description: product.description || '',
+          price: parseFloat(product.price),
+          originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+          discount: parseInt(product.discount) || 0,
+          style_id: product.style_id,
+          metal_id: product.metal_id,
+          featured: product.featured,
+          gender: product.gender,
+          images: uploadedImageUrls,
+          category: categories.find(c => c.id == selectedCategoryId)?.name || '',
+          hasMetalChoice: product.hasMetalChoice,
+          hasDiamondChoice: product.hasDiamondChoice,
+          selectedMetalOptions: product.selectedMetalOptions,
+          selectedDiamondOptions: product.selectedDiamondOptions,
+          selectedSizes: product.selectedSizes,
+          variantPricing: product.variantPricing
+        };
+
+        const status = isVendor ? 'pending' : 'approved';
+        const vendorId = isVendor ? user.id : null;
+
+        const productRes = await axios.post(`${API_URL}/doAll`, {
+          action: 'insert',
+          table: 'products',
+          data: {
+            category_id: selectedCategoryId,
+            name: product.name,
+            slug: product.slug,
+            product_details: JSON.stringify(productDetails),
+            vendor_id: vendorId,
+            status: status,
+            created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+          }
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+if (productRes.data.success && productRes.data.insertId) {
+  const productDbId = productRes.data.insertId;
+  const variants = [];
+
+  // ========== 1. PROCESS VARIANTS WITH SIZES ==========
+  if (product.selectedSizes && typeof product.selectedSizes === 'object') {
+    for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
+      if (!isSelected) continue;
+
+      const pricing = product.variantPricing?.[key];
+      if (!pricing) continue;
+
+      const [metalPart, diamondPart, sizePart] = key.split('-');
+      
+      // Skip if this is a "none" size (should be handled separately)
+      if (sizePart === 'none') {
+        continue;
+      }
+      
+      const files = Array.isArray(pricing.files) ? pricing.files : [];
+      if (files.length === 0) continue;
+      
+      variants.push({
+        metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+        diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+        size_option_id: parseInt(sizePart), // ✅ Always has a size
+        end_product_price: parseFloat(pricing.end_product_price) || null,
+        end_product_discount: parseFloat(pricing.end_product_discount) || null,
+        end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+        files: files.map(f => ({
+          ...f,
+          file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
+        }))
+      });
+    }
+  }
+
+  // ========== 2. PROCESS VARIANTS WITHOUT SIZES ==========
+  if (product.variantPricing && typeof product.variantPricing === 'object') {
+    for (const [key, pricing] of Object.entries(product.variantPricing)) {
+      // Check if this is a "no size" variant (ends with "-none")
+      if (key.endsWith('-none')) {
+        const [metalPart, diamondPart, sizePart] = key.split('-');
+        
+        // Verify it's truly a "no size" variant
+        if (sizePart !== 'none') continue;
+        
+        const files = Array.isArray(pricing.files) ? pricing.files : [];
+        if (files.length === 0) continue;
+        
+        variants.push({
+          metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+          diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+          size_option_id: null, // ✅ NULL for no size
+          end_product_price: parseFloat(pricing.end_product_price) || null,
+          end_product_discount: parseFloat(pricing.end_product_discount) || null,
+          end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+          files: files.map(f => ({
+            ...f,
+            file_path: uploadedPdfFiles[`${key}-${f.file_type}`] || null  
+          }))
+        });
       }
     }
-
-    alert(isVendor 
-      ? '✅ Products submitted for admin approval!' 
-      : '✅ Products saved successfully!'
-    );
-    setProducts([]);
-    setActiveProductTab(0);
-    onRefresh();
-  } catch (error) {
-    console.error('Error saving products:', error);
-    alert('❌ Error saving products: ' + (error.response?.data?.message || error.message));
-  } finally {
-    setLoading(false);
   }
-};
+
+  // Only call API if variants exist
+  if (variants.length > 0) {
+    await axios.post(
+      `${API_URL}/product-variants/pricing`,
+      { product_id: productDbId, variants },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+}
+      }
+
+      alert(isVendor 
+        ? '✅ Products submitted for admin approval!' 
+        : '✅ Products saved successfully!'
+      );
+      setProducts([]);
+      setActiveProductTab(0);
+      onRefresh();
+    } catch (error) {
+      console.error('Error saving products:', error);
+      alert('❌ Error saving products: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectedCategory = categories.find(c => c.id == selectedCategoryId);
 
   return (
@@ -3788,10 +3723,10 @@ const saveProducts = async () => {
                                                     type="file"
                                                     accept=".pdf,.stl,.zip,.cam"
                                                     onChange={(e) => {
-                                                    if (e.target.files[0]) {
-                                                      handlePdfFileSelect(product.id, null, null, sizeOpt.id, fileOption.value, e.target.files[0]);
-                                                    }
-                                                  }}
+                                                      if (e.target.files[0]) {
+                                                        handlePdfUpload(product.id, null, null, sizeOpt.id, fileOption.value, e.target.files[0]);
+                                                      }
+                                                    }}
                                                     className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
                                                   />
                                                   {uploadedFile && (
@@ -3929,7 +3864,7 @@ const saveProducts = async () => {
                                                           accept=".pdf,.stl,.zip,.cam"
                                                           onChange={(e) => {
                                                             if (e.target.files[0]) {
-                                                              handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.files[0]);
+                                                              handlePdfUpload(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.files[0]);
                                                             }
                                                           }}
                                                           className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
@@ -4026,10 +3961,10 @@ const saveProducts = async () => {
                                               type="file"
                                               accept=".pdf,.stl,.zip,.cam"
                                               onChange={(e) => {
-                                                  if (e.target.files[0]) {
-                                                    handlePdfFileSelect(product.id, metalId, null, null, fileOption.value, e.target.files[0]);
-                                                  }
-                                                }}
+                                                if (e.target.files[0]) {
+                                                  handlePdfUpload(product.id, metalId, null, null, fileOption.value, e.target.files[0]);
+                                                }
+                                              }}
                                               className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
                                             />
                                             {uploadedFile && (
@@ -4193,7 +4128,7 @@ const saveProducts = async () => {
                                                             accept=".pdf,.stl,.zip,.cam"
                                                             onChange={(e) => {
                                                               if (e.target.files[0]) {
-                                                                handlePdfFileSelect(product.id, metalId, diamondId, null, fileOption.value, e.target.files[0]);
+                                                                handlePdfUpload(product.id, metalId, diamondId, sizeOpt.id, fileOption.value, e.target.files[0]);
                                                               }
                                                             }}
                                                             className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
@@ -4318,7 +4253,7 @@ const saveProducts = async () => {
                       accept=".pdf,.stl,.zip,.cam"
                       onChange={(e) => {
                         if (e.target.files[0]) {
-                          handlePdfFileSelect(product.id, metalId, diamondId, null, fileOption.value, e.target.files[0]);
+                          handlePdfUpload(product.id, metalId, diamondId, null, fileOption.value, e.target.files[0]);
                         }
                       }}
                       className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
