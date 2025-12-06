@@ -5,7 +5,7 @@ const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
 
 // Helper function for authenticated requests
 const authConfig = () => {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('token');
   return {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -22,7 +22,7 @@ export const DoAll = async (params) => {
   } catch (error) {
     console.error('DoAll Error:', error);
     if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
       // window.location.href = '/login';
     }
     throw error;
