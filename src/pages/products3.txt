@@ -411,7 +411,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   return (
     <>
       {/* Background overlay with blur effect */}
-      <div
+      <div 
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 transition-all"
         onClick={onClose}
       />
@@ -421,17 +421,15 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         {/* Header - Made smaller */}
         <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-green-600 to-green-700 text-white">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
+            <button 
+              onClick={onClose} 
               className="hover:bg-green-800 p-2 rounded-lg transition-colors"
               title="Close"
             >
               <FiArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h3 className="text-lg font-semibold">
-                Vendor Product Submissions
-              </h3>
+              <h3 className="text-lg font-semibold">Vendor Product Submissions</h3>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -489,12 +487,9 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-100 to-green-200 rounded-full mb-4">
                 <FiCheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No Pending Products
-              </h3>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Pending Products</h3>
               <p className="text-gray-500 max-w-md mx-auto">
-                All vendor submissions have been reviewed. Check back later for
-                new submissions.
+                All vendor submissions have been reviewed. Check back later for new submissions.
               </p>
             </div>
           ) : (
@@ -519,8 +514,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                               alt={product.name}
                               className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
-                                e.target.src =
-                                  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
                               }}
                             />
                           </div>
@@ -553,10 +547,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         <div className="flex items-center gap-2">
                           <FiUsers className="w-4 h-4 text-gray-400" />
                           <span className="text-gray-600">
-                            Vendor:{" "}
-                            <span className="font-medium">
-                              {product.vendor_name || "Unknown"}
-                            </span>
+                            Vendor: <span className="font-medium">{product.vendor_name || "Unknown"}</span>
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -647,7 +638,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       {/* Product Details Modal */}
       {viewProductDetails && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
+          <div 
             className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -662,10 +653,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     {viewProductDetails.name}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Submitted by:{" "}
-                    <span className="font-medium">
-                      {viewProductDetails.vendor_name}
-                    </span>
+                    Submitted by: <span className="font-medium">{viewProductDetails.vendor_name}</span>
                   </p>
                 </div>
               </div>
@@ -686,20 +674,17 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                   {viewProductDetails.product_details?.images?.length > 0 ? (
                     <div className="mb-6">
                       <div className="grid grid-cols-3 gap-3 mb-4">
-                        {viewProductDetails.product_details.images
-                          .slice(0, 3)
-                          .map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={`https://apichandra.rxsquare.in${img}`}
-                              alt={`Product ${idx + 1}`}
-                              className="w-full h-40 object-cover rounded-lg"
-                            />
-                          ))}
+                        {viewProductDetails.product_details.images.slice(0, 3).map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={`https://apichandra.rxsquare.in${img}`}
+                            alt={`Product ${idx + 1}`}
+                            className="w-full h-40 object-cover rounded-lg"
+                          />
+                        ))}
                       </div>
                       <p className="text-sm text-gray-500 text-center">
-                        {viewProductDetails.product_details.images.length}{" "}
-                        images
+                        {viewProductDetails.product_details.images.length} images
                       </p>
                     </div>
                   ) : (
@@ -718,28 +703,20 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     <div className="space-y-3">
                       <div>
                         <p className="text-sm text-gray-500">Product Name</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.name}
-                        </p>
+                        <p className="font-medium text-gray-900">{viewProductDetails.name}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Slug</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.slug}
-                        </p>
+                        <p className="font-medium text-gray-900">{viewProductDetails.slug}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Category</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.product_details.category || "N/A"}
-                        </p>
+                        <p className="font-medium text-gray-900">{viewProductDetails.product_details.category || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Submitted On</p>
                         <p className="font-medium text-gray-900">
-                          {new Date(
-                            viewProductDetails.created_at
-                          ).toLocaleString()}
+                          {new Date(viewProductDetails.created_at).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -758,19 +735,14 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                       <div>
                         <p className="text-sm text-gray-600">Price</p>
                         <p className="text-2xl font-bold text-emerald-700">
-                          ₹
-                          {viewProductDetails.product_details.price?.toLocaleString() ||
-                            "0"}
+                          ₹{viewProductDetails.product_details.price?.toLocaleString() || "0"}
                         </p>
                       </div>
                       {viewProductDetails.product_details.originalPrice && (
                         <div>
-                          <p className="text-sm text-gray-600">
-                            Original Price
-                          </p>
+                          <p className="text-sm text-gray-600">Original Price</p>
                           <p className="text-lg font-medium text-gray-700 line-through">
-                            ₹
-                            {viewProductDetails.product_details.originalPrice.toLocaleString()}
+                            ₹{viewProductDetails.product_details.originalPrice.toLocaleString()}
                           </p>
                         </div>
                       )}
@@ -807,16 +779,14 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         Featured Tags
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {viewProductDetails.product_details.featured.map(
-                          (feature, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
-                            >
-                              {feature}
-                            </span>
-                          )
-                        )}
+                        {viewProductDetails.product_details.featured.map((feature, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
+                          >
+                            {feature}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -829,16 +799,14 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         Target Audience
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {viewProductDetails.product_details.gender.map(
-                          (gender, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
-                            >
-                              {gender}
-                            </span>
-                          )
-                        )}
+                        {viewProductDetails.product_details.gender.map((gender, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
+                          >
+                            {gender}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -867,6 +835,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                 </div>
               </div>
             </div>
+
+           
           </div>
         </div>
       )}
@@ -3333,6 +3303,7 @@ const EditProductPanel = ({
     </div>
   );
 };
+
 
 // ==================== ADD PRODUCTS COMPONENT ====================
 const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
