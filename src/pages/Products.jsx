@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
@@ -24,7 +25,6 @@ import {
   FiFilter,
   FiTrendingUp,
   FiUsers,
-  // Add these missing imports:
   FiImage,
   FiDollarSign,
   FiSave,
@@ -32,12 +32,6 @@ import {
   FiInfo,
   FiLink,
 } from "react-icons/fi";
-import {
-  MdLogout,
-  MdDashboard,
-  MdVisibility,
-  MdAddCircle,
-} from "react-icons/md";
 
 const API_URL = "https://apichandra.rxsquare.in/api/v1/dashboard";
 
@@ -171,7 +165,7 @@ const Products = () => {
           {userRole === "admin" && (
             <button
               onClick={() => setShowVendorSidebar(true)}
-              className="relative px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg sm:rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg sm:shadow-lg sm:hover:shadow-xl flex items-center justify-center gap-2 sm:gap-3 mt-2 sm:mt-0 text-sm sm:text-base"
+              className="relative px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg sm:rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md hover:shadow-lg sm:shadow-lg sm:hover:shadow-xl flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0 text-sm sm:text-base"
             >
               <FiClipboard className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="font-semibold">Vendor Products</span>
@@ -289,8 +283,6 @@ const StepButton = ({
   );
 };
 
-// ==================== VENDOR PRODUCTS SIDEBAR ====================
-// ==================== VENDOR PRODUCTS SIDEBAR ====================
 // ==================== VENDOR PRODUCTS SIDEBAR ====================
 const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   const [pendingProducts, setPendingProducts] = useState([]);
@@ -410,15 +402,12 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
 
   return (
     <>
-      {/* Background overlay with blur effect */}
       <div
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 transition-all"
         onClick={onClose}
       />
 
-      {/* Sidebar */}
       <div className="fixed inset-y-0 right-0 w-full md:w-[800px] lg:w-[900px] bg-white shadow-2xl z-40 flex flex-col">
-        {/* Header - Made smaller */}
         <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-green-600 to-green-700 text-white">
           <div className="flex items-center gap-3">
             <button
@@ -448,7 +437,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           </div>
         </div>
 
-        {/* Vendor Filter */}
         <div className="p-4 border-b bg-gray-50">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
@@ -477,7 +465,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64">
@@ -510,7 +497,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     onClick={() => handleViewProductDetails(product)}
                   >
                     <div className="p-5">
-                      {/* Product header with image and basic info */}
                       <div className="flex gap-4 mb-4">
                         {mainImage ? (
                           <div className="flex-shrink-0 w-24 h-24">
@@ -548,7 +534,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </div>
                       </div>
 
-                      {/* Vendor info and date */}
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <FiUsers className="w-4 h-4 text-gray-400" />
@@ -567,7 +552,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </div>
                       </div>
 
-                      {/* Quick action buttons */}
                       <div className="flex gap-2 mt-4">
                         <button
                           onClick={(e) => {
@@ -591,7 +575,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </button>
                       </div>
 
-                      {/* Rejection reason input */}
                       {selectedProduct === product.id && (
                         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                           <label className="block text-sm font-medium text-red-800 mb-2">
@@ -628,7 +611,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </div>
                       )}
 
-                      {/* Click to view details hint */}
                       <div className="mt-3 pt-3 border-t border-gray-100">
                         <p className="text-xs text-gray-500 text-center">
                           <FiEye className="w-3 h-3 inline mr-1" />
@@ -644,14 +626,12 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         </div>
       </div>
 
-      {/* Product Details Modal */}
       {viewProductDetails && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
             className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
@@ -677,12 +657,9 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
               </button>
             </div>
 
-            {/* Modal Content */}
             <div className="overflow-y-auto max-h-[70vh] p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column - Images and Basic Info */}
                 <div>
-                  {/* Product Images */}
                   {viewProductDetails.product_details?.images?.length > 0 ? (
                     <div className="mb-6">
                       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -709,7 +686,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     </div>
                   )}
 
-                  {/* Basic Info Card */}
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                     <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                       <FiInfo className="w-5 h-5 text-blue-600" />
@@ -746,9 +722,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                   </div>
                 </div>
 
-                {/* Right Column - Detailed Info */}
                 <div className="space-y-6">
-                  {/* Pricing Card */}
                   <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
                     <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
                       <FiDollarSign className="w-5 h-5 text-emerald-600" />
@@ -786,7 +760,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     </div>
                   </div>
 
-                  {/* Description Card */}
                   {viewProductDetails.product_details.description && (
                     <div className="bg-white rounded-xl p-5 border border-gray-200">
                       <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -799,7 +772,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     </div>
                   )}
 
-                  {/* Features Card */}
                   {viewProductDetails.product_details.featured?.length > 0 && (
                     <div className="bg-white rounded-xl p-5 border border-gray-200">
                       <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -821,7 +793,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     </div>
                   )}
 
-                  {/* Gender Card */}
                   {viewProductDetails.product_details.gender?.length > 0 && (
                     <div className="bg-white rounded-xl p-5 border border-gray-200">
                       <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -843,7 +814,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     </div>
                   )}
 
-                  {/* Style & Metal Card */}
                   <div className="bg-white rounded-xl p-5 border border-gray-200">
                     <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                       <FiSettings className="w-5 h-5 text-gray-600" />
@@ -873,7 +843,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     </>
   );
 };
-// ==================== DASHBOARD COMPONENT ====================
+
 // ==================== DASHBOARD COMPONENT ====================
 const ProductsDashboard = ({
   categories,
@@ -951,7 +921,6 @@ const ProductsDashboard = ({
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <MinimalStatCard
           icon={<FiPackage className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -995,7 +964,6 @@ const ProductsDashboard = ({
         />
       </div>
 
-      {/* Action Cards */}
       <div>
         <div className="mb-3 sm:mb-4 flex items-center justify-between">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -1054,7 +1022,6 @@ const ProductsDashboard = ({
         </div>
       </div>
 
-      {/* Additional Tools */}
       <div className="bg-white rounded-lg sm:rounded-xl border border-gray-100 p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4 sm:mb-6">
           <div className="p-1.5 sm:p-2 bg-emerald-50 rounded-lg">
@@ -1089,7 +1056,6 @@ const ProductsDashboard = ({
   );
 };
 
-// Minimalist Stat Card Component
 const MinimalStatCard = ({
   icon,
   value,
@@ -1147,7 +1113,6 @@ const MinimalStatCard = ({
   );
 };
 
-// Minimalist Action Card Component
 const MinimalActionCard = ({
   icon,
   title,
@@ -1197,7 +1162,6 @@ const MinimalActionCard = ({
   );
 };
 
-// Minimalist Tool Card Component
 const MinimalToolCard = ({ icon, title, description, onClick }) => {
   return (
     <button
@@ -1421,7 +1385,6 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
@@ -1453,9 +1416,7 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
       {renderStatusFilter()}
 
-      {/* Main Content */}
       <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 overflow-hidden">
-        {/* Toolbar */}
         <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
           <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 items-start lg:items-center justify-between">
             <div className="flex-1 w-full lg:w-auto">
@@ -1496,7 +1457,6 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         </div>
 
         <div className="flex flex-col lg:flex-row">
-          {/* Categories Sidebar */}
           <div className="lg:w-64 flex-shrink-0 border-r border-gray-200 p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
               <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg">
@@ -1542,7 +1502,6 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
             )}
           </div>
 
-          {/* Products Grid */}
           <div className="flex-1">
             {selectedCategoryIds.length === 0 ? (
               <div className="text-center py-10 sm:py-16 md:py-20">
@@ -1616,12 +1575,10 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         </div>
       </div>
 
-      {/* Image Popup */}
       {imagePopup && (
         <ImagePopup images={imagePopup} onClose={() => setImagePopup(null)} />
       )}
 
-      {/* Edit Product Panel */}
       {editProduct && (
         <EditProductPanel
           product={editProduct}
@@ -1692,7 +1649,6 @@ const ProductCard = ({
 
   return (
     <div className="bg-white rounded-lg sm:rounded-xl border-2 border-gray-200 hover:border-emerald-300 transition-all duration-300 overflow-hidden group shadow-sm hover:shadow-lg sm:hover:shadow-xl">
-      {/* Image Section */}
       <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden">
         <img
           src={
@@ -1708,7 +1664,6 @@ const ProductCard = ({
           }}
         />
 
-        {/* Status Badge */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
           <div
             className={`px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r ${config.color} text-white rounded-full text-xs font-bold shadow-md sm:shadow-lg flex items-center gap-1 sm:gap-1.5`}
@@ -1723,7 +1678,6 @@ const ProductCard = ({
           </div>
         </div>
 
-        {/* Discount Badge */}
         {productDetails.discount > 0 && (
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
             <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full text-xs font-bold shadow-md sm:shadow-lg">
@@ -1732,7 +1686,6 @@ const ProductCard = ({
           </div>
         )}
 
-        {/* Image Count */}
         {productDetails.images?.length > 0 && (
           <button
             onClick={() => onViewImages(productDetails.images)}
@@ -1744,7 +1697,6 @@ const ProductCard = ({
           </button>
         )}
 
-        {/* Action Overlay */}
         {canEditDelete && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-3 sm:pb-6">
             <div className="flex gap-1.5 sm:gap-3">
@@ -1769,9 +1721,7 @@ const ProductCard = ({
         )}
       </div>
 
-      {/* Product Info */}
       <div className="p-3 sm:p-4">
-        {/* Header */}
         <div className="flex justify-between items-start mb-2 sm:mb-3">
           <h3 className="font-bold text-gray-900 line-clamp-2 flex-1 text-sm sm:text-base leading-tight">
             {product.name}
@@ -1789,13 +1739,11 @@ const ProductCard = ({
           </button>
         </div>
 
-        {/* Slug */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2 sm:mb-3">
           <FiFileText className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="truncate">{product.slug}</span>
         </div>
 
-        {/* Price */}
         <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
           <span className="text-lg sm:text-xl font-bold text-emerald-700">
             ₹{productDetails.price?.toLocaleString() || "0"}
@@ -1807,7 +1755,6 @@ const ProductCard = ({
           )}
         </div>
 
-        {/* Category & Gender */}
         <div className="flex flex-wrap gap-1.5 mb-2 sm:mb-3">
           <span className="px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-800 rounded-lg text-xs font-medium border border-emerald-200">
             {productDetails.category || "Uncategorized"}
@@ -1822,7 +1769,6 @@ const ProductCard = ({
           ))}
         </div>
 
-        {/* Vendor Info (Admin only) */}
         {userRole === "admin" && product.vendor_name && (
           <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl text-xs sm:text-sm border border-gray-200">
             <div className="flex items-center gap-1.5">
@@ -1835,10 +1781,8 @@ const ProductCard = ({
           </div>
         )}
 
-        {/* Expanded Details */}
         {isExpanded && (
           <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 space-y-2 sm:space-y-3 animate-fadeIn">
-            {/* Featured Tags */}
             {productDetails.featured?.length > 0 && (
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -1860,7 +1804,6 @@ const ProductCard = ({
               </div>
             )}
 
-            {/* Style & Metal */}
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="p-2 sm:p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl">
                 <p className="text-xs text-gray-500 mb-1">Style</p>
@@ -1876,7 +1819,6 @@ const ProductCard = ({
               </div>
             </div>
 
-            {/* Description */}
             {productDetails.description && (
               <div className="p-2 sm:p-3 bg-gradient-to-r from-emerald-50/50 to-green-50/50 rounded-lg sm:rounded-xl border border-emerald-100">
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -1956,7 +1898,6 @@ const ImagePopup = ({ images, onClose }) => {
           )}
         </div>
 
-        {/* Thumbnails */}
         {images.length > 1 && (
           <div className="flex gap-1.5 sm:gap-2 mt-3 sm:mt-4 overflow-x-auto justify-center">
             {images.map((img, idx) => (
@@ -3309,7 +3250,7 @@ const EditProductPanel = ({
                 </>
               ) : (
                 <>
-                  <FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                  <FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:w-6" />
                   <span>Save Changes</span>
                 </>
               )}
@@ -3325,7 +3266,7 @@ const EditProductPanel = ({
             onClick={onClose}
             className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-400 hover:to-gray-500 font-semibold text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2 sm:gap-3"
           >
-            <FiX className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+            <FiX className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:w-6" />
             Cancel
           </button>
         </div>
@@ -4283,745 +4224,752 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
   const selectedCategory = categories.find((c) => c.id == selectedCategoryId);
 
-  return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm sm:shadow-lg p-3 sm:p-4 lg:p-6">
+   return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-4 sm:p-6">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4 sm:mb-6">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
-            <FiPackage className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-700" />
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-              Add Products
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600">
-              {userRole === "vendor"
-                ? "Add new products for admin approval"
-                : "Add new products directly to catalog"}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onBack}
-          className="w-full lg:w-auto px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2 transition-colors text-sm sm:text-base mt-2 sm:mt-0"
-        >
-          <FiArrowLeft className="w-3 sm:w-4 h-3 sm:h-4" />
-          <span>Back to Products</span>
-        </button>
-      </div>
-
-      {/* Category Selection */}
-      <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-        <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-          <div className="bg-gradient-to-r from-emerald-500 to-green-500 p-1.5 sm:p-2 rounded text-white">
-            <FiPackage className="w-3 sm:w-4 h-3 sm:h-4" />
-          </div>
-          Select Category
-        </label>
-        <select
-          value={selectedCategoryId}
-          onChange={(e) => handleCategorySelect(e.target.value)}
-          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base bg-white"
-        >
-          <option value="">-- Select a Category --</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Category Details */}
-      {categoryData && selectedCategory && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          {/* Styles Section */}
-          <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-1.5 sm:p-2 rounded">
-                <FiGrid className="w-3 sm:w-4 h-3 sm:h-4 text-purple-700" />
-              </div>
-              <h3 className="font-semibold text-gray-800 text-sm sm:text-base">
-                Available Styles
-              </h3>
-            </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-32 overflow-y-auto">
-              {categoryData.styles.map((style) => (
-                <label
-                  key={style.id}
-                  className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors border border-gray-200 min-w-[100px] sm:min-w-[120px]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedStyles.includes(style.id)}
-                    onChange={() => toggleStyle(style.id)}
-                    className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-xs sm:text-sm text-gray-700">
-                    {style.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Metals Section */}
-          <div className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="bg-gradient-to-r from-amber-100 to-yellow-100 p-1.5 sm:p-2 rounded">
-                <FiStar className="w-3 sm:w-4 h-3 sm:h-4 text-amber-700" />
-              </div>
-              <h3 className="font-semibold text-gray-800 text-sm sm:text-base">
-                Available Metals & Stones
-              </h3>
-            </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-32 overflow-y-auto">
-              {categoryData.metals.map((metal) => (
-                <label
-                  key={metal.id}
-                  className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-yellow-50 transition-colors border border-gray-200 min-w-[100px] sm:min-w-[120px]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMetals.includes(metal.id)}
-                    onChange={() => toggleMetal(metal.id)}
-                    className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-600 focus:ring-yellow-500"
-                  />
-                  <span className="text-xs sm:text-sm text-gray-700">
-                    {metal.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Product Button */}
-      {categoryData && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
-          <button
-            onClick={addProductRow}
-            className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-colors shadow-md"
-          >
-            <FiPlus className="w-4 h-4" />
-            <span>Add Product</span>
-          </button>
-
-          {products.length > 0 && (
-            <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg flex items-center gap-2">
-              <FiPackage className="w-3.5 h-3.5" />
-              <span>
-                {products.length} product{products.length !== 1 ? "s" : ""}{" "}
-                added
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Products Tabs */}
-      {products.length > 0 && (
-        <div className="mb-4 sm:mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-1 overflow-x-auto pb-1">
-              {products.map((product, index) => (
-                <button
-                  key={product.id}
-                  onClick={() => setActiveProductTab(index)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${
-                    activeProductTab === index
-                      ? "border-emerald-500 text-emerald-600 bg-emerald-50"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  <FiPackage className="w-3 sm:w-4 h-3 sm:h-4" />
-                  <span>Product {index + 1}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeProduct(product.id);
-                    }}
-                    className="text-gray-400 hover:text-red-500 ml-1"
-                  >
-                    <FiX className="w-3 h-3" />
-                  </button>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
-
-      {/* Product Forms */}
-      {products.map((product, index) => (
-        <div
-          key={product.id}
-          className={`bg-white border-2 rounded-xl sm:rounded-2xl shadow-sm mb-6 transition-all duration-300 ${
-            activeProductTab === index
-              ? "border-emerald-300 block"
-              : "border-gray-200 hidden"
-          }`}
-        >
-          <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-3 sm:p-4 rounded-t-xl sm:rounded-t-2xl border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
-                  <FiPackage className="w-4 sm:w-5 h-4 sm:h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-base sm:text-lg text-gray-800">
-                    Product #{index + 1}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-gray-600 truncate max-w-[200px] sm:max-w-none">
-                    {product.name || "New Product"}
-                  </p>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl blur-lg opacity-50"></div>
+                <div className="relative p-3 bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl shadow-2xl">
+                  <FiPackage className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <button
-                onClick={() => removeProduct(product.id)}
-                className="p-2 hover:bg-red-50 rounded-lg text-red-600"
-                title="Remove product"
-              >
-                <FiTrash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-3 sm:p-4 lg:p-6">
-            {/* Basic Information Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {/* Product Name */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-1 sm:p-1.5 rounded">
-                    <FiEdit className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-700" />
-                  </div>
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  value={product.name}
-                  onChange={(e) =>
-                    updateProduct(product.id, "name", e.target.value)
-                  }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                  placeholder="e.g., Diamond Heart Ring"
-                />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Add Products
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {userRole === "vendor"
+                    ? "Submit products for admin approval"
+                    : "Add products directly to catalog"}
+                </p>
               </div>
-
-              {/* Description */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-1 sm:p-1.5 rounded">
-                    <FiFileText className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-700" />
-                  </div>
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={product.description || ""}
-                  onChange={(e) =>
-                    updateProduct(product.id, "description", e.target.value)
-                  }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                  placeholder="Beautiful description..."
-                />
-              </div>
-
-              {/* Slug */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-1 sm:p-1.5 rounded">
-                    <FiLink className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-700" />
-                  </div>
-                  URL Slug
-                </label>
-                <input
-                  type="text"
-                  value={product.slug}
-                  onChange={(e) =>
-                    updateProduct(product.id, "slug", e.target.value)
-                  }
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                    slugErrors[product.id]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  placeholder="auto-generated-slug"
-                />
-                {slugErrors[product.id] && (
-                  <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
-                    <FiAlertCircle className="w-3 h-3" />
-                    {slugErrors[product.id]}
-                  </p>
-                )}
-              </div>
-
-              {/* Style Selection */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-1 sm:p-1.5 rounded">
-                    <FiGrid className="w-3 sm:w-4 h-3 sm:h-4 text-purple-700" />
-                  </div>
-                  Style *
-                </label>
-                <select
-                  value={product.style_id}
-                  onChange={(e) =>
-                    updateProduct(product.id, "style_id", e.target.value)
-                  }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                >
-                  <option value="">Select Style</option>
-                  {categoryData?.styles.map((style) => (
-                    <option key={style.id} value={style.id}>
-                      {style.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Metal Selection */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-amber-100 to-yellow-100 p-1 sm:p-1.5 rounded">
-                    <FiStar className="w-3 sm:w-4 h-3 sm:h-4 text-amber-700" />
-                  </div>
-                  Metal/Stone *
-                </label>
-                <select
-                  value={product.metal_id}
-                  onChange={(e) =>
-                    updateProduct(product.id, "metal_id", e.target.value)
-                  }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                >
-                  <option value="">Select Metal</option>
-                  {categoryData?.metals.map((metal) => (
-                    <option key={metal.id} value={metal.id}>
-                      {metal.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 sm:gap-2">
-                  <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-1 sm:p-1.5 rounded">
-                    <FiDollarSign className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-700" />
-                  </div>
-                  Price *
-                </label>
-                <input
-                  type="number"
-                  value={product.price}
-                  onChange={(e) =>
-                    updateProduct(product.id, "price", e.target.value)
-                  }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-                  placeholder="e.g., 15000"
-                />
-              </div>
-            </div>
-
-            {/* Featured & Gender Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {/* Featured Options */}
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-emerald-200">
-                <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
-                  <div className="bg-gradient-to-r from-emerald-500 to-green-500 p-1.5 sm:p-2 rounded text-white">
-                    <FiStar className="w-3 sm:w-4 h-3 sm:h-4" />
-                  </div>
-                  <span>Featured Options</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                  {[
-                    "Latest Designs",
-                    "Bestsellers",
-                    "Fast Delivery",
-                    "Special Deals",
-                  ].map((feature) => (
-                    <label
-                      key={feature}
-                      className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-emerald-50 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={product.featured.includes(feature)}
-                        onChange={() =>
-                          toggleProductFeatured(product.id, feature)
-                        }
-                        className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="text-xs sm:text-sm text-gray-700">
-                        {feature}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gender Options */}
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-emerald-200">
-                <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
-                  <div className="bg-gradient-to-r from-emerald-500 to-green-500 p-1.5 sm:p-2 rounded text-white">
-                    <FiUsers className="w-3 sm:w-4 h-3 sm:h-4" />
-                  </div>
-                  <span>Target Audience</span>
-                </label>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {["Kids", "Men", "Women"].map((gender) => (
-                    <label
-                      key={gender}
-                      className="flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-2 sm:py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-emerald-50 transition-colors justify-center text-center"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={product.gender.includes(gender)}
-                        onChange={() => toggleProductGender(product.id, gender)}
-                        className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="text-xs sm:text-sm text-gray-700">
-                        {gender}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Image Upload Section */}
-            <div className="mb-4 sm:mb-6">
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-1 sm:p-1.5 rounded">
-                  <FiImage className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-700" />
-                </div>
-                <span>Product Images</span>
-              </label>
-
-              {/* File Upload Input */}
-              <div className="border-2 border-dashed border-emerald-300 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 text-center hover:border-emerald-400 transition-colors bg-emerald-50">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      handleImageSelect(product.id, e.target.files);
-                      e.target.value = "";
-                    }
-                  }}
-                  className="hidden"
-                  id={`image-upload-${product.id}`}
-                />
-                <label
-                  htmlFor={`image-upload-${product.id}`}
-                  className="cursor-pointer flex flex-col items-center justify-center"
-                >
-                  <div className="text-emerald-400 mb-1.5 sm:mb-2">
-                    <FiUpload className="w-8 sm:w-10 h-8 sm:h-10 mx-auto" />
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 font-medium">
-                    Click to upload product images
-                  </p>
-                  <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-                    PNG, JPG, WEBP up to 10MB
-                  </p>
-                  <button
-                    type="button"
-                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs sm:text-sm rounded-lg hover:from-emerald-600 hover:to-green-600 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      document
-                        .getElementById(`image-upload-${product.id}`)
-                        .click();
-                    }}
-                  >
-                    Choose Files
-                  </button>
-                </label>
-              </div>
-
-              {/* Image Previews */}
-              {product.imageUrls.length > 0 && (
-                <div className="mt-4 sm:mt-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <FiEye className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-600" />
-                      <span>Image Previews ({product.imageUrls.length})</span>
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        product.imageUrls.forEach((url, idx) => {
-                          if (url.startsWith("blob:")) {
-                            URL.revokeObjectURL(url);
-                          }
-                        });
-                        setProducts(
-                          products.map((p) =>
-                            p.id === product.id
-                              ? { ...p, imageFiles: [], imageUrls: [] }
-                              : p
-                          )
-                        );
-                      }}
-                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <FiTrash2 className="w-3 h-3" />
-                      Clear All
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-                    {product.imageUrls.map((url, idx) => {
-                      const imgUrl = url.startsWith("blob:")
-                        ? url
-                        : url.startsWith("/")
-                        ? `https://apichandra.rxsquare.in${url}`
-                        : url;
-
-                      return (
-                        <div
-                          key={idx}
-                          className="relative group bg-white rounded-lg border border-gray-200 p-1.5 sm:p-2 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="relative h-20 sm:h-24 w-full">
-                            <img
-                              src={imgUrl}
-                              alt={`Preview ${idx + 1}`}
-                              className="h-full w-full object-cover rounded"
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => removeImage(product.id, idx)}
-                            className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs shadow-lg hover:from-red-600 hover:to-pink-600 transition-colors z-10"
-                            title="Remove image"
-                          >
-                            <FiX className="w-2.5 h-2.5" />
-                          </button>
-
-                          <div className="mt-1.5 sm:mt-2 flex items-center justify-between">
-                            <span className="text-xs text-gray-500 truncate max-w-[60px] sm:max-w-none">
-                              {product.imageFiles[idx]?.name ||
-                                `Image ${idx + 1}`}
-                            </span>
-                            <span className="text-xs font-medium bg-emerald-100 text-emerald-800 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
-                              {idx + 1}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Variant Configuration Toggle */}
-            <div className="mb-4 sm:mb-6">
-              <button
-                onClick={() => setShowVariantConfig(!showVariantConfig)}
-                className="w-full flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl border-2 border-blue-200 hover:border-blue-300 transition-colors"
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-1.5 sm:p-2 rounded">
-                    <FiSettings className="w-4 h-4" />
-                  </div>
-                  <div className="text-left">
-                    <h5 className="font-bold text-sm sm:text-base text-blue-800">
-                      Variant Configuration (Optional)
-                    </h5>
-                    <p className="text-xs text-blue-600">
-                      Configure metal choices, diamond options, and sizes
-                    </p>
-                  </div>
-                </div>
-                <div className="text-blue-600">
-                  {showVariantConfig ? (
-                    <FiChevronUp className="w-5 h-5" />
-                  ) : (
-                    <FiChevronDown className="w-5 h-5" />
-                  )}
-                </div>
-              </button>
-            </div>
-
-            {/* Variant Configuration (Collapsible) */}
-            {showVariantConfig && (
-              <div className="mt-4 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl border-2 border-blue-300">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
-                  {/* Choice of Metal */}
-                  <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-gray-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <input
-                        type="checkbox"
-                        checked={product.hasMetalChoice}
-                        onChange={() => toggleProductMetalChoice(product.id)}
-                        className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-                      />
-                      <FiPackage className="w-4 h-4 text-gray-600" />
-                      <span className="font-bold text-sm sm:text-base text-gray-700">
-                        Choice of Metal
-                      </span>
-                    </div>
-
-                    {product.hasMetalChoice && (
-                      <div className="space-y-1.5 sm:space-y-2">
-                        {categoryData?.attributes?.metal?.options?.map(
-                          (opt) => (
-                            <label
-                              key={opt.id}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-emerald-50 transition-colors"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={product.selectedMetalOptions.includes(
-                                  opt.id
-                                )}
-                                onChange={() =>
-                                  toggleProductMetalOption(product.id, opt.id)
-                                }
-                                className="w-3.5 h-3.5 text-emerald-600"
-                              />
-                              <span className="text-xs sm:text-sm text-gray-700">
-                                {opt.option_name}
-                              </span>
-                            </label>
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Diamond Quality */}
-                  <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-gray-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <input
-                        type="checkbox"
-                        checked={product.hasDiamondChoice}
-                        onChange={() => toggleProductDiamondChoice(product.id)}
-                        className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-                      />
-                      <FiStar className="w-4 h-4 text-gray-600" />
-                      <span className="font-bold text-sm sm:text-base text-gray-700">
-                        Diamond Quality
-                      </span>
-                    </div>
-
-                    {product.hasDiamondChoice && (
-                      <div className="space-y-1.5 sm:space-y-2">
-                        {categoryData?.attributes?.diamond?.options?.map(
-                          (opt) => (
-                            <label
-                              key={opt.id}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-emerald-50 transition-colors"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={product.selectedDiamondOptions.includes(
-                                  opt.id
-                                )}
-                                onChange={() =>
-                                  toggleProductDiamondOption(product.id, opt.id)
-                                }
-                                className="w-3.5 h-3.5 text-emerald-600"
-                              />
-                              <span className="text-xs sm:text-sm text-gray-700">
-                                {opt.option_name}
-                              </span>
-                            </label>
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Size Configuration */}
-                  <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-emerald-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <input
-                        type="checkbox"
-                        checked={product.configureSizes || false}
-                        onChange={() => toggleConfigureSizes(product.id)}
-                        className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-                      />
-                      <FiGrid className="w-4 h-4 text-emerald-700" />
-                      <span className="font-bold text-sm sm:text-base text-emerald-800">
-                        Configure Sizes
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      Configure pricing for individual sizes
-                    </p>
-                  </div>
-                </div>
-
-                {/* Additional variant configuration content would go here */}
-                {(product.hasMetalChoice ||
-                  product.hasDiamondChoice ||
-                  product.configureSizes) && (
-                  <div className="mt-4 p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-gray-200">
-                    <p className="text-xs sm:text-sm text-gray-600 text-center">
-                      Configure specific variants based on your selections above
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {/* Save Button */}
-      {products.length > 0 && (
-        <div className="sticky bottom-0 sm:bottom-4 bg-white p-3 sm:p-4 rounded-xl shadow-lg border border-gray-200 mt-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-3 sm:mb-0">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <FiInfo className="w-4 h-4" />
-              <span>All required fields must be filled before saving</span>
             </div>
             <button
-              onClick={saveProducts}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-base flex items-center justify-center gap-3 transition-all shadow-md min-w-[200px]"
+              onClick={onBack}
+              className="group flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-900 to-black text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FiSave className="w-5 h-5" />
-                  <span>
-                    Save {products.length} Product
-                    {products.length !== 1 ? "s" : ""}
-                  </span>
-                </>
-              )}
+              <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-medium">Back to Products</span>
             </button>
           </div>
         </div>
-      )}
 
-      {/* Vendor Note */}
-      {userRole === "vendor" && products.length > 0 && (
-        <div className="mt-4 p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg sm:rounded-xl">
-          <div className="flex items-center gap-2 text-amber-800">
-            <FiClock className="w-4 h-4" />
-            <p className="text-xs sm:text-sm">
-              <strong>Note:</strong> All products added by vendors require admin
-              approval before appearing on the website.
-            </p>
+        {/* Main Content Container */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-emerald-200/50 p-4 sm:p-6 lg:p-8">
+          {/* Category Selection Card */}
+          <div className="relative overflow-hidden mb-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-2xl"></div>
+            <div className="relative p-6 bg-gradient-to-r from-emerald-50/80 to-green-50/80 rounded-2xl border border-emerald-200/50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
+                  <FiPackage className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-emerald-900">
+                    Select Category
+                  </h2>
+                  <p className="text-sm text-emerald-700">
+                    Choose a category to get started
+                  </p>
+                </div>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedCategoryId}
+                  onChange={(e) => handleCategorySelect(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-white border-2 border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 font-medium shadow-inner appearance-none cursor-pointer"
+                >
+                  <option value="">-- Select Category --</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <FiChevronDown className="w-5 h-5 text-emerald-600" />
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Category Details Section */}
+          {categoryData && selectedCategory && (
+            <div className="mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Styles Card */}
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-5 border-2 border-purple-200 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg shadow-md">
+                      <FiGrid className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">Available Styles</h3>
+                      <p className="text-sm text-purple-700">Select styles for your products</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
+                    {categoryData.styles.map((style) => (
+                      <button
+                        key={style.id}
+                        onClick={() => toggleStyle(style.id)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                          selectedStyles.includes(style.id)
+                            ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-purple-50 border border-purple-100"
+                        }`}
+                      >
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedStyles.includes(style.id) ? "bg-white" : "bg-purple-300"
+                        }`}></div>
+                        <span className="text-sm font-medium">{style.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Metals Card */}
+                <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-5 border-2 border-amber-200 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg shadow-md">
+                      <FiStar className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">Metals & Stones</h3>
+                      <p className="text-sm text-amber-700">Choose metals/stones for your products</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
+                    {categoryData.metals.map((metal) => (
+                      <button
+                        key={metal.id}
+                        onClick={() => toggleMetal(metal.id)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                          selectedMetals.includes(metal.id)
+                            ? "bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-lg"
+                            : "bg-white text-gray-700 hover:bg-amber-50 border border-amber-100"
+                        }`}
+                      >
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedMetals.includes(metal.id) ? "bg-white" : "bg-amber-300"
+                        }`}></div>
+                        <span className="text-sm font-medium">{metal.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Product Button */}
+          {categoryData && (
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <button
+                onClick={addProductRow}
+                className="group relative overflow-hidden px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-500 hover:to-green-500 font-bold text-sm flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-105"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-green-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <FiPlus className="w-5 h-5 relative z-10 group-hover:rotate-90 transition-transform" />
+                <span className="relative z-10">Add New Product</span>
+              </button>
+
+              {products.length > 0 && (
+                <div className="px-4 py-2.5 bg-white rounded-xl border-2 border-emerald-200 shadow-inner">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold text-emerald-900">
+                      {products.length} product{products.length !== 1 ? "s" : ""} added
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Product Tabs */}
+          {products.length > 0 && (
+            <div className="mb-6">
+              <div className="flex space-x-2 overflow-x-auto pb-3">
+                {products.map((product, index) => (
+                  <button
+                    key={product.id}
+                    onClick={() => setActiveProductTab(index)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                      activeProductTab === index
+                        ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg"
+                        : "bg-white text-gray-600 hover:bg-emerald-50 hover:text-gray-900 border-2 border-emerald-100"
+                    }`}
+                  >
+                    <FiPackage className="w-4 h-4" />
+                    <span className="text-sm font-medium">Product {index + 1}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeProduct(product.id);
+                      }}
+                      className={`ml-2 p-1 rounded-lg transition-colors ${
+                        activeProductTab === index
+                          ? "hover:bg-white/20"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <FiX className="w-3 h-3" />
+                    </button>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Product Forms */}
+          {products.map((product, index) => (
+            <div
+              key={product.id}
+              className={`mb-8 transition-all duration-500 ${
+                activeProductTab === index ? "block" : "hidden"
+              }`}
+            >
+              {/* Product Header */}
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-t-2xl p-5 border-2 border-emerald-200 border-b-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl shadow-md">
+                      <span className="text-white font-bold">#{index + 1}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">
+                        {product.name || "New Product"}
+                      </h3>
+                      <p className="text-sm text-emerald-700">Configure product details</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeProduct(product.id)}
+                    className="p-2 hover:bg-red-50 rounded-xl text-red-600 transition-colors group"
+                  >
+                    <FiTrash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Product Form */}
+              <div className="bg-white rounded-b-2xl border-2 border-emerald-200 border-t-0 p-5">
+                {/* Basic Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg">
+                        <FiEdit className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <span>Product Name *</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={product.name}
+                      onChange={(e) => updateProduct(product.id, "name", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-emerald-300/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="e.g., Diamond Heart Ring"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg">
+                        <FiFileText className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <span>Description</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={product.description || ""}
+                      onChange={(e) => updateProduct(product.id, "description", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-emerald-300/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="Beautiful description..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg">
+                        <FiLink className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <span>URL Slug</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={product.slug}
+                      onChange={(e) => updateProduct(product.id, "slug", e.target.value)}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 ${
+                        slugErrors[product.id]
+                          ? "border-red-500"
+                          : "border-emerald-300/50"
+                      }`}
+                      placeholder="auto-generated-slug"
+                    />
+                    {slugErrors[product.id] && (
+                      <p className="text-xs text-red-600 flex items-center gap-2 mt-1">
+                        <FiAlertCircle className="w-3 h-3" />
+                        {slugErrors[product.id]}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg">
+                        <FiGrid className="w-4 h-4 text-purple-700" />
+                      </div>
+                      <span>Style *</span>
+                    </label>
+                    <select
+                      value={product.style_id}
+                      onChange={(e) => updateProduct(product.id, "style_id", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-purple-300/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                    >
+                      <option value="">Select Style</option>
+                      {categoryData?.styles.map((style) => (
+                        <option key={style.id} value={style.id}>
+                          {style.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg">
+                        <FiStar className="w-4 h-4 text-amber-700" />
+                      </div>
+                      <span>Metal/Stone *</span>
+                    </label>
+                    <select
+                      value={product.metal_id}
+                      onChange={(e) => updateProduct(product.id, "metal_id", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-amber-300/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-gray-900"
+                    >
+                      <option value="">Select Metal</option>
+                      {categoryData?.metals.map((metal) => (
+                        <option key={metal.id} value={metal.id}>
+                          {metal.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <div className="p-1.5 bg-gradient-to-r from-emerald-100 to-green-100 rounded-lg">
+                        <FiDollarSign className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <span>Price *</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={product.price}
+                      onChange={(e) => updateProduct(product.id, "price", e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-emerald-300/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-900"
+                      placeholder="e.g., 15000"
+                    />
+                  </div>
+                </div>
+
+                {/* Features & Gender Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* Featured Options */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-5 border-2 border-emerald-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg">
+                        <FiStar className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-emerald-900">Featured Options</h4>
+                        <p className="text-sm text-emerald-700">Add special tags</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {["Latest Designs", "Bestsellers", "Fast Delivery", "Special Deals"].map((feature) => (
+                        <label
+                          key={feature}
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                            product.featured.includes(feature)
+                              ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md"
+                              : "bg-white text-gray-700 hover:bg-emerald-50 border border-emerald-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={product.featured.includes(feature)}
+                            onChange={() => toggleProductFeatured(product.id, feature)}
+                            className="hidden"
+                          />
+                          <div className={`w-4 h-4 rounded ${
+                            product.featured.includes(feature) ? "bg-white" : "bg-emerald-300"
+                          }`}></div>
+                          <span className="text-sm font-medium">{feature}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Gender Selection */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-5 border-2 border-emerald-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg">
+                        <FiUsers className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-emerald-900">Target Audience</h4>
+                        <p className="text-sm text-emerald-700">Select target gender</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {["Kids", "Men", "Women"].map((gender) => (
+                        <label
+                          key={gender}
+                          className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                            product.gender.includes(gender)
+                              ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md"
+                              : "bg-white text-gray-700 hover:bg-emerald-50 border border-emerald-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={product.gender.includes(gender)}
+                            onChange={() => toggleProductGender(product.id, gender)}
+                            className="hidden"
+                          />
+                          <div className={`w-5 h-5 rounded-full mb-2 ${
+                            product.gender.includes(gender) ? "bg-white" : "bg-emerald-300"
+                          }`}></div>
+                          <span className="text-sm font-medium">{gender}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Images Upload Section */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg">
+                      <FiImage className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-emerald-900">Product Images</h4>
+                      <p className="text-sm text-emerald-700">Upload product photos</p>
+                    </div>
+                  </div>
+
+                  {/* Upload Area */}
+                  <div className="border-3 border-dashed border-emerald-300 rounded-2xl p-6 text-center hover:border-emerald-400 transition-colors bg-gradient-to-br from-emerald-50/50 to-green-50/50">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleImageSelect(product.id, e.target.files);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="hidden"
+                      id={`image-upload-${product.id}`}
+                    />
+                    <label
+                      htmlFor={`image-upload-${product.id}`}
+                      className="cursor-pointer flex flex-col items-center justify-center"
+                    >
+                      <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                        <FiUpload className="w-8 h-8 text-white" />
+                      </div>
+                      <p className="text-base font-semibold text-emerald-900 mb-2">
+                        Drop or click to upload images
+                      </p>
+                      <p className="text-sm text-emerald-700 mb-6">
+                        PNG, JPG, WEBP up to 10MB
+                      </p>
+                      <div
+                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById(`image-upload-${product.id}`).click();
+                        }}
+                      >
+                        Browse Files
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Image Previews */}
+                  {product.imageUrls.length > 0 && (
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <FiEye className="w-5 h-5 text-emerald-600" />
+                          <h5 className="font-semibold text-emerald-900">
+                            Image Previews ({product.imageUrls.length})
+                          </h5>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            product.imageUrls.forEach((url, idx) => {
+                              if (url.startsWith("blob:")) {
+                                URL.revokeObjectURL(url);
+                              }
+                            });
+                            setProducts(
+                              products.map((p) =>
+                                p.id === product.id
+                                  ? { ...p, imageFiles: [], imageUrls: [] }
+                                  : p
+                              )
+                            );
+                          }}
+                          className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-2"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                          Clear All
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {product.imageUrls.map((url, idx) => {
+                          const imgUrl = url.startsWith("blob:")
+                            ? url
+                            : url.startsWith("/")
+                            ? `https://apichandra.rxsquare.in${url}`
+                            : url;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="relative group bg-white rounded-xl border-2 border-emerald-200 p-2 shadow-lg hover:shadow-xl transition-all"
+                            >
+                              <div className="relative h-28 w-full overflow-hidden rounded-lg">
+                                <img
+                                  src={imgUrl}
+                                  alt={`Preview ${idx + 1}`}
+                                  className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => removeImage(product.id, idx)}
+                                className="absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10"
+                              >
+                                <FiX className="w-3 h-3" />
+                              </button>
+
+                              <div className="mt-2 px-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-600 truncate">
+                                    {product.imageFiles[idx]?.name?.substring(0, 12) ||
+                                      `Image ${idx + 1}`}
+                                  </span>
+                                  <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Variant Configuration Toggle */}
+                <div className="mb-6">
+                  <button
+                    onClick={() => setShowVariantConfig(!showVariantConfig)}
+                    className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-2xl hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg">
+                        <FiSettings className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <h5 className="font-bold text-lg">Variant Configuration</h5>
+                        <p className="text-sm text-emerald-200">
+                          Configure metal, diamond, and size options
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-white">
+                      {showVariantConfig ? (
+                        <FiChevronUp className="w-6 h-6" />
+                      ) : (
+                        <FiChevronDown className="w-6 h-6" />
+                      )}
+                    </div>
+                  </button>
+                </div>
+
+                {/* Variant Configuration Content */}
+                {showVariantConfig && (
+                  <div className="mt-4 p-4 sm:p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl border-2 border-emerald-300/50 shadow-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                      <div className="bg-white rounded-xl p-4 border-2 border-emerald-200 shadow-md">
+                        <div className="flex items-center gap-2 mb-3">
+                          <input
+                            type="checkbox"
+                            checked={product.hasMetalChoice}
+                            onChange={() => toggleProductMetalChoice(product.id)}
+                            className="w-5 h-5 text-emerald-600"
+                          />
+                          <FiPackage className="w-5 h-5 text-gray-600" />
+                          <span className="font-bold text-gray-700">Choice of Metal</span>
+                        </div>
+
+                        {product.hasMetalChoice && (
+                          <div className="space-y-2">
+                            {categoryData?.attributes?.metal?.options?.map((opt) => (
+                              <label
+                                key={opt.id}
+                                className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-emerald-50 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={product.selectedMetalOptions.includes(opt.id)}
+                                  onChange={() => toggleProductMetalOption(product.id, opt.id)}
+                                  className="w-4 h-4 text-emerald-600"
+                                />
+                                <span className="text-sm text-gray-700">{opt.option_name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded-xl p-4 border-2 border-emerald-200 shadow-md">
+                        <div className="flex items-center gap-2 mb-3">
+                          <input
+                            type="checkbox"
+                            checked={product.hasDiamondChoice}
+                            onChange={() => toggleProductDiamondChoice(product.id)}
+                            className="w-5 h-5 text-emerald-600"
+                          />
+                          <FiStar className="w-5 h-5 text-gray-600" />
+                          <span className="font-bold text-gray-700">Diamond Quality</span>
+                        </div>
+
+                        {product.hasDiamondChoice && (
+                          <div className="space-y-2">
+                            {categoryData?.attributes?.diamond?.options?.map((opt) => (
+                              <label
+                                key={opt.id}
+                                className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-emerald-50 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={product.selectedDiamondOptions.includes(opt.id)}
+                                  onChange={() => toggleProductDiamondOption(product.id, opt.id)}
+                                  className="w-4 h-4 text-emerald-600"
+                                />
+                                <span className="text-sm text-gray-700">{opt.option_name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded-xl p-4 border-2 border-emerald-200 shadow-md">
+                        <div className="flex items-center gap-2 mb-3">
+                          <input
+                            type="checkbox"
+                            checked={product.configureSizes || false}
+                            onChange={() => toggleConfigureSizes(product.id)}
+                            className="w-5 h-5 text-emerald-600"
+                          />
+                          <FiGrid className="w-5 h-5 text-emerald-700" />
+                          <span className="font-bold text-emerald-800">Configure Sizes</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Configure pricing for individual sizes
+                        </p>
+                      </div>
+                    </div>
+
+                    {(product.hasMetalChoice ||
+                      product.hasDiamondChoice ||
+                      product.configureSizes) && (
+                      <div className="mt-4 p-4 bg-white rounded-xl border border-emerald-200">
+                        <p className="text-sm text-gray-600 text-center">
+                          Configure specific variants based on your selections above
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Save Button */}
+          {products.length > 0 && (
+            <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-white to-transparent pt-6 pb-4">
+              <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl p-5 shadow-2xl border-2 border-emerald-700/30">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <p className="text-sm font-medium">
+                      Complete all required fields marked with *
+                    </p>
+                  </div>
+                  <button
+                    onClick={saveProducts}
+                    disabled={loading}
+                    className="group w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-white to-gray-100 text-emerald-900 rounded-xl hover:from-gray-100 hover:to-white font-bold text-base flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-900 border-t-transparent"></div>
+                        <span>Saving Products...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiSave className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span>
+                          Save {products.length} Product{products.length !== 1 ? "s" : ""}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Vendor Note */}
+          {userRole === "vendor" && products.length > 0 && (
+            <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl border-2 border-amber-300/50 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg">
+                  <FiClock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    Note for Vendors
+                  </p>
+                  <p className="text-xs text-amber-800">
+                    All products require admin approval before appearing on the website.
+                    You'll be notified once approved.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
