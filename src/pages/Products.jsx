@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
@@ -4756,7 +4755,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       onChange={() => toggleProductMetalChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
-                    <span className="font-bold text-gray-800">🔩 Choice of Metal</span>
+                    <span className="font-bold text-gray-800">
+                      🔩 Choice of Metal
+                    </span>
                   </label>
 
                   {product.hasMetalChoice && (
@@ -4776,7 +4777,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                             }
                             className="w-4 h-4 text-green-600"
                           />
-                          <span className="text-sm text-gray-700">{opt.option_name}</span>
+                          <span className="text-sm text-gray-700">
+                            {opt.option_name}
+                          </span>
                         </label>
                       ))}
                     </div>
@@ -4792,7 +4795,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       onChange={() => toggleProductDiamondChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
-                    <span className="font-bold text-gray-800">💎 Diamond Quality</span>
+                    <span className="font-bold text-gray-800">
+                      💎 Diamond Quality
+                    </span>
                   </label>
 
                   {product.hasDiamondChoice && (
@@ -4813,7 +4818,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               }
                               className="w-4 h-4 text-green-600"
                             />
-                            <span className="text-sm text-gray-700">{opt.option_name}</span>
+                            <span className="text-sm text-gray-700">
+                              {opt.option_name}
+                            </span>
                           </label>
                         )
                       )}
@@ -4847,7 +4854,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 product.hasDiamondChoice ||
                 product.configureSizes) && (
                 <div className="mt-4">
-                  <h6 className="font-bold mb-3 text-gray-800">📐 Configure Variants:</h6>
+                  <h6 className="font-bold mb-3 text-gray-800">
+                    📐 Configure Variants:
+                  </h6>
 
                   {/* Size Only (No Metal/Diamond) */}
                   {!product.hasMetalChoice && !product.hasDiamondChoice && (
@@ -5459,8 +5468,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                           {!fileOption.requiresPrice && (
                                             <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                              💡 Enquiry only - no price
-                                              needed
+                                              💡 Enquiry only - no price needed
                                             </p>
                                           )}
                                         </div>
@@ -6021,6 +6029,6 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       )}
     </div>
   );
-};       
+};
 
 export default Products;

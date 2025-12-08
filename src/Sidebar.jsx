@@ -13,54 +13,62 @@ import { NavLink } from "react-router-dom";
 const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
   // Define all menu items with role restrictions
   const allMenuItems = [
-    { 
-      path: "home", 
-      label: "Home", 
+    {
+      path: "home",
+      label: "Home",
       icon: <HomeIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-    { 
-      path: "categories", 
-      label: "Categories", 
+    {
+      path: "categories",
+      label: "Categories",
       icon: <RectangleStackIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-    { 
-      path: "attributes", 
-      label: "Attributes", 
+    {
+      path: "attributes",
+      label: "Attributes",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-    { 
-      path: "products", 
-      label: "Products", 
+
+    {
+      path: "blogs",
+      label: "Blogs",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+    {
+      path: "products",
+      label: "Products",
       icon: <CubeIcon className="w-4" />,
-      roles: ["admin", "vendor"] // Both can see
+      roles: ["admin", "vendor"], // Both can see
     },
-    { 
-      path: "analytics", 
-      label: "Analytics", 
+
+    {
+      path: "analytics",
+      label: "Analytics",
       icon: <ChartBarIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
-    }, { 
-      path: "enquiry", 
-      label: "Enquiry", 
-      icon: <ChartBarIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-    { 
-      path: "orders", 
-      label: "Orders", 
+    {
+      path: "enquiry",
+      label: "Enquiry",
       icon: <ChartBarIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-    { 
-      path: "vendorRegister", 
-      label: "Vendor Register", 
+    {
+      path: "orders",
+      label: "Orders",
+      icon: <ChartBarIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+    {
+      path: "vendorRegister",
+      label: "Vendor Register",
       icon: <Cog6ToothIcon className="w-4" />,
-      roles: ["admin"] // Only admin can see
+      roles: ["admin"], // Only admin can see
     },
-   
   ];
 
   // Filter menu items based on user role
