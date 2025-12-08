@@ -4,7 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DoAll } from '../../auth/api'; // Make sure this import path is correct
 import toast from 'react-hot-toast';
 import axios from 'axios';
-const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
+
+const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
+const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
+
 // InputField Component
 const InputField = ({ label, value, onChange, placeholder, showSlug, categorySlug }) => (
   <div className="mb-4">
@@ -33,7 +36,7 @@ const ImageUpload = ({ image, onImageChange, onImageRemove }) => {
     if (image) {
       if (typeof image === 'string') {
         // If it's a URL string (existing image)
-        setPreviewUrl(image);
+        setPreviewUrl(`${BASE_URL}${image}`);
       } else if (image instanceof File) {
         // If it's a File object (new upload)
         const url = URL.createObjectURL(image);
@@ -546,7 +549,6 @@ const handleSave = async () => {
         }
       });
 
-      console.log('Create Response:', createResponse); // Debug log
 
       // ✅ FIX: Check response.success instead of response.data.success
       if (!createResponse.success) {
@@ -559,7 +561,6 @@ const handleSave = async () => {
       }
 
       categoryId = createResponse.insertId;
-      console.log('Created category with ID:', categoryId); // Debug log
       
       // Save styles and metals
       await saveStyles(categoryId, validStyles);

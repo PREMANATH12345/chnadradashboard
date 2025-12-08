@@ -1,7 +1,8 @@
 // api.js
 import axios from 'axios';
 
-const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
+// const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
+const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
 
 // Helper function for authenticated requests
 const authConfig = () => {
@@ -17,7 +18,6 @@ const authConfig = () => {
 export const DoAll = async (params) => {
   try {
     const response = await axios.post(`${API_URL}/doAll`, params, authConfig());
-    console.log('API Response:', response.data); // Debug log
     return response.data;
   } catch (error) {
     console.error('DoAll Error:', error);
@@ -45,7 +45,6 @@ export const vendorAPI = {
         order_by: 'created_at DESC'
       });
       
-      console.log('Unverified Vendors Response:', response);
       return response;
     } catch (error) {
       console.error('Error fetching unverified vendors:', error);
@@ -65,7 +64,6 @@ export const vendorAPI = {
         }
       });
       
-      console.log('Vendor Details Response:', response);
       return response;
     } catch (error) {
       console.error('Error fetching vendor details:', error);
@@ -73,33 +71,7 @@ export const vendorAPI = {
     }
   },
 
-  // Verify/Approve a vendor
-  // verifyVendor: async (vendorId) => {
-  //   try {
-  //     const response = await DoAll({
-  //       action: 'update',
-  //       table: 'users',
-  //       data: {
-  //         is_verified: 1,
-  //         email_verified: 1,
-  //         updated_at: new Date().toISOString()
-  //       },
-  //       where: {
-  //         id: vendorId,
-  //         user_type: 'vendor'
-  //       }
-  //     });
-      
-  //     console.log('Verify Vendor Response:', response);
-  //     return {
-  //       ...response,
-  //       message: 'Vendor verified successfully! They can now login.'
-  //     };
-  //   } catch (error) {
-  //     console.error('Error verifying vendor:', error);
-  //     throw error;
-  //   }
-  // },
+
   verifyVendor: async (vendorId) => {
   try {
     const response = await DoAll({
@@ -156,7 +128,6 @@ export const vendorAPI = {
       });
       */
       
-      console.log('Reject Vendor Response:', response);
       return {
         ...response,
         message: 'Vendor rejected successfully'

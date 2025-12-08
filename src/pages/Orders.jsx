@@ -24,12 +24,10 @@ const Orders = () => {
         }
       });
 
-      console.log('Orders API Response:', response); // Debug log
 
       // FIXED: Check response.data.success for nested structure
       if (response?.data?.success) {
         setOrders(response.data.data || []);
-        console.log('Orders data:', response.data.data);
       } else {
         console.warn('No orders data found or API error');
         setOrders([]);
@@ -53,12 +51,10 @@ const Orders = () => {
         }
       });
 
-      console.log('Enquiries API Response:', response); // Debug log
 
       // FIXED: Check response.data.success for nested structure
       if (response?.data?.success) {
         setEnquiries(response.data.data || []);
-        console.log('Enquiries data:', response.data.data);
       } else {
         console.warn('No enquiries data found or API error');
         setEnquiries([]);
@@ -86,7 +82,7 @@ const Orders = () => {
           usersMap[user.id] = user;
         });
         setUsers(usersMap);
-        console.log('Users data loaded:', Object.keys(usersMap).length, 'users');
+      
       }
     } catch (error) {
       console.error('Error fetching users:', error);

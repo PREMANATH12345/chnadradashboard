@@ -21,7 +21,6 @@ const EnquiryPage = () => {
         }
       });
 
-      console.log('API Response:', response); // Debug log
 
       // CORRECTED: Check response.success directly (not response.data.success)
       if (response?.success) {

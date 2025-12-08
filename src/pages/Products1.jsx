@@ -8,7 +8,9 @@ import {
   MdAddCircle,
 } from "react-icons/md";
 
-const API_URL = "https://apichandra.rxsquare.in/api/v1/dashboard";
+// const API_URL = "https://apichandra.rxsquare.in/api/v1/dashboard";
+const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
+const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
 const Products = () => {
   const [currentStep, setCurrentStep] = useState("dashboard");
@@ -237,6 +239,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
+  const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
+const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
   useEffect(() => {
     fetchPendingProducts();
@@ -387,7 +391,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                     {productDetails.images &&
                       productDetails.images.length > 0 && (
                         <img
-                          src={`https://apichandra.rxsquare.in${productDetails.images[0]}`}
+                          src={`${BASE_URL}${productDetails.images[0]}`}
                           alt={product.name}
                           className="w-16 h-16 object-cover rounded"
                         />
@@ -1238,7 +1242,7 @@ const ProductCard = ({
         <img
           src={
             mainImage
-              ? `https://apichandra.rxsquare.in${mainImage}`
+              ? `${BASE_URL}${mainImage}`
               : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect fill="%23f3f4f6" width="300" height="200"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="16" x="150" y="100" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
           }
           alt={product.name}
@@ -1460,7 +1464,7 @@ const ImagePopup = ({ images, onClose }) => {
 
         <div className="relative">
           <img
-            src={`https://apichandra.rxsquare.in${images[currentIndex]}`}
+            src={`${BASE_URL}${images[currentIndex]}`}
             alt={`Product ${currentIndex + 1}`}
             className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
           />
@@ -1506,7 +1510,7 @@ const ImagePopup = ({ images, onClose }) => {
                 }`}
               >
                 <img
-                  src={`https://apichandra.rxsquare.in${img}`}
+                  src={`${BASE_URL}${img}`}
                   alt={`Thumb ${idx + 1}`}
                   className="w-full h-full object-cover rounded"
                 />
@@ -2694,7 +2698,7 @@ const EditProductPanel = ({
                             src={
                               url.startsWith("blob:")
                                 ? url
-                                : `https://apichandra.rxsquare.in${url}`
+                                : `${BASE_URL}${url}`
                             }
                             alt={`Preview ${idx + 1}`}
                             className="h-20 w-full object-cover rounded border shadow-sm group-hover:shadow-md transition-all"
@@ -4182,7 +4186,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       const imgUrl = url.startsWith("blob:")
                         ? url
                         : url.startsWith("/")
-                        ? `https://apichandra.rxsquare.in${url}`
+                        ? `${BASE_URL}${url}`
                         : url;
 
                       return (
@@ -4196,9 +4200,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               alt={`Preview ${idx + 1}`}
                               className="h-full w-full object-cover rounded-lg"
                               onLoad={(e) => {
-                                console.log(
-                                  `Image ${idx + 1} loaded successfully`
-                                );
+                              
                               }}
                               onError={(e) => {
                                 console.error(
