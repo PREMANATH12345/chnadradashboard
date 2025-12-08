@@ -31,7 +31,6 @@ const InputField = ({ label, value, onChange, placeholder, showSlug, categorySlu
 const ImageUpload = ({ image, onImageChange, onImageRemove }) => {
   const [dragOver, setDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
-  console.log(previewUrl)
 
   useEffect(() => {
     if (image) {
@@ -550,7 +549,6 @@ const handleSave = async () => {
         }
       });
 
-      console.log('Create Response:', createResponse); // Debug log
 
       // ✅ FIX: Check response.success instead of response.data.success
       if (!createResponse.success) {
@@ -563,7 +561,6 @@ const handleSave = async () => {
       }
 
       categoryId = createResponse.insertId;
-      console.log('Created category with ID:', categoryId); // Debug log
       
       // Save styles and metals
       await saveStyles(categoryId, validStyles);

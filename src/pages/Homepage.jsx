@@ -557,12 +557,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
             const category = categories.find(cat => cat.id === categoryId);
             
             if (category) {
-              console.log(`Inserting into collection_category:`, {
-                section_id: sectionId,
-                category_id: categoryId,
-                title: item.title,
-                image: item.image
-              });
+             
               
               await fetch(`${API_URL}/doAll`, {
                 method: 'POST',

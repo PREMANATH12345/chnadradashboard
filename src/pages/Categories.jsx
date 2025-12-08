@@ -41,7 +41,6 @@ const fetchCategories = async () => {
     
     // ✅ FIX: The response structure is { success, data, count }
     // NOT response.data.success
-    console.log('API Response:', response);
     
     if (!response?.success) {
       throw new Error('Invalid API response structure');

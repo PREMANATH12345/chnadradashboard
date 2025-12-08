@@ -38,7 +38,6 @@ const VendorRegister = () => {
       setLoading(true);
       const response = await vendorAPI.getUnverifiedVendors();
       
-      console.log('API Response:', response);
       
       // Handle different response structures
       if (response) {
@@ -60,7 +59,6 @@ const VendorRegister = () => {
           }
         }
         
-        console.log('Extracted vendors:', vendors);
         setUnverifiedVendors(vendors);
         
         if (vendors.length === 0) {
@@ -101,7 +99,6 @@ const VendorRegister = () => {
     try {
       const response = await vendorAPI.verifyVendor(vendorId);
       
-      console.log('Verify response:', response);
       
       if (response) {
         setMessage({ 
@@ -146,7 +143,6 @@ const VendorRegister = () => {
     try {
       const response = await vendorAPI.rejectVendor(vendorId);
       
-      console.log('Reject response:', response);
       
       if (response) {
         setMessage({ 
@@ -186,7 +182,6 @@ const VendorRegister = () => {
     try {
       const response = await vendorAPI.getVendorDetails(vendorId);
       
-      console.log('Details response:', response);
       
       if (response) {
         let vendorData = null;

@@ -4200,9 +4200,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               alt={`Preview ${idx + 1}`}
                               className="h-full w-full object-cover rounded-lg"
                               onLoad={(e) => {
-                                console.log(
-                                  `Image ${idx + 1} loaded successfully`
-                                );
+                              
                               }}
                               onError={(e) => {
                                 console.error(

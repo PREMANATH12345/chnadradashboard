@@ -4129,9 +4129,7 @@ const saveProducts = async () => {
               // ✅ CRITICAL: Access uploadedPdfFiles from the closure
               const uploadedFile = uploadedPdfFiles[fileKey];
               
-              console.log('🔍 WITH-SIZE - Looking for:', fileKey);
-              console.log('📁 WITH-SIZE - Found:', uploadedFile);
-              
+         
               return {
                 file_type: f.file_type,
                 price: f.price,
@@ -4171,10 +4169,7 @@ const saveProducts = async () => {
                 // ✅ CRITICAL: Access uploadedPdfFiles from the closure
                 const uploadedFile = uploadedPdfFiles[fileKey];
                 
-                console.log('🔍 NO-SIZE - Looking for:', fileKey);
-                console.log('📁 NO-SIZE - Found:', uploadedFile);
-                console.log('📦 ALL uploadedPdfFiles:', Object.keys(uploadedPdfFiles));
-                
+        
                 return {
                   file_type: f.file_type,
                   price: f.price,
@@ -4199,7 +4194,6 @@ const saveProducts = async () => {
 
         // Only call API if variants exist
         if (variants.length > 0) {
-          console.log('🚀 Sending variants to API:', JSON.stringify(variants, null, 2));
           
           await axios.post(
             `${API_URL}/product-variants/pricing`,
@@ -4691,7 +4685,6 @@ return (
                             alt={`Preview ${idx + 1}`}
                             className="h-full w-full object-cover rounded-lg"
                             onLoad={(e) => {
-                              console.log(`Image ${idx + 1} loaded successfully`);
                             }}
                             onError={(e) => {
                               console.error(`Failed to load image ${idx + 1}:`, url);
