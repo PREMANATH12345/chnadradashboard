@@ -43,7 +43,8 @@ import { TbRulerMeasure } from "react-icons/tb";
 import { GiStonePile, GiMetalBar } from "react-icons/gi";
 import { BsGenderAmbiguous } from "react-icons/bs";
 
-const API_URL = "https://apichandra.rxsquare.in/api/v1/dashboard";
+const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
+const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
 const Products = () => {
   const [currentStep, setCurrentStep] = useState("dashboard");
@@ -511,7 +512,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         {mainImage ? (
                           <div className="flex-shrink-0 w-24 h-24">
                             <img
-                              src={`https://apichandra.rxsquare.in${mainImage}`}
+                              src={`${BASE_URL}${mainImage}`}
                               alt={product.name}
                               className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
@@ -678,7 +679,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                           .map((img, idx) => (
                             <img
                               key={idx}
-                              src={`https://apichandra.rxsquare.in${img}`}
+                              src={`${BASE_URL}${img}`}
                               alt={`Product ${idx + 1}`}
                               className="w-full h-40 object-cover rounded-lg"
                             />
@@ -1663,7 +1664,7 @@ const ProductCard = ({
         <img
           src={
             mainImage
-              ? `https://apichandra.rxsquare.in${mainImage}`
+              ? `${BASE_URL}${mainImage}`
               : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect fill="%23f3f4f6" width="300" height="200"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="16" x="150" y="100" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
           }
           alt={product.name}
@@ -1879,7 +1880,7 @@ const ImagePopup = ({ images, onClose }) => {
 
         <div className="relative">
           <img
-            src={`https://apichandra.rxsquare.in${images[currentIndex]}`}
+            src={`${BASE_URL}${images[currentIndex]}`}
             alt={`Product ${currentIndex + 1}`}
             className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
           />
@@ -1924,7 +1925,7 @@ const ImagePopup = ({ images, onClose }) => {
                 }`}
               >
                 <img
-                  src={`https://apichandra.rxsquare.in${img}`}
+                  src={`${BASE_URL}${img}`}
                   alt={`Thumb ${idx + 1}`}
                   className="w-full h-full object-cover rounded"
                 />
@@ -3204,7 +3205,7 @@ const EditProductPanel = ({
                                 src={
                                   url.startsWith("blob:")
                                     ? url
-                                    : `https://apichandra.rxsquare.in${url}`
+                                    : `${BASE_URL}${url}`
                                 }
                                 alt={`Preview ${idx + 1}`}
                                 className="h-full w-full object-cover rounded-lg"
@@ -4676,7 +4677,7 @@ return (
                     const imgUrl = url.startsWith("blob:")
                       ? url
                       : url.startsWith("/")
-                      ? `https://apichandra.rxsquare.in${url}`
+                      ? `${BASE_URL}${url}`
                       : url;
 
                     return (
