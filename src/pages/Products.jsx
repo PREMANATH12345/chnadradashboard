@@ -294,7 +294,7 @@ const StepButton = ({
   );
 };
 
-// ==================== VENDOR PRODUCTS SIDEBAR ====================
+
 const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   const [pendingProducts, setPendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -303,6 +303,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [viewProductDetails, setViewProductDetails] = useState(null);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   useEffect(() => {
     fetchPendingProducts();
@@ -313,23 +315,36 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        alert("No authentication token found. Please login again.");
+        return;
+      }
+
       const payload = { status: "pending" };
 
       if (selectedVendor !== "all") {
-        payload.vendor_id = selectedVendor;
+        payload.vendor_id = parseInt(selectedVendor);
       }
 
       const response = await axios.post(
         `${API_URL}/products/by-status`,
         payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
 
       if (response.data.success) {
-        setPendingProducts(response.data.data);
+        setPendingProducts(response.data.data || []);
+      } else {
+        alert(response.data.message || "Failed to fetch products");
       }
     } catch (error) {
       console.error("Error fetching pending products:", error);
+      alert("Error loading pending products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -345,47 +360,92 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           table: "admin_users",
           where: { role: "vendor", is_deleted: 0 },
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
 
       if (response.data.success) {
-        setVendors(response.data.data);
+        setVendors(response.data.data || []);
       }
     } catch (error) {
       console.error("Error fetching vendors:", error);
     }
   };
 
-  const handleApprove = async (productId, approve = true) => {
-    if (!approve && !rejectionReason.trim()) {
-      alert("Please provide a rejection reason");
+ const handleApprove = async (productid, approve = true) => {
+  if (!approve && !rejectionReason.trim()) {
+    alert("Please provide a rejection reason");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Session expired. Please login again.");
       return;
     }
 
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/products/vendor/approve`,
-        {
-          product_id: productId,
-          action: approve ? "approve" : "reject",
-          reason: rejectionReason,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        alert(`Product ${approve ? "approved" : "rejected"} successfully`);
-        fetchPendingProducts();
-        setSelectedProduct(null);
-        setRejectionReason("");
-        if (onApproveProduct) onApproveProduct();
-      }
-    } catch (error) {
-      console.error("Approval error:", error);
-      alert("Error processing approval");
+    if (approve) {
+      setApproving(true);
+    } else {
+      setRejecting(true);
     }
-  };
+
+    console.log("Sending approval request for product:", productid);
+
+    const response = await axios.post(
+      `${API_URL}/products/vendor/approve`,
+      {
+        product_id: productid,  // Changed from 'id' to 'product_id'
+        action: approve ? "approve" : "reject",
+        reason: !approve ? rejectionReason : "",
+      },
+      { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } 
+      }
+    );
+
+    if (response.data.success) {
+      alert(`Product ${approve ? "approved" : "rejected"} successfully`);
+      fetchPendingProducts();
+      setSelectedProduct(null);
+      setRejectionReason("");
+      if (onApproveProduct) onApproveProduct();
+    } else {
+      alert(response.data.message || "Operation failed");
+    }
+  } catch (error) {
+    console.error("Approval error:", error);
+    console.error("Error response:", error.response?.data);
+    
+    if (error.response) {
+      // Server responded with error
+      if (error.response.status === 401) {
+        alert("Session expired. Please login again.");
+        // Optionally redirect to login
+        // window.location.href = '/login';
+      } else if (error.response.status === 400) {
+        alert(error.response.data.message || "Invalid request");
+      } else {
+        alert("Error processing request. Please try again.");
+      }
+    } else if (error.request) {
+      alert("No response from server. Please check your connection.");
+    } else {
+      alert("Error: " + error.message);
+    }
+  } finally {
+    setApproving(false);
+    setRejecting(false);
+  }
+};
 
   const handleViewProductDetails = (product) => {
     let productDetails = product.product_details;
@@ -393,6 +453,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       try {
         productDetails = JSON.parse(productDetails);
       } catch (e) {
+        console.error("Error parsing product details:", e);
         productDetails = {};
       }
     }
@@ -405,6 +466,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       try {
         productDetails = JSON.parse(productDetails);
       } catch (e) {
+        console.error("Error parsing product details:", e);
         productDetails = {};
       }
     }
@@ -425,6 +487,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
               onClick={onClose}
               className="hover:bg-green-800 p-2 rounded-lg transition-colors"
               title="Close"
+              disabled={approving || rejecting}
             >
               <FiArrowLeft className="w-5 h-5" />
             </button>
@@ -440,10 +503,11 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
             </div>
             <button
               onClick={fetchPendingProducts}
-              className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-800 rounded-lg transition-colors disabled:opacity-50"
               title="Refresh"
+              disabled={approving || rejecting}
             >
-              <FiRefreshCw className="w-5 h-5" />
+              <FiRefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -458,11 +522,12 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                 value={selectedVendor}
                 onChange={(e) => setSelectedVendor(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                disabled={loading || approving || rejecting}
               >
-                <option value="all">All Vendors</option>
+                <option value="all" key="all">All Vendors</option>
                 {vendors.map((vendor) => (
                   <option key={vendor.id} value={vendor.id}>
-                    {vendor.username}
+                    {vendor.username || vendor.email || `Vendor ${vendor.id}`}
                   </option>
                 ))}
               </select>
@@ -505,7 +570,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                   <div
                     key={product.id}
                     className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
-                    onClick={() => handleViewProductDetails(product)}
+                    onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
                   >
                     <div className="p-5">
                       <div className="flex gap-4 mb-4">
@@ -516,8 +581,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                               alt={product.name}
                               className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
-                                e.target.src =
-                                  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                e.target.onerror = null;
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
                               }}
                             />
                           </div>
@@ -551,7 +616,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                           <span className="text-gray-600">
                             Vendor:{" "}
                             <span className="font-medium">
-                              {product.vendor_name || "Unknown"}
+                              {product.vendor_name || product.vendor_username || "Unknown"}
                             </span>
                           </span>
                         </div>
@@ -569,17 +634,28 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                             e.stopPropagation();
                             handleApprove(product.id, true);
                           }}
-                          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2"
+                          disabled={approving || rejecting}
+                          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <FiCheckCircle className="w-4 h-4" />
-                          Approve
+                          {approving && selectedProduct === product.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <FiCheckCircle className="w-4 h-4" />
+                              Approve
+                            </>
+                          )}
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedProduct(product.id);
                           }}
-                          className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2"
+                          disabled={approving || rejecting}
+                          className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <FiX className="w-4 h-4" />
                           Reject
@@ -597,6 +673,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                             placeholder="Please provide a reason for rejection..."
                             className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm mb-3"
                             rows="2"
+                            disabled={rejecting}
                           />
                           <div className="flex gap-2">
                             <button
@@ -604,9 +681,17 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                                 e.stopPropagation();
                                 handleApprove(product.id, false);
                               }}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors"
+                              disabled={rejecting}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                              Confirm Reject
+                              {rejecting ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  Rejecting...
+                                </>
+                              ) : (
+                                'Confirm Reject'
+                              )}
                             </button>
                             <button
                               onClick={(e) => {
@@ -614,7 +699,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                                 setSelectedProduct(null);
                                 setRejectionReason("");
                               }}
-                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors"
+                              disabled={rejecting}
+                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors disabled:opacity-50"
                             >
                               Cancel
                             </button>
@@ -655,7 +741,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                   <p className="text-sm text-gray-600">
                     Submitted by:{" "}
                     <span className="font-medium">
-                      {viewProductDetails.vendor_name}
+                      {viewProductDetails.vendor_name || viewProductDetails.vendor_username || "Unknown"}
                     </span>
                   </p>
                 </div>
@@ -663,6 +749,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
               <button
                 onClick={() => setViewProductDetails(null)}
                 className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
+                disabled={approving || rejecting}
               >
                 <FiX className="w-6 h-6 text-gray-600" />
               </button>
@@ -682,6 +769,10 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                               src={`${BASE_URL}${img}`}
                               alt={`Product ${idx + 1}`}
                               className="w-full h-40 object-cover rounded-lg"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
                             />
                           ))}
                       </div>
@@ -716,9 +807,9 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Category</p>
+                        <p className="text-sm text-gray-500">Category ID</p>
                         <p className="font-medium text-gray-900">
-                          {viewProductDetails.product_details.category || "N/A"}
+                          {viewProductDetails.category_id}
                         </p>
                       </div>
                       <div>
@@ -844,6 +935,41 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </p>
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Action Buttons in Detail View */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => {
+                        handleApprove(viewProductDetails.id, true);
+                        setViewProductDetails(null);
+                      }}
+                      disabled={approving || rejecting}
+                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {approving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Approving...
+                        </>
+                      ) : (
+                        <>
+                          <FiCheckCircle className="w-4 h-4" />
+                          Approve Product
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedProduct(viewProductDetails.id);
+                        setViewProductDetails(null);
+                      }}
+                      disabled={approving || rejecting}
+                      className="flex-1 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <FiX className="w-4 h-4" />
+                      Reject Product
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1194,7 +1320,7 @@ const MinimalToolCard = ({ icon, title, description, onClick }) => {
   );
 };
 
-// ==================== VIEW PRODUCTS COMPONENT ====================
+
 const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [products, setProducts] = useState([]);
@@ -1206,6 +1332,40 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [statusFilter, setStatusFilter] = useState(
     userRole === "vendor" ? ["pending", "approved"] : ["approved"]
   );
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState("all");
+  const [vendorLoading, setVendorLoading] = useState(false);
+
+  // Fetch vendors when component mounts (for admin only)
+  useEffect(() => {
+    if (userRole === "admin") {
+      fetchVendors();
+    }
+  }, [userRole]);
+
+  const fetchVendors = async () => {
+    setVendorLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/doAll`,
+        {
+          action: "get",
+          table: "admin_users",
+          where: { role: "vendor", is_deleted: 0 },
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setVendors(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching vendors:", error);
+    } finally {
+      setVendorLoading(false);
+    }
+  };
 
   const toggleCategory = (catId) => {
     setSelectedCategoryIds((prev) => {
@@ -1233,6 +1393,11 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
           statusFilter && statusFilter.length > 0 ? statusFilter : ["approved"],
       };
 
+      // Add vendor filter for admin
+      if (userRole === "admin" && selectedVendor !== "all") {
+        payload.vendor_id = selectedVendor;
+      }
+
       if (userRole === "vendor") {
         payload.vendor_id = user.id;
       }
@@ -1252,11 +1417,11 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategoryIds, statusFilter, userRole]);
+  }, [selectedCategoryIds, statusFilter, selectedVendor, userRole]);
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategoryIds, statusFilter, fetchProducts]);
+  }, [selectedCategoryIds, statusFilter, selectedVendor, fetchProducts]);
 
   const handleDelete = async (productId) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
@@ -1281,7 +1446,8 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
   const canEditDelete = (product) => {
     if (userRole === "admin") return true;
-    if (userRole === "vendor") {
+    if (userRole === "vendor")
+       {
       const user = JSON.parse(localStorage.getItem("user"));
       return product.vendor_id === user.id && product.status === "pending";
     }
@@ -1292,10 +1458,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
     .filter((product) => {
       const productName = product.name || "";
       const productSlug = product.slug || "";
+      const vendorName = product.vendor_name || "";
       const searchLower = searchTerm.toLowerCase();
       return (
         productName.toLowerCase().includes(searchLower) ||
-        productSlug.toLowerCase().includes(searchLower)
+        productSlug.toLowerCase().includes(searchLower) ||
+        vendorName.toLowerCase().includes(searchLower)
       );
     })
     .sort((a, b) => {
@@ -1330,6 +1498,8 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
           return new Date(b.created_at) - new Date(a.created_at);
         case "date-old":
           return new Date(a.created_at) - new Date(b.created_at);
+        case "vendor":
+          return (a.vendor_name || "").localeCompare(b.vendor_name || "");
         default:
           return 0;
       }
@@ -1394,6 +1564,63 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
     );
   };
 
+  const renderVendorFilter = () => {
+    if (userRole !== "admin") return null;
+
+    return (
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+          <FiUsers className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
+            Filter by Vendor:
+          </label>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="relative flex-1">
+            <FiUsers className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={selectedVendor}
+              onChange={(e) => setSelectedVendor(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white"
+              disabled={vendorLoading}
+            >
+              <option value="all">All Vendors</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.id}>
+                  {vendor.username} {vendor.email && `(${vendor.email})`}
+                </option>
+              ))}
+            </select>
+            {vendorLoading && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+              </div>
+            )}
+          </div>
+          
+          {selectedVendor !== "all" && (
+            <button
+              onClick={() => setSelectedVendor("all")}
+              className="px-4 py-2.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 text-sm font-medium flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <FiX className="w-4 h-4" />
+              Clear Vendor Filter
+            </button>
+          )}
+        </div>
+        
+        {selectedVendor !== "all" && (
+          <div className="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-200">
+            <p className="text-xs text-emerald-700 flex items-center gap-2">
+              <FiInfo className="w-3 h-3" />
+              Showing products from selected vendor only
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -1425,6 +1652,10 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         )}
       </div>
 
+      {/* Vendor Filter for Admin */}
+      {renderVendorFilter()}
+
+      {/* Status Filter for Vendors */}
       {renderStatusFilter()}
 
       <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 overflow-hidden">
@@ -1450,6 +1681,7 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
                 className="px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-white w-full sm:w-auto"
               >
                 <option value="name">Sort by Name</option>
+                {userRole === "admin" && <option value="vendor">Sort by Vendor</option>}
                 <option value="price-high">Price: High to Low</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="discount">Discount</option>
@@ -1552,8 +1784,9 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
                   No Products Found
                 </h3>
                 <p className="text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto text-xs sm:text-sm">
-                  No products match your current filters. Try selecting
-                  different categories or search terms.
+                  {selectedVendor !== "all" 
+                    ? "No products found for the selected vendor with current filters."
+                    : "No products match your current filters. Try selecting different categories or search terms."}
                 </p>
                 {userRole === "vendor" && (
                   <button
@@ -5028,248 +5261,6 @@ return (
                   </div>
                 )}
 
-                {/* Metal Only (No Diamond) */}
-                {product.hasMetalChoice && !product.hasDiamondChoice && product.selectedMetalOptions.map(metalId => {
-                  const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
-                  const useSizeConfig = product.metalSizeConfig[metalId];
-                  
-                  return (
-                    <div key={metalId} className="mb-4 border-2 border-blue-200 rounded p-4 bg-blue-50">
-                      <div className="flex items-center justify-between mb-3">
-                        <h6 className="font-bold flex items-center gap-2">
-                          <span>🔩</span>
-                          <span>{metalOpt?.option_name}</span>
-                        </h6>
-                        
-                        <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={useSizeConfig || false}
-                            onChange={() => toggleMetalSizeConfig(product.id, metalId)}
-                            className="w-5 h-5"
-                          />
-                          <span className="text-sm font-semibold">+ Config with Sizes</span>
-                        </label>
-                      </div>
-
-                      {useSizeConfig ? (
-                        <div className="space-y-3">
-                          {categoryData?.attributes?.size?.options?.map(sizeOpt => {
-                            const key = `${metalId}-none-${sizeOpt.id}`;
-                            const isSelected = product.selectedSizes[key];
-                            const pricing = product.variantPricing[key] || {};
-                            
-                            return (
-                              <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
-                                <label className="flex items-center gap-3 mb-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected || false}
-                                    onChange={() => toggleProductSize(product.id, metalId, null, sizeOpt.id)}
-                                    className="w-5 h-5"
-                                  />
-                                  <span className="font-bold">
-                                    {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
-                                  </span>
-                                </label>
-
-                                {isSelected && (
-                                  <div className="ml-8 space-y-3">
-                                    <div>
-                                      <label className="block text-sm font-semibold mb-2">📁 File Types & Pricing:</label>
-                                      <div className="space-y-3">
-                                        {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                          const isFileSelected = pricing.files?.some((f) => f.file_type === fileOption.value) || false;
-                                          const filePrice = pricing.files?.find((f) => f.file_type === fileOption.value)?.price || "";
-                                          const fileKey = `${product.id}-${metalId}-none-${sizeOpt.id}-${fileOption.value}`;
-                                          const uploadedFile = uploadedPdfFiles[fileKey];
-                                          const isSTL = fileOption.value === "stl_file";
-
-                                          return (
-                                            <div key={fileOption.value} className="border rounded p-3 bg-white">
-                                              <label
-                                                className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                                  isSTL ? "opacity-50 cursor-not-allowed" : ""
-                                                }`}
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={isFileSelected}
-                                                  onChange={() => !isSTL && toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileOption.value)}
-                                                  disabled={isSTL}
-                                                  className="w-4 h-4"
-                                                />
-                                                <span className="text-lg">{fileOption.emoji}</span>
-                                                <span className="font-medium">{fileOption.label}</span>
-                                                {isSTL && <span className="text-xs text-blue-600 ml-auto">(Mandatory)</span>}
-                                              </label>
-
-                                              {isFileSelected && (
-                                                <div className="ml-6 space-y-3">
-                                                  {fileOption.requiresPrice && (
-                                                    <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                      <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                        🟩 {fileOption.label} Price {isSTL && "*"}
-                                                      </p>
-                                                      <p className="text-xs text-gray-500 mb-2">
-                                                      {isSTL
-                                                        ? "This price will be displayed to customers (Required)"
-                                                        : `If the customer selects ${fileOption.label.toLowerCase()}, this price will be shown.`}
-                                                      </p>
-                                                      <input
-                                                        type="number"
-                                                        placeholder={isSTL ? "Enter price (required)" : "Enter price"}
-                                                        value={filePrice}
-                                                        onChange={(e) => updateFilePrice(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.value)}
-                                                       className={`w-full px-3 py-2 border rounded text-sm ${
-                                                        isSTL && !filePrice ? "border-red-500" : "border-gray-300"
-                                                      }`}
-                                                        required={isSTL}
-                                                      />
-                                                      {isSTL && !filePrice && (
-                                                        <p className="text-xs text-red-600 mt-1">STL price is required</p>
-                                                      )}
-                                                    </div>
-                                                  )}
-
-                                                  {fileOption.requiresUpload !== false && (
-                                                    <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                      <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                        📎 Upload {fileOption.label} {isSTL && "(Optional)"}
-                                                      </label>
-                                                      <input
-                                                        type="file"
-                                                        accept=".pdf,.stl,.zip,.cam"
-                                                        onChange={(e) => {
-                                                          if (e.target.files[0]) {
-                                                            handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, fileOption.value, e.target.files[0]);
-                                                          }
-                                                        }}
-                                                        className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
-                                                      />
-                                                      {uploadedFile && (
-                                                        <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                          <span>✓</span>
-                                                          <span className="font-medium">{uploadedFile.file_name}</span>
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  )}
-
-                                                  {!fileOption.requiresPrice && (
-                                                  <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                    💡 Enquiry only - no price needed
-                                                  </p>
-                                                  )}
-                                                </div>
-                                              )}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="space-y-3 border-2 border-gray-200 rounded p-3 bg-white">
-                          <label className="block text-sm font-semibold mb-2">📁 File Types & Pricing:</label>
-                          <div className="space-y-3">
-                            {FILE_TYPE_OPTIONS.map(fileOption => {
-                              const directKey = `${metalId}-none-none`;
-                              const pricing = product.variantPricing[directKey] || {};
-                              const isFileSelected = pricing.files?.some(f => f.file_type === fileOption.value) || false;
-                              const filePrice = pricing.files?.find(f => f.file_type === fileOption.value)?.price || '';
-                              const fileKey = `${product.id}-${metalId}-direct-${fileOption.value}`;
-                              const uploadedFile = uploadedPdfFiles[fileKey];
-                              const isSTL = fileOption.value === 'stl_file';
-                              
-                              const shouldShowSTL = isSTL && product.selectedMetalOptions.includes(metalId);
-                              
-                              return (
-                                <div key={fileOption.value} className="border rounded p-3 bg-gray-50">
-                                  {isSTL ? (
-                                    <div className="flex items-center gap-2 text-sm mb-2">
-                                      <span className="text-lg">{fileOption.emoji}</span>
-                                      <span className="font-medium">{fileOption.label} (Mandatory)</span>
-                                    </div>
-                                  ) : (
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={isFileSelected}
-                                        onChange={() => {
-                                          toggleVariantFileType(product.id, metalId, null, null, fileOption.value);
-                                        }}
-                                        className="w-4 h-4"
-                                      />
-                                      <span className="text-lg">{fileOption.emoji}</span>
-                                      <span className="font-medium">{fileOption.label}</span>
-                                    </label>
-                                  )}
-                                  
-                                  {(isSTL || isFileSelected) && (
-                                    <div className="ml-6 space-y-3">
-                                      {fileOption.requiresPrice && (
-                                        <div className="p-3 bg-green-50 rounded border border-green-200">
-                                          <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                            🟩 {fileOption.label} Price {isSTL && '*'}
-                                          </p>
-                                          <input
-                                            type="number"
-                                            placeholder={isSTL ? "Enter price (required)" : "Enter price"}
-                                            value={filePrice}
-                                            onChange={(e) => {
-                                              updateFilePrice(product.id, metalId, null, null, fileOption.value, e.target.value);
-                                            }}
-                                            className={`w-full px-3 py-2 border rounded text-sm ${isSTL && !filePrice ? 'border-red-500' : ''}`}
-                                          />
-                                        </div>
-                                      )}
-                                      
-                                      {fileOption.requiresUpload !== false && (
-                                        <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                          <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                            📎 Upload {fileOption.label}
-                                          </label>
-                                          <input
-                                            type="file"
-                                            accept=".pdf,.stl,.zip,.cam"
-                                            onChange={(e) => {
-                                                if (e.target.files[0]) {
-                                                  handlePdfFileSelect(product.id, metalId, null, null, fileOption.value, e.target.files[0]);
-                                                }
-                                              }}
-                                            className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
-                                          />
-                                          {uploadedFile && (
-                                            <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                              <span>✓</span>
-                                              <span className="font-medium">{uploadedFile.file_name}</span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                      
-                                      {!fileOption.requiresPrice && (
-                                        <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                          💡 Enquiry only - no price needed
-                                        </p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
 
                 {/* Metal Only (No Diamond) - FIXED VERSION */}
                 {product.hasMetalChoice &&

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { GripVertical, Plus, Edit, Trash2, Save, X, ChevronDown, Eye, EyeOff, Settings, Upload } from 'lucide-react';
 
@@ -19,10 +20,10 @@ const ImageUpload = ({ currentValue, onUpdate, label = "Image", recommendedSize 
       return;
     }
 
-    // File size validation (5MB limit)
-    const maxSize = 5 * 1024 * 1024;
+    // File size validation (10MB limit)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File size too large. Maximum size is 5MB');
+      alert('File size too large. Maximum size is 10MB');
       return;
     }
 
@@ -48,8 +49,9 @@ const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
 
       const result = await response.json();
       
-      if (result.success && result.data.paths.length > 0) {
-        const serverPath = result.data.paths[0];
+      if (result.success && result.data.images && result.data.images.length > 0) {
+        // FIXED: Backend returns data.images, not data.paths
+        const serverPath = result.data.images[0].url;
         onUpdate(serverPath);
         URL.revokeObjectURL(previewUrl);
       } else {
@@ -310,25 +312,16 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                   const categoryResult = await categoryResponse.json();
                   
                   if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
-                    // Use Set to prevent duplicates based on ID
-                    const uniqueItems = new Map();
-                    
-                    categoryResult.data.forEach(catItem => {
+                    // Create items from collection_category data
+                    sectionData.items = categoryResult.data.map(catItem => {
                       const images = JSON.parse(catItem.images || '[]');
-                      const item = {
+                      return {
                         id: catItem.id,
-                        title: catItem.title,
+                        title: catItem.title || '',
                         image: images[0] || '',
-                        selectedCategories: [catItem.category_id]
+                        selectedCategories: [catItem.category_id] // Store category ID
                       };
-                      
-                      // Prevent duplicates by ID
-                      if (!uniqueItems.has(catItem.id)) {
-                        uniqueItems.set(catItem.id, item);
-                      }
                     });
-                    
-                    sectionData.items = Array.from(uniqueItems.values());
                   } else {
                     sectionData.items = [];
                   }
@@ -378,6 +371,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     fetchCategories().then(setCategories);
   }, []);
 
+  // Updated handleImageUpload function
   const handleImageUpload = async (e, updateFunction) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -401,9 +395,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
       const result = await response.json();
       
-      if (result.success && result.data.paths.length > 0) {
-        // Update with server path
-        updateFunction(result.data.paths[0]);
+      if (result.success && result.data.images && result.data.images.length > 0) {
+        // FIXED: Backend returns data.images, not data.paths
+        const serverPath = result.data.images[0].url;
+        updateFunction(serverPath);
+        URL.revokeObjectURL(previewUrl);
       } else {
         alert('Failed to upload image: ' + result.message);
         updateFunction(''); // Clear on failure
@@ -415,6 +411,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
+  // Updated handleBulkImageUpload function
   const handleBulkImageUpload = async (e, onSuccess) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -440,9 +437,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
       const result = await response.json();
       
-      if (result.success && result.data.paths.length > 0) {
-        onSuccess(result.data.paths);
-        alert(`${result.data.paths.length} images uploaded successfully!`);
+      if (result.success && result.data.images && result.data.images.length > 0) {
+        // FIXED: Map from images array to get URLs
+        const imageUrls = result.data.images.map(img => img.url);
+        onSuccess(imageUrls);
+        alert(`${result.data.images.length} images uploaded successfully!`);
       } else {
         alert('Failed to upload images: ' + result.message);
       }
@@ -596,15 +595,21 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
       const section = sections.find(s => s.id === sectionId);
       
       if (section.type === 'category-highlight') {
-        // For category-highlight, store minimal data in homepage_sections
+        // For category-highlight, ensure items have IDs
+        const itemsWithIds = newData.items?.map((item, index) => ({
+          ...item,
+          id: item.id || Date.now() + index
+        })) || [];
+        
+        // Store minimal data in homepage_sections
         const dataForHomepageSections = {
           ...newData,
-          items: newData.items?.map(item => ({
+          items: itemsWithIds.map(item => ({
             id: item.id,
             title: item.title,
             image: item.image
             // Don't store selectedCategories in homepage_sections
-          })) || []
+          }))
         };
         
         // Save to homepage_sections
@@ -628,11 +633,14 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
         
         if (result.success) {
           // Save all category details to collection_category
-          await saveCategoryData(sectionId, newData);
+          await saveCategoryData(sectionId, { ...newData, items: itemsWithIds });
           
           // Update local state
           setSections(sections.map(s => 
-            s.id === sectionId ? { ...s, data: newData } : s
+            s.id === sectionId ? { 
+              ...s, 
+              data: { ...newData, items: itemsWithIds } 
+            } : s
           ));
           alert('Section saved successfully!');
         } else {
@@ -844,6 +852,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
   const CategorySelector = ({ item, onUpdate }) => {
     const [selectedCategory, setSelectedCategory] = useState(item.selectedCategories?.[0] || null);
 
+    // Update when item prop changes
+    useEffect(() => {
+      setSelectedCategory(item.selectedCategories?.[0] || null);
+    }, [item.selectedCategories]);
+
     const handleCategorySelect = (categoryId) => {
       const newSelectedCategory = selectedCategory === categoryId ? null : categoryId;
       setSelectedCategory(newSelectedCategory);
@@ -871,6 +884,16 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           Select Category 
           <span className="text-red-500 ml-1">*</span>
         </label>
+        
+        {selectedCategory && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+            <p className="text-sm text-blue-800">
+              <strong>Currently Selected:</strong> {
+                categories.find(cat => cat.id === selectedCategory)?.name || 'Unknown Category'
+              }
+            </p>
+          </div>
+        )}
         
         {categories.length === 0 ? (
           <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
@@ -913,11 +936,22 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
   const SectionEditor = ({ section }) => {
     const [formData, setFormData] = useState(() => {
-      // Ensure items array always exists
-      if (!section.data.items) {
-        return { ...section.data, items: [] };
+      // Ensure items array always exists and is properly formatted
+      const sectionData = section.data || {};
+      let items = sectionData.items || [];
+      
+      // For category-highlight, ensure each item has the correct structure
+      if (section.type === 'category-highlight' && items.length > 0) {
+        items = items.map(item => ({
+          ...item,
+          id: item.id || Date.now() + Math.random(),
+          title: item.title || '',
+          image: item.image || '',
+          selectedCategories: item.selectedCategories || []
+        }));
       }
-      return section.data;
+      
+      return { ...sectionData, items };
     });
     const [showBulkUpload, setShowBulkUpload] = useState(false);
 
@@ -2038,28 +2072,28 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Homepage Sections</h3>
         </div>
         <div className="space-y-3">
-  {sections.map((section) => (
-    <div key={section.id} className="flex items-center justify-between p-3 bg-gray-50 rounded gap-2">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="font-medium text-sm sm:text-base truncate">{section.name}</span>
-        <span className={`flex-shrink-0 text-xs px-2 py-1 rounded ${
-          section.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
-        }`}>
-          {section.enabled ? 'Active' : 'Inactive'}
-        </span>
-      </div>
-      <button
-        onClick={() => {
-          setSelectedSection(section);
-          setView('section-edit');
-        }}
-        className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
-      >
-        Edit <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-      </button>
-    </div>
-  ))}
-</div>
+          {sections.map((section) => (
+            <div key={section.id} className="flex items-center justify-between p-3 bg-gray-50 rounded gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="font-medium text-sm sm:text-base truncate">{section.name}</span>
+                <span className={`flex-shrink-0 text-xs px-2 py-1 rounded ${
+                  section.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {section.enabled ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedSection(section);
+                  setView('section-edit');
+                }}
+                className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+              >
+                Edit <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
         
         {sections.length === 0 && (
           <div className="text-center py-6 sm:py-8 text-gray-500">

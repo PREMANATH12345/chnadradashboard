@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { vendorAPI } from '../auth/api';
+import { vendorAPI } from '../api/auth';
 import {
   CheckCircle,
   XCircle,
