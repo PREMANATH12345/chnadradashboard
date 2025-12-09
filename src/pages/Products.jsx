@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
@@ -4774,13 +4775,7 @@ return (
                       }
                       className="w-4 h-4 text-green-600 focus:ring-green-500"
                     />
-<<<<<<< HEAD
-                    <span className="font-bold text-gray-800">
-                      🔩 Choice of Metal
-                    </span>
-=======
                     <span className="text-sm text-gray-700">{feature}</span>
->>>>>>> 7687477dd547ebd879db1149a52b479903da603e
                   </label>
                 ))}
               </div>
@@ -5031,88 +5026,8 @@ return (
                             }
                             className="w-4 h-4 text-green-600"
                           />
-                          <span className="text-sm text-gray-700">
-                            {opt.option_name}
-                          </span>
+                          <span className="text-sm text-gray-700">{opt.option_name}</span>
                         </label>
-<<<<<<< HEAD
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Diamond Quality */}
-                <div className="border-2 border-gray-200 rounded p-3">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={product.hasDiamondChoice}
-                      onChange={() => toggleProductDiamondChoice(product.id)}
-                      className="w-5 h-5 text-green-600"
-                    />
-                    <span className="font-bold text-gray-800">
-                      💎 Diamond Quality
-                    </span>
-                  </label>
-
-                  {product.hasDiamondChoice && (
-                    <div className="space-y-2">
-                      {categoryData?.attributes?.diamond?.options?.map(
-                        (opt) => (
-                          <label
-                            key={opt.id}
-                            className="flex items-center gap-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-green-50 border border-gray-200"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={product.selectedDiamondOptions.includes(
-                                opt.id
-                              )}
-                              onChange={() =>
-                                toggleProductDiamondOption(product.id, opt.id)
-                              }
-                              className="w-4 h-4 text-green-600"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {opt.option_name}
-                            </span>
-                          </label>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Size Info */}
-                <div className="border-2 border-gray-200 rounded p-3">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={product.configureSizes || false}
-                      onChange={() => toggleConfigureSizes(product.id)}
-                      className="w-5 h-5 text-green-600"
-                    />
-                    <span className="font-bold text-gray-800">
-                      📏 Configure Sizes with Pricing
-                    </span>
-                  </label>
-                  <p className="text-xs text-gray-600 ml-7">
-                    {product.hasMetalChoice || product.hasDiamondChoice
-                      ? "✅ Size configuration is active (required for variants)"
-                      : "Check this to configure pricing for individual sizes"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Size & Pricing Configuration */}
-              {(product.hasMetalChoice ||
-                product.hasDiamondChoice ||
-                product.configureSizes) && (
-                <div className="mt-4">
-                  <h6 className="font-bold mb-3 text-gray-800">
-                    📐 Configure Variants:
-                  </h6>
-=======
                       )
                     )}
                   </div>
@@ -5139,7 +5054,6 @@ return (
                 </p>
               </div>
             </div>
->>>>>>> 7687477dd547ebd879db1149a52b479903da603e
 
             {/* Size & Pricing Configuration */}
             {(product.hasMetalChoice ||
@@ -6241,7 +6155,8 @@ return (
 
                                           {!fileOption.requiresPrice && (
                                             <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                              💡 Enquiry only - no price needed
+                                              💡 Enquiry only - no price
+                                              needed
                                             </p>
                                           )}
                                         </div>
@@ -6260,12 +6175,6 @@ return (
             )}
           </div>
         </div>
-<<<<<<< HEAD
-      )}
-    </div>
-  );
-};
-=======
       </div>
     ))}
 
@@ -6310,6 +6219,5 @@ return (
   </div>
 );
 };       
->>>>>>> 7687477dd547ebd879db1149a52b479903da603e
 
 export default Products;
