@@ -9,6 +9,7 @@ import Products from "./pages/Products";
 import Analytics from "./pages/Analytics";
 import VendorRegister from "./pages/VendorRegister";
 import Categories from "./pages/Categories";
+import Blogs from "./pages/Blogs";
 import Attributes from "./pages/Attributes";
 import Orders from "./pages/Orders";
 import EnquiryPage from "./pages/Enquire";
@@ -128,71 +129,79 @@ function App() {
           }
         >
           {/* Admin-only routes */}
-          <Route 
-            path="home" 
+          <Route
+            path="home"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Homepage user={user} />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="categories" 
+          <Route
+            path="blogs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Blogs />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="categories"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Categories />
               </ProtectedRoute>
-            } 
+            }
           />
-            <Route 
-            path="enquiry" 
+          <Route
+            path="enquiry"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <EnquiryPage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="attributes" 
+          <Route
+            path="attributes"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Attributes />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="analytics" 
+          <Route
+            path="analytics"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Analytics />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="orders" 
+          <Route
+            path="orders"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Orders />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="vendorRegister" 
+          <Route
+            path="vendorRegister"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <VendorRegister />
               </ProtectedRoute>
-            } 
+            }
           />
-         
-          
+
           {/* Shared route (both admin and vendor) */}
           <Route path="products" element={<Products />} />
         </Route>
 
         {/* Redirect root based on role */}
-        <Route 
-          path="*" 
+        <Route
+          path="*"
           element={
             isAuthenticated ? (
               isVendor ? (
@@ -203,7 +212,7 @@ function App() {
             ) : (
               <Navigate to="/login" />
             )
-          } 
+          }
         />
       </Routes>
     </Router>
