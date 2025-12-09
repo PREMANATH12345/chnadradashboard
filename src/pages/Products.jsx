@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
@@ -5025,9 +5026,7 @@ return (
                             }
                             className="w-4 h-4 text-green-600"
                           />
-                          <span className="text-sm text-gray-700">
-                            {opt.option_name}
-                          </span>
+                          <span className="text-sm text-gray-700">{opt.option_name}</span>
                         </label>
                       )
                     )}
@@ -6156,7 +6155,8 @@ return (
 
                                           {!fileOption.requiresPrice && (
                                             <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                              💡 Enquiry only - no price needed
+                                              💡 Enquiry only - no price
+                                              needed
                                             </p>
                                           )}
                                         </div>
