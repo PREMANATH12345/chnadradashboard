@@ -230,6 +230,7 @@ import Products from "./pages/Products";
 import Analytics from "./pages/Analytics";
 import VendorRegister from "./pages/VendorRegister";
 import Categories from "./pages/Categories";
+import Blogs from "./pages/Blogs";
 import Attributes from "./pages/Attributes";
 import Orders from "./pages/Orders";
 import EnquiryPage from "./pages/Enquire";
@@ -398,6 +399,7 @@ console.log("Role:", userData?.role);
             </ProtectedRoute>
           }
         >
+          {/* Admin-only routes */}
           <Route
             path="home"
             element={
@@ -407,6 +409,15 @@ console.log("Role:", userData?.role);
             }
           />
           <Route
+            path="blogs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Blogs />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="categories"
             element={
               <ProtectedRoute requireAdmin>
@@ -415,15 +426,31 @@ console.log("Role:", userData?.role);
             }
           />
           <Route
+            path="enquiry"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <EnquiryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="attributes"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Attributes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="analytics"
             element={
-              <ProtectedRoute requireAdmin>
+              <ProtectedRoute requireAdmin={true}>
                 <Analytics />
               </ProtectedRoute>
             }
           />
           <Route
-            path="enquiry"
+            path="orders"
             element={
               <ProtectedRoute requireAdmin>
                 <EnquiryPage />
@@ -454,20 +481,12 @@ console.log("Role:", userData?.role);
               </ProtectedRoute>
             }
           />
-          <Route
-            path="vendorDash"
-            element={
-              <ProtectedRoute requirevendor>
-                <VendorDash user={user} />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* ADMIN + VENDOR */}
+          {/* Shared route (both admin and vendor) */}
           <Route path="products" element={<Products />} />
         </Route>
 
-        {/* FALLBACK */}
+        {/* Redirect root based on role */}
         <Route
           path="*"
           element={
