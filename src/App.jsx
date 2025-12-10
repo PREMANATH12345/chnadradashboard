@@ -331,7 +331,7 @@ const handleLogout = () => {
   // Get values BEFORE clearing storage
 const userData = JSON.parse(localStorage.getItem("user")); 
 
-console.log("Role:", userData?.role);
+
 
   // Clear user data
   localStorage.clear();
@@ -478,6 +478,14 @@ console.log("Role:", userData?.role);
             element={
               <ProtectedRoute requireAdmin>
                 <VendorRegister />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="vendorDash"
+            element={
+              <ProtectedRoute requirevendor>
+                <VendorDash />
               </ProtectedRoute>
             }
           />
