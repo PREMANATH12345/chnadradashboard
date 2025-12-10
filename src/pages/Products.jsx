@@ -4320,7 +4320,7 @@ const saveProducts = async () => {
       };
 
       const status = isVendor ? 'pending' : 'approved';
-      const vendorId = isVendor ? user.id : null;
+      const vendorId = isVendor ? user?.vendor_id : null;
 
       const productRes = await axios.post(`${API_URL}/doAll`, {
         action: 'insert',

@@ -24,6 +24,41 @@ const authConfig = () => {
   };
 };
 
+export const ssoLogin = async ({ vendor_id, user_name }) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/auth/ssologin`,
+      { vendor_id, user_name },
+      authConfig()   
+);
+
+    const data = response.data;
+
+    if (data?.success) {
+      const { vendorToken, user } = data.data;
+       localStorage.clear();
+
+      localStorage.setItem("token", vendorToken);
+      localStorage.setItem("user", JSON.stringify(user));
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error("SSO Login Error:", error?.response || error);
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // Return backend error response if exists
+    if (error.response) {
+      return error.response.data;
+    }
+
+    throw error;
+  }
+};
+
 export const DoAll = async (params) => {
   try {
     const response = await axios.post(`${API_URL}/doAll`, params, authConfig());
