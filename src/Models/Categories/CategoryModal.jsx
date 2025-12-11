@@ -208,56 +208,126 @@ const CategoryModal = ({
     }
   }, [editingCategory, showModal]);
 
+// const fetchCategoryDetails = async () => {
+//   setLoading(true);
+//   try {
+//     setCategoryName(editingCategory.name);
+//     setCategorySlug(editingCategory.slug);
+    
+//     if (editingCategory.image_url) {
+//       setCategoryImage(editingCategory.image_url);
+//     }
+
+//     // Fetch existing style options
+//     const styleResponse = await DoAll({
+//       action: 'get',
+//       table: 'by_style',
+//       where: { 
+//         category_id: editingCategory.id,
+//         is_deleted: 0  
+//       }
+//     });
+
+//     // Fetch existing metal options
+//     const metalResponse = await DoAll({
+//       action: 'get',
+//       table: 'by_metal_and_stone',
+//       where: { 
+//         category_id: editingCategory.id,
+//         is_deleted: 0 
+//       }
+//     });
+
+//     setByStyleItems(
+//       styleResponse.data.success && styleResponse.data.data?.length > 0 
+//         ? styleResponse.data.data.map(item => item.name)
+//         : ['']
+//     );
+
+//     setByMetalItems(
+//       metalResponse.data.success && metalResponse.data.data?.length > 0
+//         ? metalResponse.data.data.map(item => item.name)
+//         : ['']
+//     );
+
+//   } catch (error) {
+//     console.error('Error fetching category details:', error);
+//     toast.error('Error loading category details');
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 const fetchCategoryDetails = async () => {
   setLoading(true);
   try {
-    setCategoryName(editingCategory.name);
-    setCategorySlug(editingCategory.slug);
+    setCategoryName(editingCategory.name || '');
+    setCategorySlug(editingCategory.slug || '');
     
     if (editingCategory.image_url) {
       setCategoryImage(editingCategory.image_url);
     }
 
-    // Fetch existing style options
-    const styleResponse = await DoAll({
-      action: 'get',
-      table: 'by_style',
-      where: { 
-        category_id: editingCategory.id,
-        is_deleted: 0  
-      }
-    });
+    // Check if styles and metals are already in editingCategory
+    if (editingCategory.styles && editingCategory.metals) {
+      // If data is already passed from parent component
+      setByStyleItems(
+        editingCategory.styles.length > 0 
+          ? editingCategory.styles.map(item => item.name)
+          : ['']
+      );
 
-    // Fetch existing metal options
-    const metalResponse = await DoAll({
-      action: 'get',
-      table: 'by_metal_and_stone',
-      where: { 
-        category_id: editingCategory.id,
-        is_deleted: 0 
-      }
-    });
+      setByMetalItems(
+        editingCategory.metals.length > 0
+          ? editingCategory.metals.map(item => item.name)
+          : ['']
+      );
+    } else {
+      // Fallback: fetch data from API
+      // Fetch existing style options
+      const styleResponse = await DoAll({
+        action: 'get',
+        table: 'by_style',
+        where: { 
+          category_id: editingCategory.id,
+          is_deleted: 0  
+        }
+      });
 
-    setByStyleItems(
-      styleResponse.data.success && styleResponse.data.data?.length > 0 
-        ? styleResponse.data.data.map(item => item.name)
-        : ['']
-    );
+      // Fetch existing metal options
+      const metalResponse = await DoAll({
+        action: 'get',
+        table: 'by_metal_and_stone',
+        where: { 
+          category_id: editingCategory.id,
+          is_deleted: 0 
+        }
+      });
 
-    setByMetalItems(
-      metalResponse.data.success && metalResponse.data.data?.length > 0
-        ? metalResponse.data.data.map(item => item.name)
-        : ['']
-    );
+      // ✅ FIX: Based on your Categories component, response.success is at root level
+      // NOT response.data.success
+      setByStyleItems(
+        styleResponse?.success && styleResponse.data?.length > 0 
+          ? styleResponse.data.map(item => item.name)
+          : ['']
+      );
+
+      setByMetalItems(
+        metalResponse?.success && metalResponse.data?.length > 0
+          ? metalResponse.data.map(item => item.name)
+          : ['']
+      );
+    }
 
   } catch (error) {
     console.error('Error fetching category details:', error);
     toast.error('Error loading category details');
+    // Set default empty arrays
+    setByStyleItems(['']);
+    setByMetalItems(['']);
   } finally {
     setLoading(false);
   }
 };
-
   const generateSlug = (name) => {
     return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };

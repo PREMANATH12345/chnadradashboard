@@ -235,7 +235,10 @@ import Attributes from "./pages/Attributes";
 import Orders from "./pages/Orders";
 import EnquiryPage from "./pages/Enquire";
 import VendorDash from "./pages/VendorDash";
+import Features from "./pages/Features";
+import TargetAudience from "./pages/TargetAudience";
 import { ssoLogin } from "./api/auth";
+
 
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
@@ -438,6 +441,22 @@ const userData = JSON.parse(localStorage.getItem("user"));
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Attributes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="Feature"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Features />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="Target"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <TargetAudience />
               </ProtectedRoute>
             }
           />

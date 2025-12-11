@@ -336,7 +336,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           } 
         }
       );
-      console.log("response",response);
+    
       if (response.data.success) {
         setPendingProducts(response.data.data || []);
       } else {
@@ -1351,12 +1351,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         `${API_URL}/doAll`,
         {
           action: "get",
-          table: "admin_users",
-          where: { role: "vendor", is_deleted: 0 },
+          table: "users",
+          where: { user_type: "vendor", is_deleted: 0 },
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      console.log("response",response);
       if (response.data.success) {
         setVendors(response.data.data);
       }
