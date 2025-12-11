@@ -31,6 +31,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
+    {
+      path: "Feature",
+      label: "feature",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+    {
+      path: "Target",
+      label: "target",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
 
     {
       path: "blogs",

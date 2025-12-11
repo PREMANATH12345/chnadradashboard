@@ -62,7 +62,7 @@ export const ssoLogin = async ({ vendor_id, user_name }) => {
 export const DoAll = async (params) => {
   try {
     const response = await axios.post(`${API_URL}/doAll`, params, authConfig());
-    console.log('API Response:', response.data); // Debug log
+    
     return response.data;
   } catch (error) {
     console.error('DoAll Error:', error);
