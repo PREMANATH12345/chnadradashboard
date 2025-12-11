@@ -44,6 +44,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <CubeIcon className="w-4" />,
       roles: ["admin", "vendor"], // Both can see
     },
+    {
+      path:"vendorDash",
+      label:"vendorDash",
+      icon:<CubeIcon className="w-4"/>,
+      roles:["vendor"]
+    },
 
     {
       path: "analytics",
