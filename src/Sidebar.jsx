@@ -39,12 +39,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       roles: ["admin"], // Only admin can see
     },
     {
+      path: "faqs",
+      label: "Faqs",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+    {
       path: "products",
       label: "Products",
       icon: <CubeIcon className="w-4" />,
       roles: ["admin", "vendor"], // Both can see
     },
 
+    {
+      path: "reviews",
+      label: "Reviews",
+      icon: <ChartBarIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
     {
       path: "analytics",
       label: "Analytics",

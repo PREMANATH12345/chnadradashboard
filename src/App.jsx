@@ -9,10 +9,12 @@ import Products from "./pages/Products";
 import Analytics from "./pages/Analytics";
 import VendorRegister from "./pages/VendorRegister";
 import Categories from "./pages/Categories";
-import Blogs from "./pages/Blogs";
+import Blogs from "./pages/blogs";
 import Attributes from "./pages/Attributes";
 import Orders from "./pages/Orders";
 import EnquiryPage from "./pages/Enquire";
+import Faqs from "./pages/Faq";
+import Reviews from "./pages/reviews";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -145,6 +147,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="faqs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Faqs />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="categories"
@@ -175,6 +185,14 @@ function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reviews"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Reviews />
               </ProtectedRoute>
             }
           />
