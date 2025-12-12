@@ -239,6 +239,8 @@ import Features from "./pages/Features";
 import TargetAudience from "./pages/TargetAudience";
 import { ssoLogin } from "./api/auth";
 
+import Users from "./pages/Users";
+
 
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
@@ -433,6 +435,14 @@ const userData = JSON.parse(localStorage.getItem("user"));
             element={
               <ProtectedRoute requireAdmin={true}>
                 <EnquiryPage />
+              </ProtectedRoute>
+            }
+          />
+                  <Route
+            path="users"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Users />
               </ProtectedRoute>
             }
           />
