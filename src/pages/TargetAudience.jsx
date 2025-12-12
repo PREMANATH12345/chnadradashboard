@@ -240,8 +240,8 @@ const TargetAudience = () => {
                 <Target className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800 mb-1">Gender Target Management</h1>
-                <p className="text-sm text-gray-600">Manage gender-based targeting settings</p>
+                <h1 className="text-xl font-bold text-gray-800 mb-1">Gender name Management</h1>
+                <p className="text-sm text-gray-600">Manage name-based targeting settings</p>
               </div>
             </div>
             <button
@@ -253,7 +253,7 @@ const TargetAudience = () => {
               className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Gender Target</span>
+              <span>Add name Target</span>
             </button>
           </div>
 
@@ -266,7 +266,7 @@ const TargetAudience = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search by gender or ID..."
+                placeholder="Search by name or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
@@ -291,7 +291,7 @@ const TargetAudience = () => {
                 onChange={(e) => setSelectedFilter(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm appearance-none"
               >
-                <option value="all">All Genders</option>
+                <option value="all">All name</option>
                 {uniqueGenders.map(gender => (
                   <option key={gender} value={gender}>
                     {gender.charAt(0).toUpperCase() + gender.slice(1)}
@@ -355,7 +355,7 @@ const TargetAudience = () => {
                     <Users className="w-4 h-4 text-emerald-600" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-600 transition-colors duration-200 line-clamp-1">
-                    Gender #{audience.id}
+                    name #{audience.id}
                   </h3>
                 </div>
                 <div className="flex space-x-1">
@@ -386,7 +386,7 @@ const TargetAudience = () => {
                 <div>
                   <div className="flex items-center space-x-1 mb-1">
                     <Target className="w-3.5 h-3.5 text-emerald-500" />
-                    <h4 className="text-xs font-semibold text-gray-700">Gender Value</h4>
+                    <h4 className="text-xs font-semibold text-gray-700">name Value</h4>
                   </div>
                   <div className="px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
                     <p className="text-sm font-medium text-gray-800">
@@ -486,7 +486,7 @@ const TargetAudience = () => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800">
-                {editingAudience ? 'Edit Gender Target' : 'Create Gender Target'}
+                {editingAudience ? 'Edit name Target' : 'Create name Target'}
               </h2>
               <button
                 onClick={() => {
@@ -499,7 +499,7 @@ const TargetAudience = () => {
               </button>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              {editingAudience ? 'Edit the gender value' : 'Enter a new gender value'}
+              {editingAudience ? 'Edit the name value' : 'Enter a new name value'}
             </p>
           </div>
 
@@ -507,7 +507,7 @@ const TargetAudience = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender Value *
+                  name Value *
                 </label>
                 <input
                   type="text"
@@ -528,7 +528,7 @@ const TargetAudience = () => {
                   type="submit"
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200"
                 >
-                  {editingAudience ? 'Update Gender Target' : 'Create Gender Target'}
+                  {editingAudience ? 'Update name Target' : 'Create name Target'}
                 </button>
                 <button
                   type="button"
