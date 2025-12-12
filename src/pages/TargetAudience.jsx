@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DoAll } from '../auth/api'; // Adjust path as needed
+import { DoAll } from '../auth/api';
 import toast from 'react-hot-toast';
 import { 
   Target,
@@ -8,38 +7,36 @@ import {
   Edit,
   Trash2,
   Loader,
-  Eye,
-  EyeOff,
+  Search,
+  Filter,
+  X,
   Users,
-  User,
 } from 'lucide-react';
 
 const TargetAudience = () => {
-  const navigate = useNavigate();
   const [targetAudiences, setTargetAudiences] = useState([]);
+  const [filteredAudiences, setFilteredAudiences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingAudience, setEditingAudience] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('created_at');
   const [formData, setFormData] = useState({
-    // Map to your database columns:
-    // 'gender' is the only column you have for gender data
-    gender: 'all', // 'all', 'male', 'female'
+    gender: '',
   });
-
-  // Gender options - simplified to match your database
-  const genderOptions = [
-    { value: 'all', label: 'All Genders', icon: Users, color: 'blue' },
-    { value: 'male', label: 'Male', icon: User, color: 'blue' },
-    { value: 'female', label: 'Female', icon: User, color: 'pink' },
-        { value: 'others', label: 'Others', icon: User, color: 'pink' },
-        { value: 'kids', label: 'Kids', icon: User, color: 'blue' }
-  ];
 
   // Fetch target audiences on component mount
   useEffect(() => {
     fetchTargetAudiences();
   }, []);
+
+  useEffect(() => {
+    applyFiltersAndSearch();
+  }, [targetAudiences, searchTerm, selectedFilter, sortBy]);
 
   const fetchTargetAudiences = async () => {
     try {
@@ -65,6 +62,43 @@ const TargetAudience = () => {
     }
   };
 
+  const applyFiltersAndSearch = () => {
+    let filtered = [...targetAudiences];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(audience =>
+        audience.gender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        audience.id?.toString().includes(searchTerm)
+      );
+    }
+
+    // Apply gender filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(audience => 
+        audience.gender === selectedFilter
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'gender':
+          return (a.gender || '').localeCompare(b.gender || '');
+        case 'gender-desc':
+          return (b.gender || '').localeCompare(a.gender || '');
+        case 'created_at':
+          return new Date(b.created_at) - new Date(a.created_at);
+        case 'created_at_asc':
+          return new Date(a.created_at) - new Date(b.created_at);
+        default:
+          return b.id - a.id;
+      }
+    });
+
+    setFilteredAudiences(filtered);
+  };
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -79,11 +113,14 @@ const TargetAudience = () => {
     e.preventDefault();
     
     try {
-      // Prepare data for API - ONLY gender data that matches your database
+      // Validate input
+      if (!formData.gender.trim()) {
+        toast.error('Please enter a gender value');
+        return;
+      }
+
       const apiData = {
-        gender: formData.gender,
-        // Don't send page_name, is_active, etc. since they don't exist in your database
-        // created_at and updated_at should be handled by your database or backend
+        gender: formData.gender.trim(),
       };
 
       let response;
@@ -102,15 +139,10 @@ const TargetAudience = () => {
         }
       } else {
         // Create new target audience
-        // For creation, you might need to send only gender
         response = await DoAll({
           action: 'insert',
           table: 'target_audience',
-          data: {
-            gender: formData.gender,
-            // Add other required fields if needed by your database
-           
-          }
+          data: apiData
         });
         
         if (response?.success) {
@@ -121,7 +153,7 @@ const TargetAudience = () => {
       if (response?.success) {
         setShowModal(false);
         setFormData({
-          gender: 'all',
+          gender: '',
         });
         setEditingAudience(null);
         fetchTargetAudiences();
@@ -138,7 +170,7 @@ const TargetAudience = () => {
   const handleEdit = (audience) => {
     setEditingAudience(audience);
     setFormData({
-      gender: audience.gender || 'all',
+      gender: audience.gender || '',
     });
     setShowModal(true);
   };
@@ -171,128 +203,40 @@ const TargetAudience = () => {
     }
   };
 
-  // Get gender info
-  const getGenderInfo = (gender) => {
-    const genderInfo = genderOptions.find(opt => opt.value === gender);
-    return genderInfo || genderOptions[0];
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedFilter('all');
+    setSortBy('created_at');
   };
 
-  // Get color classes
-  const getColorClasses = (color) => {
-    const colors = {
-      'blue': {
-        bg: 'bg-gradient-to-br from-blue-50 to-cyan-50',
-        text: 'text-blue-700',
-        border: 'border-blue-200',
-        gradient: 'from-blue-500 to-cyan-500',
-        button: 'bg-blue-500 hover:bg-blue-600'
-      },
-      'pink': {
-        bg: 'bg-gradient-to-br from-pink-50 to-rose-50',
-        text: 'text-pink-700',
-        border: 'border-pink-200',
-        gradient: 'from-pink-500 to-rose-500',
-        button: 'bg-pink-500 hover:bg-pink-600'
-      },
-    };
-    return colors[color] || colors.blue;
-  };
-
-  // Render target audience card - simplified
-  const renderTargetAudience = (audience) => {
-    const genderInfo = getGenderInfo(audience.gender);
-    const GenderIcon = genderInfo.icon;
-    const genderColors = getColorClasses(genderInfo.color);
-
-    return (
-      <div 
-        key={audience.id}
-        className={`${genderColors.bg} rounded-xl border ${genderColors.border} p-6 shadow-sm hover:shadow-md transition-all duration-300`}
-      >
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2.5 bg-gradient-to-br ${genderColors.gradient} rounded-lg`}>
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className={`text-lg font-bold ${genderColors.text} mb-1`}>
-                Gender Setting #{audience.id}
-              </h3>
-              <p className="text-sm text-gray-600">ID: {audience.id}</p>
-            </div>
-          </div>
-          
-          <div className="flex space-x-1">
-            <button
-              onClick={() => handleEdit(audience)}
-              className="p-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
-              title="Edit"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(audience.id)}
-              disabled={deletingId === audience.id}
-              className="p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 disabled:opacity-50"
-              title="Delete"
-            >
-              {deletingId === audience.id ? (
-                <Loader className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700 font-medium">Gender:</span>
-            <div className="flex items-center space-x-1">
-              <GenderIcon className={`w-4 h-4 ${genderColors.text}`} />
-              <span className={`font-semibold ${genderColors.text}`}>{genderInfo.label}</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700 font-medium">Status:</span>
-            <span className={`font-semibold ${audience.is_deleted === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {audience.is_deleted === 0 ? 'Active' : 'Deleted'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-          <span className="text-xs text-gray-500">
-            Created on {audience.created_at ? new Date(audience.created_at * 1000).toLocaleDateString() : 'N/A'}
-          </span>
-          <div className={`px-3 py-1 ${genderColors.text} ${genderColors.bg.split('bg-gradient')[0]} rounded-full text-xs font-medium`}>
-            {audience.gender.toUpperCase()}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Get unique genders for filter
+  const uniqueGenders = [...new Set(targetAudiences.map(audience => audience.gender))];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-3 text-emerald-600">
-          <Loader className="w-6 h-6 animate-spin" />
-          <span className="text-lg font-medium">Loading target audiences...</span>
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6">
+            <div className="flex items-center justify-center space-x-2 text-emerald-600">
+              <Loader className="w-5 h-5 animate-spin" />
+              <span className="text-base font-medium">Loading target audiences...</span>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  const hasActiveFilters = searchTerm || selectedFilter !== 'all' || sortBy !== 'created_at';
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg">
+              <div className="p-2 bg-emerald-500 rounded-lg">
                 <Target className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -303,66 +247,235 @@ const TargetAudience = () => {
             <button
               onClick={() => {
                 setEditingAudience(null);
-                setFormData({
-                  gender: 'all',
-                });
+                setFormData({ gender: '' });
                 setShowModal(true);
               }}
-              className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Add Gender Target</span>
             </button>
           </div>
 
-          {/* Stats - Simplified */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <div className="text-sm text-emerald-700 font-medium">Total Settings</div>
-              <div className="text-2xl font-bold text-emerald-800 mt-1">{targetAudiences.length}</div>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-sm text-blue-700 font-medium">Male Targeted</div>
-              <div className="text-2xl font-bold text-blue-800 mt-1">
-                {targetAudiences.filter(audience => audience.gender === 'male').length}
+          {/* Search and Filter Section */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
               </div>
+              <input
+                type="text"
+                placeholder="Search by gender or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
             </div>
-            <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
-              <div className="text-sm text-pink-700 font-medium">Female Targeted</div>
-              <div className="text-2xl font-bold text-pink-800 mt-1">
-                {targetAudiences.filter(audience => audience.gender === 'female').length}
+
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
               </div>
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm appearance-none"
+              >
+                <option value="all">All Genders</option>
+                {uniqueGenders.map(gender => (
+                  <option key={gender} value={gender}>
+                    {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex space-x-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              >
+                <option value="created_at">Sort by: Newest First</option>
+                <option value="created_at_asc">Sort by: Oldest First</option>
+                <option value="gender">Sort by: Gender A-Z</option>
+                <option value="gender-desc">Sort by: Gender Z-A</option>
+              </select>
+              
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-white hover:text-white border border-red-500 rounded-lg bg-red-500 hover:bg-red-600 transition-colors duration-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Results Count */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                Showing {filteredAudiences.length} of {targetAudiences.length} settings
+                {hasActiveFilters && ' (filtered)'}
+              </p>
+              
+              {hasActiveFilters && filteredAudiences.length === 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Target Audiences Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {targetAudiences.length > 0 ? (
-            targetAudiences.map(renderTargetAudience)
-          ) : (
-            <div className="col-span-full">
-              <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto text-center shadow-lg">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target className="w-8 h-8 text-emerald-500" />
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredAudiences.map(audience => (
+            <div 
+              key={audience.id} 
+              className="bg-white rounded-lg shadow-md border border-emerald-100 p-4 hover:shadow-lg transition-all duration-300 hover:border-emerald-300 group"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 bg-emerald-100 rounded-md">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-600 transition-colors duration-200 line-clamp-1">
+                    Gender #{audience.id}
+                  </h3>
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">No Gender Settings Yet</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Create your first gender target setting
-                </p>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => handleEdit(audience)}
+                    className="p-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-600 rounded-md transition-all duration-200 hover:scale-110"
+                    title="Edit Gender"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(audience.id)}
+                    disabled={deletingId === audience.id}
+                    className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-all duration-200 hover:scale-110 disabled:opacity-50"
+                    title="Delete Gender"
+                  >
+                    {deletingId === audience.id ? (
+                      <Loader className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Gender Value */}
+                <div>
+                  <div className="flex items-center space-x-1 mb-1">
+                    <Target className="w-3.5 h-3.5 text-emerald-500" />
+                    <h4 className="text-xs font-semibold text-gray-700">Gender Value</h4>
+                  </div>
+                  <div className="px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                    <p className="text-sm font-medium text-gray-800">
+                      {audience.gender}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Status and Info */}
+                <div className="space-y-2">
+                  {/* <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-700">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      audience.is_deleted === 0 
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                        : 'bg-red-100 text-red-700 border border-red-200'
+                    }`}>
+                      {audience.is_deleted === 0 ? 'Active' : 'Deleted'}
+                    </span>
+                  </div> */}
+                  
+                  {/* <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-700">Created:</span>
+                    <span className="text-xs text-gray-600">
+                      {audience.created_at ? new Date(audience.created_at * 1000).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div> */}
+                  
+                  {/* {audience.updated_at && audience.updated_at !== audience.created_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-700">Updated:</span>
+                      <span className="text-xs text-gray-600">
+                        {new Date(audience.updated_at * 1000).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )} */}
+                </div>
+                
+                {/* Gender Badge */}
+                {/* <div className="pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-center">
+                    <div className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-200">
+                      {audience.gender.toUpperCase()}
+                    </div>
+                  </div>
+                </div> */}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredAudiences.length === 0 && (
+          <div className="text-center py-12">
+            <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                {hasActiveFilters ? 'No gender settings found' : 'No Gender Settings Yet'}
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                {hasActiveFilters 
+                  ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                  : 'Get started by creating your first gender target setting'
+                }
+              </p>
+              {hasActiveFilters ? (
+                <button
+                  onClick={clearFilters}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                >
+                  Clear All Filters
+                </button>
+              ) : (
                 <button
                   onClick={() => {
                     setEditingAudience(null);
+                    setFormData({ gender: '' });
                     setShowModal(true);
                   }}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
                 >
-                  Create First Gender Setting
+                  Create Your First Setting
                 </button>
-              </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Modal */}
@@ -386,7 +499,7 @@ const TargetAudience = () => {
               </button>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Configure gender-based targeting
+              {editingAudience ? 'Edit the gender value' : 'Enter a new gender value'}
             </p>
           </div>
 
@@ -394,21 +507,20 @@ const TargetAudience = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Gender *
+                  Gender Value *
                 </label>
-                <select
+                <input
+                  type="text"
                   name="gender"
                   value={formData.gender}
                   onChange={handleInputChange}
                   required
+                  placeholder="Enter name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  {genderOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Note: Based on your database, valid values include: all, make, female, others, tasks
+                </p>
               </div>
 
               <div className="pt-4 space-y-3">
