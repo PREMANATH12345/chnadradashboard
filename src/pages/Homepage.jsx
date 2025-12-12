@@ -1445,44 +1445,168 @@ const Homepage = () => {
   };
 
   // Enhanced loadSections function - Load category data from collection_category with products
-  const loadSections = async () => {
-    try {
-      setLoading(true);
-      const token = getAuthToken();
+  // const loadSections = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getAuthToken();
       
-      // Load sections
-      const response = await fetch(`${API_URL}/doAll`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'get',
-          table: 'homepage_sections',
-          order_by: { order_position: 'ASC' }
-        })
-      });
+  //     // Load sections
+  //     const response = await fetch(`${API_URL}/doAll`, {
+  //       method: 'POST',
+  //       headers: { 
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       body: JSON.stringify({
+  //         action: 'get',
+  //         table: 'homepage_sections',
+  //         order_by: { order_position: 'ASC' }
+  //       })
+  //     });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
 
-      const result = await response.json();
+  //     const result = await response.json();
       
-      if (!result.success) {
-        throw new Error(result.message || 'API returned unsuccessful response');
-      }
+  //     if (!result.success) {
+  //       throw new Error(result.message || 'API returned unsuccessful response');
+  //     }
       
-      if (result.data && result.data.length > 0) {
-        const loadedSections = await Promise.all(
-          result.data.map(async (row) => {
-            try {
-              // Parse section data with fallback
-              const sectionData = JSON.parse(row.section_data || '{}');
+  //     if (result.data && result.data.length > 0) {
+  //       const loadedSections = await Promise.all(
+  //         result.data.map(async (row) => {
+  //           try {
+  //             // Parse section data with fallback
+  //             const sectionData = JSON.parse(row.section_data || '{}');
               
-              // For category-highlight sections, load ALL data from collection_category
-              if (row.type === 'category-highlight') {
+  //             // For category-highlight sections, load ALL data from collection_category
+  //             if (row.type === 'category-highlight') {
+  //               const categoryResponse = await fetch(`${API_URL}/doAll`, {
+  //                 method: 'POST',
+  //                 headers: { 
+  //                   'Content-Type': 'application/json',
+  //                   'Authorization': `Bearer ${token}`
+  //                 },
+  //                 body: JSON.stringify({
+  //                   action: 'get',
+  //                   table: 'collection_category',
+  //                   where: { 
+  //                     section_id: row.id,
+  //                     is_deleted: 0 
+  //                   },
+  //                   order_by: { display_order: 'ASC' }
+  //                 })
+  //               });
+
+  //               if (!categoryResponse.ok) {
+  //                 console.warn(`Failed to load category data for section ${row.id}`);
+  //                 sectionData.items = [];
+  //               } else {
+  //                 const categoryResult = await categoryResponse.json();
+                  
+  //                 if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
+  //                   // Create items from collection_category data
+  //                   sectionData.items = categoryResult.data.map(catItem => {
+  //                     const images = JSON.parse(catItem.images || '[]');
+  //                     const selectedProducts = JSON.parse(catItem.selected_products || '[]');
+  //                     return {
+  //                       id: catItem.id,
+  //                       title: catItem.title || '',
+  //                       image: images[0] || '',
+  //                       selectedCategories: [catItem.category_id], // Store category ID
+  //                       selectedProducts: selectedProducts // Store selected products
+  //                     };
+  //                   });
+  //                 } else {
+  //                   sectionData.items = [];
+  //                 }
+  //               }
+  //             }
+              
+  //             return {
+  //               id: row.id,
+  //               name: row.name,
+  //               type: row.type,
+  //               enabled: row.enabled === 1,
+  //               order: row.order_position,
+  //               data: sectionData
+  //             };
+  //           } catch (sectionError) {
+  //             console.error(`Error processing section ${row.id}:`, sectionError);
+  //             // Return a basic section even if category data fails
+  //             return {
+  //               id: row.id,
+  //               name: row.name,
+  //               type: row.type,
+  //               enabled: row.enabled === 1,
+  //               order: row.order_position,
+  //               data: { items: [] }
+  //             };
+  //           }
+  //         })
+  //       );
+        
+  //       // Filter out any null sections and set state
+  //       const validSections = loadedSections.filter(section => section !== null);
+  //       setSections(validSections);
+  //     } else {
+  //       setSections([]);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error loading sections:', error);
+  //     alert('Failed to load sections from database: ' + error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // Enhanced loadSections function - Load category data from collection_category with products
+const loadSections = async () => {
+  try {
+    setLoading(true);
+    const token = getAuthToken();
+    
+    // Load sections
+    const response = await fetch(`${API_URL}/doAll`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        action: 'get',
+        table: 'homepage_sections',
+        order_by: { order_position: 'ASC' }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'API returned unsuccessful response');
+    }
+    
+    if (result.data && result.data.length > 0) {
+      const loadedSections = await Promise.all(
+        result.data.map(async (row) => {
+          try {
+            // Parse section data with fallback
+            const sectionData = JSON.parse(row.section_data || '{}');
+            
+            // For category-highlight sections, load ALL data from collection_category
+            if (row.type === 'category-highlight') {
+              // REMOVE THIS PART: Don't load existing category data for new sections
+              // Clear items array for category-highlight sections
+              sectionData.items = [];
+              
+              // Or if you want to conditionally load only for existing sections:
+              // Check if section has existing data before loading
+              if (sectionData.items && sectionData.items.length > 0) {
                 const categoryResponse = await fetch(`${API_URL}/doAll`, {
                   method: 'POST',
                   headers: { 
@@ -1523,44 +1647,48 @@ const Homepage = () => {
                     sectionData.items = [];
                   }
                 }
+              } else {
+                // If no items in section_data, keep it empty
+                sectionData.items = [];
               }
-              
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: sectionData
-              };
-            } catch (sectionError) {
-              console.error(`Error processing section ${row.id}:`, sectionError);
-              // Return a basic section even if category data fails
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: { items: [] }
-              };
             }
-          })
-        );
-        
-        // Filter out any null sections and set state
-        const validSections = loadedSections.filter(section => section !== null);
-        setSections(validSections);
-      } else {
-        setSections([]);
-      }
-    } catch (error) {
-      console.error('Error loading sections:', error);
-      alert('Failed to load sections from database: ' + error.message);
-    } finally {
-      setLoading(false);
+            
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: sectionData
+            };
+          } catch (sectionError) {
+            console.error(`Error processing section ${row.id}:`, sectionError);
+            // Return a basic section even if category data fails
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: { items: [] }
+            };
+          }
+        })
+      );
+      
+      // Filter out any null sections and set state
+      const validSections = loadedSections.filter(section => section !== null);
+      setSections(validSections);
+    } else {
+      setSections([]);
     }
-  };
+  } catch (error) {
+    console.error('Error loading sections:', error);
+    alert('Failed to load sections from database: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadSections();
@@ -2246,14 +2374,107 @@ case 'feature-section':
             redirectToCategory: false,
             imageCategories: [null, null, null, null]
           };
+        // case 'category-highlight':
+        //   return {
+        //     id,
+        //     title: '',
+        //     image: '',
+        //     selectedCategories: [],
+        //     selectedProducts: []
+        //   };
         case 'category-highlight':
-          return {
-            id,
-            title: '',
-            image: '',
-            selectedCategories: [],
-            selectedProducts: []
-          };
+  return (
+    <div className="space-y-6">
+      {/* Bulk Upload Section */}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+          <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Bulk Upload (Max 10 images)</h3>
+          <button
+            onClick={() => setShowBulkUpload(!showBulkUpload)}
+            className="text-blue-600 hover:text-blue-700 text-sm self-end sm:self-auto"
+          >
+            {showBulkUpload ? 'Hide' : 'Show'} Bulk Upload
+          </button>
+        </div>
+        {showBulkUpload && (
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleBulkImageUpload(e, handleBulkUploadComplete)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              id="bulk-upload"
+            />
+            <label
+              htmlFor="bulk-upload"
+              className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base"
+            >
+              <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+              Upload Multiple Images (Max 10)
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Show message when no items exist */}
+      {(!formData.items || formData.items.length === 0) ? (
+        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Plus className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Category Highlights Added</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Start by adding your first category highlight below
+            </p>
+            <button
+              onClick={addItem}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 mx-auto text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Add First Category Highlight
+            </button>
+          </div>
+        </div>
+      ) : (
+        // Render existing items
+        formData.items.map((item, idx) => (
+          <div key={item.id || idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+            {/* ... rest of the category highlight item rendering ... */}
+          </div>
+        ))
+      )}
+      
+      {/* Only show "Add Category Highlight" button if there are already items */}
+      {formData.items && formData.items.length > 0 && (
+        <button
+          onClick={addItem}
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          Add Category Highlight
+        </button>
+      )}
+      
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <button
+          onClick={() => saveSection(section.id, formData)}
+          className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Save className="w-4 h-4" />
+          Save Changes
+        </button>
+        <button
+          onClick={() => deleteSection(section.id)}
+          className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Section
+        </button>
+      </div>
+    </div>
+  );
         case 'story-upload':
           return {
             id,
