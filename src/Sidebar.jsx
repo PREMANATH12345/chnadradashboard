@@ -76,6 +76,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <ChartBarIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
+      {
+      path: "users",
+      label: "Users",
+      icon: <ChartBarIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
     {
       path: "orders",
       label: "Orders",
