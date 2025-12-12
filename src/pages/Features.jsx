@@ -1,29 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DoAll } from '../auth/api'; // Adjust path as needed
+import { DoAll } from '../auth/api';
 import toast from 'react-hot-toast';
 import { 
   TrendingUp, 
-  Award, 
   Sparkles, 
   ChevronRight, 
-  Star, 
-  Clock, 
-  Zap,
+  Edit, 
+  Trash2, 
+  Loader, 
+  Eye, 
+  EyeOff, 
+  X,
   Plus,
-  Edit,
-  Trash2,
-  Loader,
-  Grid,
-  Layout,
-  Eye,
-  EyeOff,
-  X
+  Search,
+  Filter,
+  Clock,
+  CheckCircle,
+  XCircle,
+  SortAsc,
+  Grid
 } from 'lucide-react';
 
 const Features = () => {
   const navigate = useNavigate();
   const [featureOptions, setFeatureOptions] = useState([]);
+  const [filteredFeatures, setFilteredFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingOption, setEditingOption] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -32,10 +34,19 @@ const Features = () => {
     title: ''
   });
 
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+
   // Fetch feature options on component mount
   useEffect(() => {
     fetchFeatureOptions();
   }, []);
+
+  useEffect(() => {
+    applyFiltersAndSearch();
+  }, [featureOptions, searchTerm, selectedFilter, sortBy]);
 
   const fetchFeatureOptions = async () => {
     try {
@@ -59,6 +70,51 @@ const Features = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFiltersAndSearch = () => {
+    let filtered = [...featureOptions];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(option =>
+        option.title?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (selectedFilter !== 'all') {
+      switch (selectedFilter) {
+        case 'active':
+          filtered = filtered.filter(option => option.is_active === 1);
+          break;
+        case 'inactive':
+          filtered = filtered.filter(option => option.is_active === 0);
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'name-desc':
+          return (b.title || '').localeCompare(a.title || '');
+        case 'newest':
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        case 'oldest':
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        case 'active':
+          return (b.is_active || 0) - (a.is_active || 0);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredFeatures(filtered);
   };
 
   // Handle form input changes - Only title field
@@ -171,15 +227,16 @@ const Features = () => {
   // Toggle active status
   const toggleActiveStatus = async (option) => {
     try {
+      const newStatus = option.is_active ? 0 : 1;
       const response = await DoAll({
         action: 'update',
         table: 'feature_options',
-        data: { is_active: option.is_active ? 0 : 1 },
+        data: { is_active: newStatus },
         where: { id: option.id }
       });
       
       if (response?.success) {
-        toast.success(`Feature section ${option.is_active ? 'deactivated' : 'activated'}!`);
+        toast.success(`Feature section ${newStatus ? 'activated' : 'deactivated'}!`);
         fetchFeatureOptions();
       }
     } catch (error) {
@@ -188,88 +245,24 @@ const Features = () => {
     }
   };
 
-  // Render feature section - Simplified version
-  const renderFeatureSection = (option) => {
-    return (
-      <div 
-        key={option.id}
-        className={`bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 ${
-          !option.is_active ? 'opacity-60' : ''
-        }`}
-      >
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-emerald-700 mb-1">{option.title}</h3>
-              <p className="text-sm text-gray-600">Feature Section</p>
-            </div>
-          </div>
-          
-          <div className="flex space-x-1">
-            <button
-              onClick={() => toggleActiveStatus(option)}
-              className={`p-1.5 rounded-md ${
-                option.is_active 
-                  ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              title={option.is_active ? 'Deactivate' : 'Activate'}
-            >
-              {option.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={() => handleEdit(option)}
-              className="p-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
-              title="Edit"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(option.id)}
-              disabled={deletingId === option.id}
-              className="p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 disabled:opacity-50"
-              title="Delete"
-            >
-              {deletingId === option.id ? (
-                <Loader className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-gray-700 font-medium">ID:</span>
-            <span className="font-semibold text-gray-800">#{option.id}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            {option.is_active ? 'Active' : 'Inactive'} • ID: {option.id}
-          </span>
-          <button
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center space-x-1"
-          >
-            <span>View</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedFilter('all');
+    setSortBy('name');
   };
+
+  const hasActiveFilters = searchTerm || selectedFilter !== 'all' || sortBy !== 'name';
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-3 text-emerald-600">
-          <Loader className="w-6 h-6 animate-spin" />
-          <span className="text-lg font-medium">Loading feature sections...</span>
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6">
+            <div className="flex items-center justify-center space-x-2 text-emerald-600">
+              <Loader className="w-5 h-5 animate-spin" />
+              <span className="text-base font-medium">Loading feature sections...</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -279,15 +272,15 @@ const Features = () => {
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-5 mb-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg">
+              <div className="p-2 bg-emerald-500 rounded-lg">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-800 mb-1">Feature Sections Management</h1>
-                <p className="text-sm text-gray-600">Manage feature sections</p>
+                <p className="text-sm text-gray-600">Manage your feature sections and their content</p>
               </div>
             </div>
             <button
@@ -296,7 +289,7 @@ const Features = () => {
                 setFormData({ title: '' });
                 setShowModal(true);
               }}
-              className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Add Feature Section</span>
@@ -304,14 +297,14 @@ const Features = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <div className="text-sm text-emerald-700 font-medium">Total Sections</div>
               <div className="text-2xl font-bold text-emerald-800 mt-1">{featureOptions.length}</div>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-sm text-blue-700 font-medium">Active Sections</div>
-              <div className="text-2xl font-bold text-blue-800 mt-1">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="text-sm text-green-700 font-medium">Active Sections</div>
+              <div className="text-2xl font-bold text-green-800 mt-1">
                 {featureOptions.filter(opt => opt.is_active).length}
               </div>
             </div>
@@ -321,40 +314,248 @@ const Features = () => {
                 {featureOptions.filter(opt => !opt.is_active).length}
               </div>
             </div>
+          </div> */}
+
+          {/* Search and Filter Section */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search sections by title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm appearance-none"
+              >
+                <option value="all">All Sections</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+              </select>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex space-x-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
+              >
+                <option value="name">Sort by: Title A-Z</option>
+                <option value="name-desc">Sort by: Title Z-A</option>
+                <option value="newest">Sort by: Newest First</option>
+                <option value="oldest">Sort by: Oldest First</option>
+                <option value="active">Sort by: Active First</option>
+              </select>
+              
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-gray-100 hover:text-gray-800 border border-gray-300 rounded-lg bg-red-500 transition-colors duration-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Results Count */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                Showing {filteredFeatures.length} of {featureOptions.length} sections
+                {hasActiveFilters && ' (filtered)'}
+              </p>
+              
+              {hasActiveFilters && filteredFeatures.length === 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Feature Sections Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {featureOptions.length > 0 ? (
-            featureOptions.map(renderFeatureSection)
-          ) : (
-            <div className="col-span-full">
-              <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto text-center shadow-lg">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-emerald-500" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredFeatures.map(option => (
+            <div 
+              key={option.id}
+              className={`bg-white rounded-lg shadow-md border ${
+                option.is_active ? 'border-emerald-200 hover:border-emerald-300' : 'border-gray-200 hover:border-gray-300'
+              } p-4 hover:shadow-lg transition-all duration-300 group`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center space-x-3">
+                  {/* <div className={`p-2 rounded-lg ${
+                    option.is_active 
+                      ? 'bg-gradient-to-br from-emerald-500 to-green-500' 
+                      : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                  }`}>
+                    
+                  </div> */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-600 transition-colors duration-200">
+                      {option.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">Feature Section</p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">No Feature Sections Yet</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Create your first feature section
-                </p>
+                
+                <div className="flex space-x-1">
+                  {/* <button
+                    onClick={() => toggleActiveStatus(option)}
+                    className={`p-1.5 rounded-md transition-all duration-200 hover:scale-110 ${
+                      option.is_active 
+                        ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    title={option.is_active ? 'Deactivate' : 'Activate'}
+                  >
+                    {option.is_active ? (
+                      <Eye className="w-3.5 h-3.5" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    )}
+                  </button> */}
+                  <button
+                    onClick={() => handleEdit(option)}
+                    className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-md transition-all duration-200 hover:scale-110"
+                    title="Edit"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(option.id)}
+                    disabled={deletingId === option.id}
+                    className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-all duration-200 hover:scale-110 disabled:opacity-50"
+                    title="Delete"
+                  >
+                    {deletingId === option.id ? (
+                      <Loader className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Status Badge */}
+                {/* <div className="flex items-center space-x-2">
+                  {option.is_active ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                        Active
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs font-medium text-gray-700 bg-gray-50 px-2 py-1 rounded-full">
+                        Inactive
+                      </span>
+                    </>
+                  )}
+                </div> */}
+
+                {/* ID Section */}
+                {/* <div>
+                  <h4 className="text-xs font-semibold text-gray-700 mb-1">Section ID</h4>
+                  <p className="text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
+                    #{option.id}
+                  </p>
+                </div> */}
+
+                {/* Created Date */}
+                {/* {option.created_at && (
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-xs">
+                      Created: {new Date(option.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                )} */}
+              </div>
+
+              {/* Footer Actions */}
+              {/* <div className="mt-4 pt-4 border-t border-gray-100">
+                <button
+                  className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 hover:border-emerald-300 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-1 group/btn"
+                >
+                  <span>Manage Content</span>
+                  <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+                </button>
+              </div> */}
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredFeatures.length === 0 && (
+          <div className="text-center py-12">
+            <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                {hasActiveFilters ? 'No sections found' : 'No Feature Sections Yet'}
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                {hasActiveFilters 
+                  ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                  : 'Create your first feature section to highlight products or content'
+                }
+              </p>
+              {hasActiveFilters ? (
+                <button
+                  onClick={clearFilters}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                >
+                  Clear All Filters
+                </button>
+              ) : (
                 <button
                   onClick={() => {
                     setEditingOption(null);
                     setFormData({ title: '' });
                     setShowModal(true);
                   }}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
                 >
-                  Create First Feature Section
+                  Create Your First Section
                 </button>
-              </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Right Side Modal - Simplified */}
+      {/* Right Side Modal */}
       {showModal && (
         <>
           {/* Backdrop */}
@@ -413,7 +614,7 @@ const Features = () => {
                   </div>
 
                   {/* Preview */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  {/* <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">Preview</h3>
                     <div className="flex items-center space-x-3">
                       <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg">
@@ -426,7 +627,7 @@ const Features = () => {
                         <p className="text-sm text-gray-600 mt-1">Feature Section</p>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </form>
               </div>
 

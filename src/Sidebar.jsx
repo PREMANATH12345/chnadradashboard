@@ -33,13 +33,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
     },
     {
       path: "Feature",
-      label: "feature",
+      label: "Feature",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
     {
       path: "Target",
-      label: "target",
+      label: "Target",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
