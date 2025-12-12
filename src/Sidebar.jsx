@@ -19,27 +19,28 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <HomeIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
-    {
-      path: "categories",
-      label: "Categories",
-      icon: <RectangleStackIcon className="w-4" />,
-      roles: ["admin"], // Only admin can see
-    },
-    {
+        {
       path: "attributes",
       label: "Attributes",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
     {
-      path: "Feature",
-      label: "feature",
+      path: "categories",
+      label: "Categories",
+      icon: <RectangleStackIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+
+    {
+      path: "feature",
+      label: "Featured Collection",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
     {
-      path: "Target",
-      label: "target",
+      path: "target",
+      label: "Target Audience" ,
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
