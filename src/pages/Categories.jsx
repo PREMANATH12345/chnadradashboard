@@ -167,12 +167,33 @@ const fetchAllCategoryDetails = async (categoriesData) => {
     setShowModal(true);
   };
 
-  const handleEdit = (category) => {
+  // const handleEdit = (category) => {
+  //   setEditingCategory(category);
+  //   setShowModal(true);
+  // };
+
+const handleEdit = async (category) => {
+  try {
+    // Get the details from categoryDetails state (which was already fetched)
+    const details = categoryDetails[category.id] || { styles: [], metals: [] };
+    
+    // Create a category object with all the details
+    const categoryWithDetails = {
+      ...category,
+      styles: Array.isArray(details.styles) ? details.styles : [],
+      metals: Array.isArray(details.metals) ? details.metals : []
+    };
+
+    setEditingCategory(categoryWithDetails);
+    setShowModal(true);
+  } catch (error) {
+    console.error('Error preparing category for edit:', error);
+    toast.error('Error loading category details');
+    // Fallback with just basic category data
     setEditingCategory(category);
     setShowModal(true);
-  };
-
-
+  }
+};
 
 const handleDelete = async (categoryId) => {
   if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {

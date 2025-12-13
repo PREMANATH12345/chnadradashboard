@@ -29,15 +29,21 @@ const Attributes = ({ onBack }) => {
     applyFiltersAndSearch();
   }, [attributes, searchTerm, selectedFilter, sortBy]);
 
-const fetchAttributes = async () => {
-  try {
-    // First fetch all attributes
-    const response = await DoAll({ 
-      action: 'get', 
-      table: 'attributes' 
-    });
-    
-    if (response.data.success) {
+  const fetchAttributes = async () => {
+    try {
+      setLoading(true);
+      
+      // First fetch all attributes
+      const response = await DoAll({ 
+        action: 'get', 
+        table: 'attributes' 
+      });
+      
+      // ✅ FIX: Check the correct response structure
+      if (!response?.success) {
+        throw new Error('Invalid API response structure');
+      }
+      
       const grouped = { 
         metal: { id: null, options: [], type: 'metal', name: 'Choice of Metal' }, 
         diamond: { id: null, options: [], type: 'diamond', name: 'Diamond Quality' }, 
@@ -45,8 +51,9 @@ const fetchAttributes = async () => {
       };
       
       // Process attributes and fetch their options
-      const attributesData = response.data.data;
+      const attributesData = response.data || [];
       
+      // Process each attribute
       for (const attr of attributesData) {
         if (grouped.hasOwnProperty(attr.type)) {
           // Fetch options for this attribute
@@ -58,47 +65,65 @@ const fetchAttributes = async () => {
               where: { attribute_id: attr.id }
             });
             
-            if (optionsResponse.data.success) {
-              options = optionsResponse.data.data || [];
+            // ✅ FIX: Check the correct response structure
+            if (optionsResponse?.success) {
+              options = optionsResponse.data || [];
             }
           } catch (error) {
             console.error(`Error fetching options for attribute ${attr.id}:`, error);
+            options = [];
           }
           
           grouped[attr.type] = { 
             ...grouped[attr.type], 
             id: attr.id, 
+            name: attr.name || grouped[attr.type].name,
             options: options 
           };
         }
       }
       
       setAttributes(grouped);
+    } catch (error) {
+      console.error('Fetch attributes error:', error);
+      toast.error('Error loading attributes');
+      // Set default attributes on error
+      setAttributes({
+        metal: { id: null, options: [], type: 'metal', name: 'Choice of Metal' },
+        diamond: { id: null, options: [], type: 'diamond', name: 'Diamond Quality' },
+        size: { id: null, options: [], type: 'size', name: 'Size' }
+      });
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Fetch attributes error:', error);
-    toast.error('Error loading attributes');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const applyFiltersAndSearch = () => {
+    // Convert attributes object to array for filtering
     const attributeTypes = ['metal', 'diamond', 'size'];
-    let filtered = attributeTypes.map(type => ({
-      type,
-      ...attributes[type]
-    }));
+    let filtered = attributeTypes.map(type => {
+      const attr = attributes[type];
+      return {
+        type,
+        ...attr,
+        name: attr?.name || type.charAt(0).toUpperCase() + type.slice(1),
+        options: attr?.options || []
+      };
+    });
 
     // Apply search filter
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(attr => {
-        const attrName = attr.name || '';
-        const optionsText = attr.options?.map(opt => opt.option_name || '').join(' ') || '';
+        const attrName = (attr.name || '').toLowerCase();
+        const optionsText = (attr.options || [])
+          .map(opt => opt.option_name || '')
+          .join(' ')
+          .toLowerCase();
         
         return (
-          attrName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          optionsText.toLowerCase().includes(searchTerm.toLowerCase())
+          attrName.includes(searchLower) ||
+          optionsText.includes(searchLower)
         );
       });
     }
@@ -120,7 +145,7 @@ const fetchAttributes = async () => {
       });
     }
 
-    // Apply sorting - FIXED: Added null checks
+    // Apply sorting with proper fallbacks
     filtered.sort((a, b) => {
       const aName = a.name || '';
       const bName = b.name || '';
@@ -161,12 +186,15 @@ const fetchAttributes = async () => {
       const response = await DoAll({
         action: 'delete',
         table: 'attribute_options',
-        where: {id:optionId}
+        where: { id: optionId }
       });
       
-      if (response.data.success) {
+      // ✅ FIX: Check response.success
+      if (response?.success) {
         toast.success('Option deleted successfully!');
         fetchAttributes();
+      } else {
+        throw new Error('Failed to delete option');
       }
     } catch (error) {
       console.error('Delete option error:', error);
@@ -177,7 +205,7 @@ const fetchAttributes = async () => {
   const handleDeleteAttribute = async (attributeType) => {
     if (!confirm('Are you sure you want to delete this entire attribute? This will delete all its options.')) return;
 
-    const attributeId = attributes[attributeType].id;
+    const attributeId = attributes[attributeType]?.id;
     if (!attributeId) {
       toast.error('No attribute found to delete');
       return;
@@ -186,21 +214,31 @@ const fetchAttributes = async () => {
     setDeletingId(attributeType);
     try {
       // First delete all options
-      await DoAll({
+      const deleteOptionsResponse = await DoAll({
         action: 'delete',
         table: 'attribute_options',
         where: { attribute_id: attributeId }
       });
 
+      // ✅ FIX: Check response.success
+      if (!deleteOptionsResponse?.success) {
+        console.warn('Failed to delete some options, continuing with attribute deletion');
+      }
+
       // Then delete the attribute
-      await DoAll({
+      const deleteAttributeResponse = await DoAll({
         action: 'delete',
         table: 'attributes',
-        where: {id:attributeId}
+        where: { id: attributeId }
       });
       
-      toast.success('Attribute deleted successfully!');
-      fetchAttributes();
+      // ✅ FIX: Check response.success
+      if (deleteAttributeResponse?.success) {
+        toast.success('Attribute deleted successfully!');
+        fetchAttributes();
+      } else {
+        throw new Error('Failed to delete attribute');
+      }
     } catch (error) {
       console.error('Delete attribute error:', error);
       toast.error('Error deleting attribute');
@@ -273,7 +311,13 @@ const fetchAttributes = async () => {
                 <p className="text-sm text-gray-600">Manage product attributes like Metal, Diamond, and Size options</p>
               </div>
             </div>
-           
+            <button
+              onClick={handleAddNew}
+              className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Attribute</span>
+            </button>
           </div>
 
           {/* Search and Filter Section */}
@@ -343,9 +387,17 @@ const fetchAttributes = async () => {
             {/* Results Count */}
             <div className="flex justify-between items-center">
               <p className="text-sm text-gray-600">
-                Showing {filteredAttributes.length} of 3 attribute types
+                Showing {filteredAttributes.length} of {Object.keys(attributes).length} attribute types
                 {hasActiveFilters && ' (filtered)'}
               </p>
+              {hasActiveFilters && filteredAttributes.length === 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -355,6 +407,7 @@ const fetchAttributes = async () => {
           {filteredAttributes.map(attribute => {
             const colors = getAttributeColor(attribute.type);
             const options = attribute.options || [];
+            const attributeId = attribute.id;
             
             return (
               <div 
@@ -368,7 +421,7 @@ const fetchAttributes = async () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-600 transition-colors duration-200">
-                        {attribute.name}
+                        {attribute.name || attribute.type}
                       </h3>
                       <p className="text-sm text-gray-500 capitalize">{attribute.type}</p>
                     </div>
@@ -381,18 +434,20 @@ const fetchAttributes = async () => {
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => handleDeleteAttribute(attribute.type)}
-                      disabled={deletingId === attribute.type}
-                      className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-110 disabled:opacity-50"
-                      title="Delete Attribute"
-                    >
-                      {deletingId === attribute.type ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
+                    {attributeId && (
+                      <button
+                        onClick={() => handleDeleteAttribute(attribute.type)}
+                        disabled={deletingId === attribute.type}
+                        className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-all duration-200 hover:scale-110 disabled:opacity-50"
+                        title="Delete Attribute"
+                      >
+                        {deletingId === attribute.type ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
                 
@@ -401,7 +456,7 @@ const fetchAttributes = async () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-gray-700">Options</span>
                     <span className={`px-2 py-1 ${colors.bg} ${colors.text} ${colors.border} rounded-full text-xs font-bold`}>
-                      {options.length} options
+                      {options.length} {options.length === 1 ? 'option' : 'options'}
                     </span>
                   </div>
                   
@@ -413,31 +468,19 @@ const fetchAttributes = async () => {
                         options.map(option => (
                           <div 
                             key={option.id} 
-                            className="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg border border-gray-200 group/option hover:bg-white hover:border-emerald-200 transition-all duration-200"
+                            className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200 group/option hover:bg-white hover:border-emerald-200 transition-all duration-200"
                           >
-                          <div className="flex-1">
-  <div className="text-sm text-gray-800 flex items-center gap-3">
-
-    {/* Option Name */}
-    <span className="font-medium">{option.option_name}</span>
-
-    {/* Option Value */}
-    {option.option_value && option.option_value !== option.option_name && (
-      <span className="text-gray-500 text-xs">
-        • Value: {option.option_value}
-      </span>
-    )}
-
-    {/* Size */}
-    {attribute.type === "size" && option.size_mm && (
-      <span className="text-gray-500 text-xs">
-        • Size: {option.size_mm}mm
-      </span>
-    )}
-
-  </div>
-</div>
-
+                            <div className="flex-1">
+                              <div className="text-sm text-gray-800">
+                                <span className="font-medium">{option.option_name || 'Unnamed Option'}</span>
+                                {option.option_value && option.option_value !== option.option_name && (
+                                  <span className="text-gray-500 text-xs ml-2">• Value: {option.option_value}</span>
+                                )}
+                                {attribute.type === "size" && option.size_mm && (
+                                  <span className="text-gray-500 text-xs ml-2">• Size: {option.size_mm}mm</span>
+                                )}
+                              </div>
+                            </div>
                             <button
                               onClick={() => handleDeleteOption(option.id, attribute.type)}
                               className="opacity-0 group-hover/option:opacity-100 p-1 bg-red-100 hover:bg-red-200 text-red-600 rounded transition-all duration-200 ml-2"
@@ -469,7 +512,7 @@ const fetchAttributes = async () => {
                     className="w-full flex items-center justify-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Add New Option</span>
+                    <span>{options.length === 0 ? 'Add First Option' : 'Add New Option'}</span>
                   </button>
                 </div>
               </div>
@@ -493,12 +536,19 @@ const fetchAttributes = async () => {
                   : 'Attributes will appear here once they are configured in the system.'
                 }
               </p>
-              {hasActiveFilters && (
+              {hasActiveFilters ? (
                 <button
                   onClick={clearFilters}
                   className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
                 >
                   Clear All Filters
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddNew}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
+                >
+                  Create First Attribute
                 </button>
               )}
             </div>

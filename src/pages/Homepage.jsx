@@ -38,7 +38,7 @@ const ImageUpload = ({ currentValue, onUpdate, label = "Image", recommendedSize 
       formData.append('images', file);
 
       const token = localStorage.getItem('token');
-const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
+      const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
       const response = await fetch(`${API_URL}/upload-images`, {
         method: 'POST',
         headers: {
@@ -50,7 +50,6 @@ const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
       const result = await response.json();
       
       if (result.success && result.data.images && result.data.images.length > 0) {
-        // FIXED: Backend returns data.images, not data.paths
         const serverPath = result.data.images[0].url;
         onUpdate(serverPath);
         URL.revokeObjectURL(previewUrl);
@@ -200,6 +199,1176 @@ const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
   );
 };
 
+// Add this VideoUpload component near the ImageUpload component
+const VideoUpload = ({ currentValue, onUpdate, label = "Video", recommendedSize = "Max 50MB" }) => {
+  const [uploading, setUploading] = useState(false);
+  const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL;
+
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // --- Video validation ---
+  const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+  if (!validTypes.includes(file.type)) {
+    alert('Please upload a valid video file (MP4, WebM, OGG, or MOV)');
+    return;
+  }
+
+  // Max file size: 50MB
+  const maxSize = 50 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert('File size too large. Maximum size is 50MB');
+    return;
+  }
+
+  setUploading(true);
+
+  // Show client-side preview
+  const previewUrl = URL.createObjectURL(file);
+  onUpdate(previewUrl);
+
+  try {
+    const formData = new FormData();
+    formData.append("images", file);  // <-- Backend field is "images"
+
+    const token = localStorage.getItem("token");
+    const API_URL = import.meta.env.VITE_API_BASE_URL_DAS;
+
+    const response = await fetch(`${API_URL}/upload-images`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const result = await response.json();
+    console.log("Upload Response:", result);
+
+    if (result.success && result.data?.images?.length > 0) {
+      const serverPath = result.data.images[0].url;
+      onUpdate(serverPath);
+      URL.revokeObjectURL(previewUrl);
+    } 
+    else {
+      alert("Failed to upload video: " + (result.message || "Unknown error"));
+      onUpdate("");
+    }
+
+  } catch (error) {
+    console.error("Error uploading video:", error);
+    alert("Error uploading video. Please try again.");
+    onUpdate("");
+  } finally {
+    setUploading(false);
+  }
+};
+  
+
+  const getVideoUrl = (videoPath) => {
+    if (!videoPath) return '';
+    if (videoPath.startsWith('http') || videoPath.startsWith('data:') || videoPath.startsWith('blob:')) {
+      return videoPath;
+    }
+    return `${BASE_URL}${videoPath.startsWith('/') ? videoPath : `/${videoPath}`}`;
+  };
+
+  const renderVideoPreview = () => {
+    const videoUrl = getVideoUrl(currentValue);
+
+    return (
+      <div className="relative group">
+        <video 
+          src={videoUrl} 
+          className="w-full h-full object-cover"
+          controls
+          onError={(e) => {
+            e.target.style.display = 'none';
+            if (e.target.nextSibling) {
+              e.target.nextSibling.style.display = 'block';
+            }
+          }}
+        />
+        <div 
+          className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs hidden"
+          style={{ display: 'none' }}
+        >
+          Failed to load video
+        </div>
+        
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onUpdate('');
+            }}
+            className="bg-red-500 text-white p-1 sm:p-2 rounded-full hover:bg-red-600"
+          >
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      {recommendedSize && (
+        <span className="text-xs text-gray-500 mt-1">Recommended: {recommendedSize}</span>
+      )}
+      
+      <div className="flex flex-col sm:flex-row items-start gap-4 mt-2">
+        {/* Preview Section */}
+        <div className="flex-shrink-0 w-full sm:w-auto">
+          <div className={`relative overflow-hidden border rounded-lg ${
+            currentValue ? 'border-gray-300' : 'border-gray-200'
+          }`} style={{ width: '120px', height: '120px' }}>
+            {currentValue ? (
+              renderVideoPreview()
+            ) : (
+              <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
+                <Upload className="w-6 h-6 sm:w-8 sm:h-8" />
+              </div>
+            )}
+            
+            {uploading && (
+              <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-2 w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="flex-1 w-full">
+              <input
+                type="text"
+                value={currentValue || ''}
+                onChange={(e) => onUpdate(e.target.value)}
+                placeholder="Video URL or path"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                disabled={uploading}
+              />
+            </div>
+            
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                id={`video-${label.replace(/\s/g, '-')}`}
+                disabled={uploading}
+              />
+              <label
+                htmlFor={`video-${label.replace(/\s/g, '-')}`}
+                className={`px-4 py-2 rounded-md flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto ${
+                  uploading 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                }`}
+              >
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {uploading ? 'Uploading...' : 'Upload Video'}
+              </label>
+            </div>
+          </div>
+          
+          {currentValue && (
+            <div className="text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                <span>✓ Video uploaded</span>
+                {currentValue.startsWith('blob:') && (
+                  <span className="text-orange-500">(Preview - uploading...)</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add Hero Category Selector Component
+const HeroCategorySelector = ({ item, onUpdate, categories }) => {
+  const [selectedCategory, setSelectedCategory] = useState(item.selectedCategory || null);
+  const [redirectToCategory, setRedirectToCategory] = useState(item.redirectToCategory || false);
+
+  useEffect(() => {
+    setSelectedCategory(item.selectedCategory || null);
+    setRedirectToCategory(item.redirectToCategory || false);
+  }, [item.selectedCategory, item.redirectToCategory]);
+
+  const handleCategorySelect = (categoryId) => {
+    const newSelectedCategory = selectedCategory === categoryId ? null : categoryId;
+    setSelectedCategory(newSelectedCategory);
+    
+    const updatedItem = {
+      ...item,
+      selectedCategory: newSelectedCategory
+    };
+    
+    // Auto-fill CTA text with category name if empty
+    if (!updatedItem.cta && newSelectedCategory) {
+      const category = categories.find(cat => cat.id === newSelectedCategory);
+      if (category) {
+        updatedItem.cta = `Shop ${category.name}`;
+      }
+    }
+    
+    onUpdate(updatedItem);
+  };
+
+  const toggleRedirect = () => {
+    const newValue = !redirectToCategory;
+    setRedirectToCategory(newValue);
+    
+    const updatedItem = {
+      ...item,
+      redirectToCategory: newValue,
+      // If enabling redirect, ensure ctaLink points to category
+      ctaLink: newValue && selectedCategory ? `/category/${selectedCategory}` : (item.ctaLink || '/shop')
+    };
+    
+    onUpdate(updatedItem);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium">Category Link</label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Redirect to category</span>
+          <button
+            type="button"
+            onClick={toggleRedirect}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              redirectToCategory ? 'bg-blue-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                redirectToCategory ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {redirectToCategory ? (
+        <div className="space-y-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>Redirect Enabled:</strong> Clicking this banner will redirect to selected category
+            </p>
+          </div>
+          
+          <label className="block text-sm font-medium">
+            Select Category for Redirect
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          
+          {selectedCategory && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+              <p className="text-sm text-green-800">
+                <strong>Selected Category:</strong> {
+                  categories.find(cat => cat.id === selectedCategory)?.name || 'Unknown Category'
+                }
+              </p>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
+            {categories.map((category) => (
+              <div 
+                key={category.id} 
+                className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                  selectedCategory === category.id 
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+                onClick={() => handleCategorySelect(category.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    selectedCategory === category.id 
+                      ? 'border-blue-500 bg-blue-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedCategory === category.id && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium text-gray-900 block">{category.name}</span>
+                    <span className="text-xs text-gray-500">ID: {category.id}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-600 text-center">
+            Category redirect is disabled. The CTA button will use the custom link below.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+// Add this component near your other components (after HeroCategorySelector)
+const FeatureImageWithCategory = ({ 
+  imageType, 
+  currentValue, 
+  currentCategory, 
+  onImageUpdate, 
+  onCategoryUpdate, 
+  categories,
+  label 
+}) => {
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
+      return imagePath;
+    }
+    const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL || '';
+    return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
+  const handleCategorySelect = (categoryId) => {
+    onCategoryUpdate(categoryId);
+    setShowCategoryPicker(false);
+  };
+
+  const selectedCategory = categories.find(cat => cat.id === currentCategory);
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">{label}</label>
+      
+      <div className="flex flex-col sm:flex-row items-start gap-4">
+        {/* Image Upload Section */}
+        <div className="flex-1">
+          <ImageUpload
+            currentValue={currentValue}
+            onUpdate={onImageUpdate}
+            label=""
+            recommendedSize=""
+          />
+        </div>
+        
+        {/* Category Selection Section - Only show if image exists */}
+        {currentValue && (
+          <div className="w-full sm:w-48">
+            <div className="border rounded-lg p-3 bg-gray-50">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-medium text-gray-700">
+                  Link image to category:
+                </label>
+                {selectedCategory && (
+                  <span className="text-xs text-green-600 font-medium">
+                    ✓ {selectedCategory.name}
+                  </span>
+                )}
+              </div>
+              
+              <div 
+                className={`border rounded-lg p-2 cursor-pointer ${selectedCategory ? 'bg-blue-50 border-blue-200' : 'border-gray-300'}`}
+                onClick={() => setShowCategoryPicker(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">
+                    {selectedCategory ? selectedCategory.name : 'Select Category'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </div>
+              </div>
+              
+              {selectedCategory && (
+                <div className="mt-2 text-xs text-gray-600">
+                  This image will link to: <span className="font-medium">{selectedCategory.name}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Category Picker Modal */}
+      {showCategoryPicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md sm:max-w-lg shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Select Category for {label}</h3>
+            
+            {currentValue && (
+              <div className="mb-4">
+                <div className="w-24 h-24 mx-auto mb-3 rounded overflow-hidden border">
+                  <img 
+                    src={getImageUrl(currentValue)} 
+                    alt={`${label} preview`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <p className="text-sm text-center text-gray-600">
+                  Choose which category this image should link to
+                </p>
+              </div>
+            )}
+            
+            <div className="max-h-60 overflow-y-auto p-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {categories.map((category) => (
+                  <div 
+                    key={category.id} 
+                    className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                      currentCategory === category.id 
+                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleCategorySelect(category.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        currentCategory === category.id 
+                          ? 'border-blue-500 bg-blue-500' 
+                          : 'border-gray-300'
+                      }`}>
+                        {currentCategory === category.id && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowCategoryPicker(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowCategoryPicker(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              >
+                {currentCategory ? 'Confirm' : 'Skip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+// NEW: Component for selecting category for individual image
+const ImageCategorySelector = ({ 
+  imageIndex, 
+  imageUrl, 
+  selectedCategoryId, 
+  onCategorySelect, 
+  categories,
+  label = "Select Category"
+}) => {
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  const handleCategorySelect = (categoryId) => {
+    onCategorySelect(imageIndex, categoryId);
+    setShowCategoryPicker(false);
+  };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
+      return imagePath;
+    }
+    const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL || '';
+    return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
+  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-medium text-gray-700">{label}</label>
+        {selectedCategory && (
+          <span className="text-xs text-green-600 font-medium">
+            ✓ {selectedCategory.name}
+          </span>
+        )}
+      </div>
+
+      {imageUrl ? (
+        <div className="relative">
+          <div 
+            className="border rounded-lg overflow-hidden cursor-pointer hover:border-blue-500 transition-colors"
+            onClick={() => setShowCategoryPicker(true)}
+          >
+            <div className="aspect-square bg-gray-100 relative">
+              <img 
+                src={getImageUrl(imageUrl)} 
+                alt={`Image ${imageIndex + 1}`}
+                className="w-full h-full object-cover"
+              />
+              {selectedCategory && (
+                <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                  {selectedCategory.name}
+                </div>
+              )}
+            </div>
+            <div className="p-2 bg-gray-50 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600">Click to select category</span>
+                {!selectedCategory && (
+                  <span className="text-xs text-red-500">Required</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Category Picker Modal */}
+          {showCategoryPicker && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md sm:max-w-lg shadow-xl">
+                <h3 className="text-lg font-bold mb-4">Select Category for Image {imageIndex + 1}</h3>
+                <div className="mb-4">
+                  <div className="w-24 h-24 mx-auto mb-3 rounded overflow-hidden border">
+                    <img 
+                      src={getImageUrl(imageUrl)} 
+                      alt={`Image ${imageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-sm text-center text-gray-600">
+                    Choose which category this image should link to
+                  </p>
+                </div>
+                
+                <div className="max-h-60 overflow-y-auto p-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {categories.map((category) => (
+                      <div 
+                        key={category.id} 
+                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          selectedCategoryId === category.id 
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                        onClick={() => handleCategorySelect(category.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            selectedCategoryId === category.id 
+                              ? 'border-blue-500 bg-blue-500' 
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedCategoryId === category.id && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowCategoryPicker(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  {selectedCategoryId && (
+                    <button
+                      onClick={() => setShowCategoryPicker(false)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                    >
+                      Confirm
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+          <p className="text-sm text-gray-500">
+            Upload an image first to select a category
+          </p>
+        </div>
+      )}
+
+      {selectedCategory && (
+        <div className="text-xs text-gray-600 mt-1">
+          This image will link to: <span className="font-medium">{selectedCategory.name}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Updated Collection Category Selector for bulk operations
+const CollectionCategorySelector = ({ 
+  item, 
+  onUpdate, 
+  categories,
+  onBulkCategoryAssignment 
+}) => {
+  const [redirectToCategory, setRedirectToCategory] = useState(item.redirectToCategory || false);
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState(
+    item.imageCategories || Array(4).fill(null)
+  );
+
+  useEffect(() => {
+    setRedirectToCategory(item.redirectToCategory || false);
+    setSelectedCategories(item.imageCategories || Array(4).fill(null));
+  }, [item.redirectToCategory, item.imageCategories]);
+
+  const toggleRedirect = () => {
+    const newValue = !redirectToCategory;
+    setRedirectToCategory(newValue);
+    
+    const updatedItem = {
+      ...item,
+      redirectToCategory: newValue,
+      ctaLink: newValue ? (item.ctaLink || '/collection') : item.ctaLink
+    };
+    
+    onUpdate(updatedItem);
+  };
+
+  const handleImageCategorySelect = (imageIndex, categoryId) => {
+    const newSelectedCategories = [...selectedCategories];
+    newSelectedCategories[imageIndex] = categoryId;
+    setSelectedCategories(newSelectedCategories);
+    
+    const updatedItem = {
+      ...item,
+      imageCategories: newSelectedCategories
+    };
+    
+    onUpdate(updatedItem);
+  };
+
+  const handleBulkAssign = () => {
+    if (onBulkCategoryAssignment) {
+      onBulkCategoryAssignment(selectedCategories);
+      setShowBulkAssignModal(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium">Image Category Links</label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Enable category links</span>
+          <button
+            type="button"
+            onClick={toggleRedirect}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              redirectToCategory ? 'bg-blue-600' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                redirectToCategory ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {redirectToCategory ? (
+        <div className="space-y-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>Category Links Enabled:</strong> Each image can be linked to a different category
+            </p>
+            <button
+              onClick={() => setShowBulkAssignModal(true)}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-700 underline"
+            >
+              Bulk assign categories to all images
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[0, 1, 2, 3].map((imageIndex) => (
+              <ImageCategorySelector
+                key={imageIndex}
+                imageIndex={imageIndex}
+                imageUrl={item.images?.[imageIndex] || ''}
+                selectedCategoryId={selectedCategories[imageIndex]}
+                onCategorySelect={handleImageCategorySelect}
+                categories={categories}
+                label={`Image ${imageIndex + 1} Category`}
+              />
+            ))}
+          </div>
+
+          {/* Bulk Category Assignment Modal */}
+          {showBulkAssignModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+                <h3 className="text-lg font-bold mb-4">Bulk Assign Categories</h3>
+                <p className="text-gray-600 mb-6">
+                  Assign categories to all 4 images at once. Each image can have a different category.
+                </p>
+                
+                <div className="space-y-4">
+                  {[0, 1, 2, 3].map((imageIndex) => {
+                    const imageUrl = item.images?.[imageIndex];
+                    return (
+                      <div key={imageIndex} className="border rounded-lg p-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-20 h-20 rounded overflow-hidden border bg-gray-100">
+                              {imageUrl ? (
+                                <img 
+                                  src={imageUrl.startsWith('http') || imageUrl.startsWith('blob:') || imageUrl.startsWith('data:') 
+                                    ? imageUrl 
+                                    : `${import.meta.env.VITE_API_BASE_IMG_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`
+                                  }
+                                  alt={`Image ${imageIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-2">Image {imageIndex + 1}</h4>
+                            <select
+                              value={selectedCategories[imageIndex] || ''}
+                              onChange={(e) => {
+                                const newCategories = [...selectedCategories];
+                                newCategories[imageIndex] = e.target.value || null;
+                                setSelectedCategories(newCategories);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            >
+                              <option value="">Select Category</option>
+                              {categories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {category.name}
+                                </option>
+                              ))}
+                            </select>
+                            {selectedCategories[imageIndex] && (
+                              <div className="mt-2 text-xs text-green-600">
+                                Selected: {categories.find(cat => cat.id === selectedCategories[imageIndex])?.name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+                  <button
+                    onClick={() => setShowBulkAssignModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkAssign}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Apply to All Images
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-600 text-center">
+            Category links are disabled. Images will not link to categories.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Product Selection Component for Category Highlight
+const ProductSelector = ({ item, onUpdate, categories, products }) => {
+  const [selectedProducts, setSelectedProducts] = useState(item.selectedProducts || []);
+  const [showProductSelector, setShowProductSelector] = useState(false);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  useEffect(() => {
+    setSelectedProducts(item.selectedProducts || []);
+  }, [item.selectedProducts]);
+
+  // Load products when category is selected
+  useEffect(() => {
+    if (item.selectedCategories?.[0]) {
+      loadProductsForCategory(item.selectedCategories[0]);
+    }
+  }, [item.selectedCategories]);
+
+  const loadProductsForCategory = async (categoryId) => {
+    setLoadingProducts(true);
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_BASE_URL_DAS;
+      
+      // Fetch products for the selected category
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: 'get',
+          table: 'products',
+          where: { 
+            category_id: categoryId,
+            is_deleted: 0 
+          },
+          limit: 50 // Limit to 50 products for performance
+        })
+      });
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setAvailableProducts(result.data);
+      } else {
+        setAvailableProducts([]);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      setAvailableProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const handleProductToggle = (productId) => {
+    const newSelectedProducts = selectedProducts.includes(productId)
+      ? selectedProducts.filter(id => id !== productId)
+      : [...selectedProducts, productId];
+    
+    setSelectedProducts(newSelectedProducts);
+    
+    const updatedItem = {
+      ...item,
+      selectedProducts: newSelectedProducts
+    };
+    
+    onUpdate(updatedItem);
+  };
+
+  const getProductImage = (product) => {
+    if (!product.images) return '';
+    try {
+      const images = JSON.parse(product.images);
+      return images[0] || '';
+    } catch {
+      return '';
+    }
+  };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('blob:')) {
+      return imagePath;
+    }
+    const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL || '';
+    return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
+  const selectedCategory = categories.find(cat => cat.id === item.selectedCategories?.[0]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium">Featured Products</label>
+        <button
+          type="button"
+          onClick={() => setShowProductSelector(true)}
+          className="text-sm text-blue-600 hover:text-blue-700"
+          disabled={!item.selectedCategories?.[0] || loadingProducts}
+        >
+          {selectedProducts.length > 0 ? `Edit (${selectedProducts.length} selected)` : 'Select Products'}
+        </button>
+      </div>
+
+      {!item.selectedCategories?.[0] ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-sm text-yellow-800">
+            Please select a category first to choose products
+          </p>
+        </div>
+      ) : (
+        <>
+          {selectedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {selectedProducts.map(productId => {
+                const product = availableProducts.find(p => p.id === productId);
+                if (!product) return null;
+                
+                return (
+                  <div key={productId} className="border rounded-lg overflow-hidden">
+                    <div className="aspect-square bg-gray-100">
+                      <img 
+                        src={getImageUrl(getProductImage(product))} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-2 bg-gray-50 border-t">
+                      <p className="text-xs font-medium truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">₹{product.price}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">
+                No products selected. Click "Select Products" to choose products from {selectedCategory?.name}
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Product Selection Modal */}
+      {showProductSelector && selectedCategory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-4xl shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">
+                Select Products from {selectedCategory.name}
+              </h3>
+              <button
+                onClick={() => setShowProductSelector(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingProducts ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Loading products...</p>
+              </div>
+            ) : availableProducts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No products found in this category.
+              </div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">
+                      {availableProducts.length} products available
+                    </p>
+                    {selectedProducts.length > 0 && (
+                      <p className="text-sm font-medium text-blue-600">
+                        {selectedProducts.length} products selected
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {availableProducts.map(product => {
+                    const isSelected = selectedProducts.includes(product.id);
+                    const productImage = getProductImage(product);
+                    
+                    return (
+                      <div
+                        key={product.id}
+                        className={`border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'border-blue-500 ring-2 ring-blue-200' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleProductToggle(product.id)}
+                      >
+                        <div className="relative aspect-square bg-gray-100">
+                          {productImage ? (
+                            <img 
+                              src={getImageUrl(productImage)} 
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                          
+                          {isSelected && (
+                            <div className="absolute top-2 right-2">
+                              <div className="bg-blue-600 text-white rounded-full p-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="p-2 bg-white">
+                          <p className="text-xs font-medium truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500">₹{product.price}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-gray-400">ID: {product.id}</span>
+                            {isSelected && (
+                              <span className="text-xs text-green-600 font-medium">Selected</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
+              <button
+                onClick={() => setShowProductSelector(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowProductSelector(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Save Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Category Selector Component for Category Highlight
+const CategorySelector = ({ item, onUpdate, categories }) => {
+  const [selectedCategory, setSelectedCategory] = useState(item.selectedCategories?.[0] || null);
+
+  useEffect(() => {
+    setSelectedCategory(item.selectedCategories?.[0] || null);
+  }, [item.selectedCategories]);
+
+  const handleCategorySelect = (categoryId) => {
+    const newSelectedCategory = selectedCategory === categoryId ? null : categoryId;
+    setSelectedCategory(newSelectedCategory);
+    
+    const updatedItem = {
+      ...item,
+      selectedCategories: newSelectedCategory ? [newSelectedCategory] : [],
+      selectedProducts: [] // Clear products when category changes
+    };
+    
+    if (!updatedItem.title && newSelectedCategory) {
+      const category = categories.find(cat => cat.id === newSelectedCategory);
+      if (category) {
+        updatedItem.title = category.name;
+      }
+    }
+    
+    onUpdate(updatedItem);
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium mb-2">
+        Select Category 
+        <span className="text-red-500 ml-1">*</span>
+      </label>
+      
+      {selectedCategory && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+          <p className="text-sm text-blue-800">
+            <strong>Currently Selected:</strong> {
+              categories.find(cat => cat.id === selectedCategory)?.name || 'Unknown Category'
+            }
+          </p>
+        </div>
+      )}
+      
+      {categories.length === 0 ? (
+        <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
+          No categories found. Please create categories in the Products section first.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
+          {categories.map((category) => (
+            <div 
+              key={category.id} 
+              className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                selectedCategory === category.id 
+                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+              onClick={() => handleCategorySelect(category.id)}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  selectedCategory === category.id 
+                    ? 'border-blue-500 bg-blue-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {selectedCategory === category.id && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <span className="font-medium text-gray-900 block">{category.name}</span>
+                  <span className="text-xs text-gray-500">ID: {category.id}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Homepage = () => {
   const [view, setView] = useState('dashboard');
   const [selectedSection, setSelectedSection] = useState(null);
@@ -214,16 +1383,16 @@ const Homepage = () => {
   const [showPreview, setShowPreview] = useState(false);
 
   // API Base URL
-  // const API_URL = 'https://apichandra.rxsquare.in/api/v1/dashboard';
   const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
-const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
+  const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
   const getAuthToken = () => {
     return localStorage.getItem('token');
   };
 
-  // Add categories state
+  // Add categories and products state
   const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
 
   // Fetch categories function
   const fetchCategories = async () => {
@@ -249,13 +1418,10 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
-  // Enhanced loadSections function - Load category data from collection_category
-  const loadSections = async () => {
+  // Fetch all products (for product selector)
+  const fetchProducts = async () => {
     try {
-      setLoading(true);
       const token = getAuthToken();
-      
-      // Load sections
       const response = await fetch(`${API_URL}/doAll`, {
         method: 'POST',
         headers: { 
@@ -264,30 +1430,183 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
         },
         body: JSON.stringify({
           action: 'get',
-          table: 'homepage_sections',
-          order_by: { order_position: 'ASC' }
+          table: 'products',
+          where: { is_deleted: 0 },
+          limit: 200 // Limit for performance
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const result = await response.json();
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
+    }
+  };
+
+  // Enhanced loadSections function - Load category data from collection_category with products
+  // const loadSections = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getAuthToken();
       
-      if (!result.success) {
-        throw new Error(result.message || 'API returned unsuccessful response');
-      }
+  //     // Load sections
+  //     const response = await fetch(`${API_URL}/doAll`, {
+  //       method: 'POST',
+  //       headers: { 
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       body: JSON.stringify({
+  //         action: 'get',
+  //         table: 'homepage_sections',
+  //         order_by: { order_position: 'ASC' }
+  //       })
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
+
+  //     const result = await response.json();
       
-      if (result.data && result.data.length > 0) {
-        const loadedSections = await Promise.all(
-          result.data.map(async (row) => {
-            try {
-              // Parse section data with fallback
-              const sectionData = JSON.parse(row.section_data || '{}');
+  //     if (!result.success) {
+  //       throw new Error(result.message || 'API returned unsuccessful response');
+  //     }
+      
+  //     if (result.data && result.data.length > 0) {
+  //       const loadedSections = await Promise.all(
+  //         result.data.map(async (row) => {
+  //           try {
+  //             // Parse section data with fallback
+  //             const sectionData = JSON.parse(row.section_data || '{}');
               
-              // For category-highlight sections, load ALL data from collection_category
-              if (row.type === 'category-highlight') {
+  //             // For category-highlight sections, load ALL data from collection_category
+  //             if (row.type === 'category-highlight') {
+  //               const categoryResponse = await fetch(`${API_URL}/doAll`, {
+  //                 method: 'POST',
+  //                 headers: { 
+  //                   'Content-Type': 'application/json',
+  //                   'Authorization': `Bearer ${token}`
+  //                 },
+  //                 body: JSON.stringify({
+  //                   action: 'get',
+  //                   table: 'collection_category',
+  //                   where: { 
+  //                     section_id: row.id,
+  //                     is_deleted: 0 
+  //                   },
+  //                   order_by: { display_order: 'ASC' }
+  //                 })
+  //               });
+
+  //               if (!categoryResponse.ok) {
+  //                 console.warn(`Failed to load category data for section ${row.id}`);
+  //                 sectionData.items = [];
+  //               } else {
+  //                 const categoryResult = await categoryResponse.json();
+                  
+  //                 if (categoryResult.success && categoryResult.data && categoryResult.data.length > 0) {
+  //                   // Create items from collection_category data
+  //                   sectionData.items = categoryResult.data.map(catItem => {
+  //                     const images = JSON.parse(catItem.images || '[]');
+  //                     const selectedProducts = JSON.parse(catItem.selected_products || '[]');
+  //                     return {
+  //                       id: catItem.id,
+  //                       title: catItem.title || '',
+  //                       image: images[0] || '',
+  //                       selectedCategories: [catItem.category_id], // Store category ID
+  //                       selectedProducts: selectedProducts // Store selected products
+  //                     };
+  //                   });
+  //                 } else {
+  //                   sectionData.items = [];
+  //                 }
+  //               }
+  //             }
+              
+  //             return {
+  //               id: row.id,
+  //               name: row.name,
+  //               type: row.type,
+  //               enabled: row.enabled === 1,
+  //               order: row.order_position,
+  //               data: sectionData
+  //             };
+  //           } catch (sectionError) {
+  //             console.error(`Error processing section ${row.id}:`, sectionError);
+  //             // Return a basic section even if category data fails
+  //             return {
+  //               id: row.id,
+  //               name: row.name,
+  //               type: row.type,
+  //               enabled: row.enabled === 1,
+  //               order: row.order_position,
+  //               data: { items: [] }
+  //             };
+  //           }
+  //         })
+  //       );
+        
+  //       // Filter out any null sections and set state
+  //       const validSections = loadedSections.filter(section => section !== null);
+  //       setSections(validSections);
+  //     } else {
+  //       setSections([]);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error loading sections:', error);
+  //     alert('Failed to load sections from database: ' + error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  // Enhanced loadSections function - Load category data from collection_category with products
+const loadSections = async () => {
+  try {
+    setLoading(true);
+    const token = getAuthToken();
+    
+    // Load sections
+    const response = await fetch(`${API_URL}/doAll`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        action: 'get',
+        table: 'homepage_sections',
+        order_by: { order_position: 'ASC' }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'API returned unsuccessful response');
+    }
+    
+    if (result.data && result.data.length > 0) {
+      const loadedSections = await Promise.all(
+        result.data.map(async (row) => {
+          try {
+            // Parse section data with fallback
+            const sectionData = JSON.parse(row.section_data || '{}');
+            
+            // For category-highlight sections, load ALL data from collection_category
+            if (row.type === 'category-highlight') {
+              // REMOVE THIS PART: Don't load existing category data for new sections
+              // Clear items array for category-highlight sections
+              sectionData.items = [];
+              
+              // Or if you want to conditionally load only for existing sections:
+              // Check if section has existing data before loading
+              if (sectionData.items && sectionData.items.length > 0) {
                 const categoryResponse = await fetch(`${API_URL}/doAll`, {
                   method: 'POST',
                   headers: { 
@@ -315,60 +1634,67 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     // Create items from collection_category data
                     sectionData.items = categoryResult.data.map(catItem => {
                       const images = JSON.parse(catItem.images || '[]');
+                      const selectedProducts = JSON.parse(catItem.selected_products || '[]');
                       return {
                         id: catItem.id,
                         title: catItem.title || '',
                         image: images[0] || '',
-                        selectedCategories: [catItem.category_id] // Store category ID
+                        selectedCategories: [catItem.category_id], // Store category ID
+                        selectedProducts: selectedProducts // Store selected products
                       };
                     });
                   } else {
                     sectionData.items = [];
                   }
                 }
+              } else {
+                // If no items in section_data, keep it empty
+                sectionData.items = [];
               }
-              
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: sectionData
-              };
-            } catch (sectionError) {
-              console.error(`Error processing section ${row.id}:`, sectionError);
-              // Return a basic section even if category data fails
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: { items: [] }
-              };
             }
-          })
-        );
-        
-        // Filter out any null sections and set state
-        const validSections = loadedSections.filter(section => section !== null);
-        setSections(validSections);
-      } else {
-        setSections([]);
-      }
-    } catch (error) {
-      console.error('Error loading sections:', error);
-      alert('Failed to load sections from database: ' + error.message);
-    } finally {
-      setLoading(false);
+            
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: sectionData
+            };
+          } catch (sectionError) {
+            console.error(`Error processing section ${row.id}:`, sectionError);
+            // Return a basic section even if category data fails
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: { items: [] }
+            };
+          }
+        })
+      );
+      
+      // Filter out any null sections and set state
+      const validSections = loadedSections.filter(section => section !== null);
+      setSections(validSections);
+    } else {
+      setSections([]);
     }
-  };
+  } catch (error) {
+    console.error('Error loading sections:', error);
+    alert('Failed to load sections from database: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadSections();
-    // Load categories when component mounts
+    // Load categories and products when component mounts
     fetchCategories().then(setCategories);
+    fetchProducts().then(setProducts);
   }, []);
 
   // Updated handleImageUpload function
@@ -396,7 +1722,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
       const result = await response.json();
       
       if (result.success && result.data.images && result.data.images.length > 0) {
-        // FIXED: Backend returns data.images, not data.paths
         const serverPath = result.data.images[0].url;
         updateFunction(serverPath);
         URL.revokeObjectURL(previewUrl);
@@ -411,7 +1736,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
-  // Updated handleBulkImageUpload function
   const handleBulkImageUpload = async (e, onSuccess) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -438,7 +1762,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
       const result = await response.json();
       
       if (result.success && result.data.images && result.data.images.length > 0) {
-        // FIXED: Map from images array to get URLs
         const imageUrls = result.data.images.map(img => img.url);
         onSuccess(imageUrls);
         alert(`${result.data.images.length} images uploaded successfully!`);
@@ -529,7 +1852,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
-  // Enhanced saveCategoryData function - Store all data in collection_category
+  // Enhanced saveCategoryData function - Store all data in collection_category including products
   const saveCategoryData = async (sectionId, categoryData) => {
     try {
       const token = getAuthToken();
@@ -556,8 +1879,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
             const category = categories.find(cat => cat.id === categoryId);
             
             if (category) {
-             
-              
               await fetch(`${API_URL}/doAll`, {
                 method: 'POST',
                 headers: { 
@@ -572,6 +1893,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     category_id: categoryId,
                     title: item.title || category.name,
                     images: JSON.stringify(item.image ? [item.image] : []),
+                    selected_products: JSON.stringify(item.selectedProducts || []),
                     display_order: index,
                     updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
                     is_deleted: 0
@@ -607,8 +1929,9 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           items: itemsWithIds.map(item => ({
             id: item.id,
             title: item.title,
-            image: item.image
-            // Don't store selectedCategories in homepage_sections
+            image: item.image,
+            selectedCategories: item.selectedCategories,
+            selectedProducts: item.selectedProducts
           }))
         };
         
@@ -689,6 +2012,99 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     setShowDropdown(false);
   };
 
+  const getDefaultDataForType = (type) => {
+    switch (type) {
+      case 'hero':
+        return {
+          items: [
+            {
+              id: 1,
+              type: 'image',
+              title: 'New Collection',
+              subtitle: 'Discover Our Latest Arrivals',
+              description: 'Shop the newest trends with exclusive discounts',
+              image: '',
+              cta: 'Shop Now',
+              ctaLink: '/shop',
+              selectedCategory: null,
+              redirectToCategory: false
+            }
+          ]
+        };
+      // case 'feature-section':
+      //   return {
+      //     items: [
+      //       {
+      //         id: 1,
+      //         leftImage: '',
+      //         rightImage: '',
+      //         rightBottomImage: '',
+      //         title: 'Feature Title',
+      //         subtitle: 'Feature description goes here'
+      //       }
+      //     ]
+      //   };
+      // In the getDefaultDataForType function, update the feature-section case:
+case 'feature-section':
+  return {
+    items: [
+      {
+        id: 1,
+        leftImage: '',
+        rightImage: '',
+        rightBottomImage: '',
+        title: 'Feature Title',
+        subtitle: 'Feature description goes here',
+        // Add category selection for each image
+        leftImageCategory: null,
+        rightImageCategory: null,
+        rightBottomImageCategory: null
+      }
+    ]
+  };
+      case 'collection':
+        return {
+          items: [
+            {
+              id: 1,
+              title: 'Spring Collection',
+              subtitle: 'Fresh styles for the new season',
+              images: ['', '', '', ''],
+              cta: 'View Collection',
+              ctaLink: '/collection/spring',
+              redirectToCategory: false,
+              imageCategories: [null, null, null, null] // NEW: Each image can have its own category
+            }
+          ]
+        };
+      case 'category-highlight':
+        return {
+          items: [
+            {
+              id: 1,
+              title: '',
+              image: '',
+              selectedCategories: [],
+              selectedProducts: []
+            }
+          ]
+        };
+      case 'story-upload':
+        return {
+          items: [
+            {
+              id: 1,
+              videos: ['', '', '', ''],
+              title: 'Stories',
+              subtitle: 'Watch our latest stories'
+            }
+          ]
+        };
+      default:
+        return { items: [] };
+    }
+  };
+
   const confirmAddSection = async () => {
     if (!sectionTitle.trim()) {
       alert('Please enter a section title');
@@ -739,58 +2155,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     } catch (error) {
       console.error('Error creating section:', error);
       alert('Error creating section. Please try again.');
-    }
-  };
-
-  const getDefaultDataForType = (type) => {
-    switch (type) {
-      case 'hero':
-        return {
-          items: [
-            {
-              id: 1,
-              type: 'image',
-              title: 'New Collection',
-              subtitle: 'Discover Our Latest Arrivals',
-              description: 'Shop the newest trends with exclusive discounts',
-              image: '',
-              cta: 'Shop Now',
-              ctaLink: '/shop'
-            }
-          ]
-        };
-      case 'feature-section':
-        return {
-          items: [
-            {
-              id: 1,
-              leftImage: '',
-              rightImage: '',
-              rightBottomImage: '',
-              title: 'Feature Title',
-              subtitle: 'Feature description goes here'
-            }
-          ]
-        };
-      case 'collection':
-        return {
-          items: [
-            {
-              id: 1,
-              title: 'Spring Collection',
-              subtitle: 'Fresh styles for the new season',
-              images: ['', '', '', ''], // 4 empty image slots
-              cta: 'View Collection',
-              ctaLink: '/collection/spring'
-            }
-          ]
-        };
-      case 'category-highlight':
-        return {
-          items: [] // Start with empty items for category-highlight
-        };
-      default:
-        return { items: [] };
     }
   };
 
@@ -848,111 +2212,42 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
-  // Enhanced CategorySelector Component
-  const CategorySelector = ({ item, onUpdate }) => {
-    const [selectedCategory, setSelectedCategory] = useState(item.selectedCategories?.[0] || null);
-
-    // Update when item prop changes
-    useEffect(() => {
-      setSelectedCategory(item.selectedCategories?.[0] || null);
-    }, [item.selectedCategories]);
-
-    const handleCategorySelect = (categoryId) => {
-      const newSelectedCategory = selectedCategory === categoryId ? null : categoryId;
-      setSelectedCategory(newSelectedCategory);
-      
-      // Update with selected category
-      const updatedItem = {
-        ...item,
-        selectedCategories: newSelectedCategory ? [newSelectedCategory] : []
-      };
-      
-      // Auto-fill title with category name if empty
-      if (!updatedItem.title && newSelectedCategory) {
-        const category = categories.find(cat => cat.id === newSelectedCategory);
-        if (category) {
-          updatedItem.title = category.name;
-        }
-      }
-      
-      onUpdate(updatedItem);
-    };
-
-    return (
-      <div className="space-y-4">
-        <label className="block text-sm font-medium mb-2">
-          Select Category 
-          <span className="text-red-500 ml-1">*</span>
-        </label>
-        
-        {selectedCategory && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-            <p className="text-sm text-blue-800">
-              <strong>Currently Selected:</strong> {
-                categories.find(cat => cat.id === selectedCategory)?.name || 'Unknown Category'
-              }
-            </p>
-          </div>
-        )}
-        
-        {categories.length === 0 ? (
-          <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
-            No categories found. Please create categories in the Products section first.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
-            {categories.map((category) => (
-              <div 
-                key={category.id} 
-                className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                  selectedCategory === category.id 
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-                onClick={() => handleCategorySelect(category.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    selectedCategory === category.id 
-                      ? 'border-blue-500 bg-blue-500' 
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedCategory === category.id && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-medium text-gray-900 block">{category.name}</span>
-                    <span className="text-xs text-gray-500">ID: {category.id}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const SectionEditor = ({ section }) => {
     const [formData, setFormData] = useState(() => {
-      // Ensure items array always exists and is properly formatted
       const sectionData = section.data || {};
       let items = sectionData.items || [];
       
-      // For category-highlight, ensure each item has the correct structure
       if (section.type === 'category-highlight' && items.length > 0) {
         items = items.map(item => ({
           ...item,
           id: item.id || Date.now() + Math.random(),
           title: item.title || '',
           image: item.image || '',
-          selectedCategories: item.selectedCategories || []
+          selectedCategories: item.selectedCategories || [],
+          selectedProducts: item.selectedProducts || []
+        }));
+      }
+      
+      if (section.type === 'hero' && items.length > 0) {
+        items = items.map(item => ({
+          ...item,
+          selectedCategory: item.selectedCategory || null,
+          redirectToCategory: item.redirectToCategory || false
+        }));
+      }
+      
+      if (section.type === 'collection' && items.length > 0) {
+        items = items.map(item => ({
+          ...item,
+          redirectToCategory: item.redirectToCategory || false,
+          images: item.images || ['', '', '', ''],
+          imageCategories: item.imageCategories || [null, null, null, null]
         }));
       }
       
       return { ...sectionData, items };
     });
+    
     const [showBulkUpload, setShowBulkUpload] = useState(false);
 
     const updateItem = (index, field, value) => {
@@ -982,11 +2277,9 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
     const handleBulkUploadComplete = (paths) => {
       if (section.type === 'collection') {
-        // Create new collection items from uploaded images (4 images per collection)
         const newItems = [];
         for (let i = 0; i < paths.length; i += 4) {
           const itemImages = paths.slice(i, i + 4);
-          // Fill remaining slots with empty strings if less than 4 images
           while (itemImages.length < 4) {
             itemImages.push('');
           }
@@ -1005,20 +2298,31 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           ...formData,
           items: [...(formData.items || []), ...newItems]
         });
-      } else {
-        // For category-highlight, create individual items
-        const newItems = paths.map((path, idx) => {
+        setShowBulkUpload(false);
+        
+        alert(`${paths.length} images uploaded successfully! Please assign categories to each image.`);
+      } else if (section.type === 'category-highlight') {
+        const newItems = paths.map((url, idx) => {
           const itemId = (formData.items?.length || 0) + idx + 1;
           const template = getNewItemTemplate(section.type, itemId);
-          return { ...template, image: path };
+          return { ...template, image: url };
         });
 
         setFormData({
           ...formData,
           items: [...(formData.items || []), ...newItems]
         });
+        setShowBulkUpload(false);
       }
-      setShowBulkUpload(false);
+    };
+
+    const handleBulkCategoryAssignment = (itemIndex, categoriesArray) => {
+      const newItems = [...(formData.items || [])];
+      newItems[itemIndex] = {
+        ...newItems[itemIndex],
+        imageCategories: categoriesArray
+      };
+      setFormData({ ...formData, items: newItems });
     };
 
     const getNewItemTemplate = (type, id) => {
@@ -1032,32 +2336,151 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
             description: '',
             image: '',
             cta: 'Shop Now',
-            ctaLink: '/'
+            ctaLink: '/',
+            selectedCategory: null,
+            redirectToCategory: false
           };
-        case 'feature-section':
-          return {
-            id,
-            leftImage: '',
-            rightImage: '',
-            rightBottomImage: '',
-            title: '',
-            subtitle: ''
-          };
+        // case 'feature-section':
+        //   return {
+        //     id,
+        //     leftImage: '',
+        //     rightImage: '',
+        //     rightBottomImage: '',
+        //     title: '',
+        //     subtitle: ''
+        //   };
+        // In the getNewItemTemplate function, update the feature-section case:
+case 'feature-section':
+  return {
+    id,
+    leftImage: '',
+    rightImage: '',
+    rightBottomImage: '',
+    title: '',
+    subtitle: '',
+    // Add category selection for each image
+    leftImageCategory: null,
+    rightImageCategory: null,
+    rightBottomImageCategory: null
+  };
         case 'collection':
           return {
             id,
             title: '',
             subtitle: '',
-            images: ['', '', '', ''], // 4 empty image slots
+            images: ['', '', '', ''],
             cta: 'View Collection',
-            ctaLink: '/collection'
+            ctaLink: '/collection',
+            redirectToCategory: false,
+            imageCategories: [null, null, null, null]
           };
+        // case 'category-highlight':
+        //   return {
+        //     id,
+        //     title: '',
+        //     image: '',
+        //     selectedCategories: [],
+        //     selectedProducts: []
+        //   };
         case 'category-highlight':
+  return (
+    <div className="space-y-6">
+      {/* Bulk Upload Section */}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+          <h3 className="font-semibold text-blue-900 text-sm sm:text-base">Bulk Upload (Max 10 images)</h3>
+          <button
+            onClick={() => setShowBulkUpload(!showBulkUpload)}
+            className="text-blue-600 hover:text-blue-700 text-sm self-end sm:self-auto"
+          >
+            {showBulkUpload ? 'Hide' : 'Show'} Bulk Upload
+          </button>
+        </div>
+        {showBulkUpload && (
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleBulkImageUpload(e, handleBulkUploadComplete)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              id="bulk-upload"
+            />
+            <label
+              htmlFor="bulk-upload"
+              className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base"
+            >
+              <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+              Upload Multiple Images (Max 10)
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Show message when no items exist */}
+      {(!formData.items || formData.items.length === 0) ? (
+        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Plus className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Category Highlights Added</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Start by adding your first category highlight below
+            </p>
+            <button
+              onClick={addItem}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 mx-auto text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Add First Category Highlight
+            </button>
+          </div>
+        </div>
+      ) : (
+        // Render existing items
+        formData.items.map((item, idx) => (
+          <div key={item.id || idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+            {/* ... rest of the category highlight item rendering ... */}
+          </div>
+        ))
+      )}
+      
+      {/* Only show "Add Category Highlight" button if there are already items */}
+      {formData.items && formData.items.length > 0 && (
+        <button
+          onClick={addItem}
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          Add Category Highlight
+        </button>
+      )}
+      
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <button
+          onClick={() => saveSection(section.id, formData)}
+          className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Save className="w-4 h-4" />
+          Save Changes
+        </button>
+        <button
+          onClick={() => deleteSection(section.id)}
+          className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Section
+        </button>
+      </div>
+    </div>
+  );
+        case 'story-upload':
           return {
             id,
             title: '',
-            image: '',
-            selectedCategories: [],
+            subtitle: '',
+            videos: ['', '', '', '']
           };
         default:
           return { id };
@@ -1124,6 +2547,16 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     label="Hero Image"
                     recommendedSize="1900×600"
                   />
+                  
+                  {/* Category Selection for Hero */}
+                  <HeroCategorySelector 
+                    item={item}
+                    onUpdate={(updatedItem) => {
+                      updateEntireItem(idx, updatedItem);
+                    }}
+                    categories={categories}
+                  />
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">CTA Text</label>
@@ -1141,7 +2574,14 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                         value={item.ctaLink}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                        disabled={item.redirectToCategory}
+                        placeholder={item.redirectToCategory ? "Auto-generated from category" : "/shop"}
                       />
+                      {item.redirectToCategory && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Link is automatically set to: /category/{item.selectedCategory}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1175,90 +2615,224 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           </div>
         );
 
+      // case 'feature-section':
+      //   return (
+      //     <div className="space-y-6">
+      //       {formData.items?.map((item, idx) => (
+      //         <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+      //           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+      //             <h3 className="font-semibold text-lg">Feature Item {idx + 1}</h3>
+      //             {formData.items.length > 1 && (
+      //               <button
+      //                 onClick={() => removeItem(idx)}
+      //                 className="text-red-600 hover:text-red-700 self-end sm:self-auto"
+      //               >
+      //                 <Trash2 className="w-5 h-5" />
+      //               </button>
+      //             )}
+      //           </div>
+                
+      //           <div className="space-y-4">
+      //             <div>
+      //               <label className="block text-sm font-medium mb-1">Title</label>
+      //               <input
+      //                 type="text"
+      //                 value={item.title || ''}
+      //                 onChange={(e) => updateItem(idx, 'title', e.target.value)}
+      //                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+      //                 placeholder="e.g., rings collection description"
+      //               />
+      //             </div>
+      //             <div>
+      //               <label className="block text-sm font-medium mb-1">Subtitle</label>
+      //               <input
+      //                 type="text"
+      //                 value={item.subtitle || ''}
+      //                 onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
+      //                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+      //                 placeholder="e.g., Discover our exclusive collection"
+      //               />
+      //             </div>
+      //             <ImageUpload 
+      //               currentValue={item.leftImage}
+      //               onUpdate={(value) => updateItem(idx, 'leftImage', value)}
+      //               label="Left Image"
+      //             />
+      //             <ImageUpload 
+      //               currentValue={item.rightImage}
+      //               onUpdate={(value) => updateItem(idx, 'rightImage', value)}
+      //               label="Right Image"
+      //             />
+      //             <ImageUpload 
+      //               currentValue={item.rightBottomImage}
+      //               onUpdate={(value) => updateItem(idx, 'rightBottomImage', value)}
+      //               label="Right Bottom Image"
+      //             />
+      //           </div>
+      //         </div>
+      //       ))}
+            
+      //       <button
+      //         onClick={addItem}
+      //         className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
+      //       >
+      //         <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+      //         Add Feature Item
+      //       </button>
+            
+      //       <div className="flex flex-col sm:flex-row gap-3 pt-4">
+      //         <button
+      //           onClick={() => saveSection(section.id, formData)}
+      //           className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+      //         >
+      //           <Save className="w-4 h-4" />
+      //           Save Changes
+      //         </button>
+      //         <button
+      //           onClick={() => deleteSection(section.id)}
+      //           className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+      //         >
+      //           <Trash2 className="w-4 h-4" />
+      //           Delete Section
+      //         </button>
+      //       </div>
+      //     </div>
+      //   );
       case 'feature-section':
-        return (
+  return (
+    <div className="space-y-6">
+      {formData.items?.map((item, idx) => (
+        <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <h3 className="font-semibold text-lg">Feature Item {idx + 1}</h3>
+            {formData.items.length > 1 && (
+              <button
+                onClick={() => removeItem(idx)}
+                className="text-red-600 hover:text-red-700 self-end sm:self-auto"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          
           <div className="space-y-6">
-            {formData.items?.map((item, idx) => (
-              <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                  <h3 className="font-semibold text-lg">Feature Item {idx + 1}</h3>
-                  {formData.items.length > 1 && (
-                    <button
-                      onClick={() => removeItem(idx)}
-                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+            <div>
+              <label className="block text-sm font-medium mb-1">Title</label>
+              <input
+                type="text"
+                value={item.title || ''}
+                onChange={(e) => updateItem(idx, 'title', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                placeholder="e.g., rings collection description"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Subtitle</label>
+              <input
+                type="text"
+                value={item.subtitle || ''}
+                onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                placeholder="e.g., Discover our exclusive collection"
+              />
+            </div>
+            
+            {/* Left Image with Category */}
+            <FeatureImageWithCategory
+              imageType="leftImage"
+              currentValue={item.leftImage}
+              currentCategory={item.leftImageCategory}
+              onImageUpdate={(value) => updateItem(idx, 'leftImage', value)}
+              onCategoryUpdate={(value) => updateItem(idx, 'leftImageCategory', value)}
+              categories={categories}
+              label="Left Image"
+            />
+            
+            {/* Right Image with Category */}
+            <FeatureImageWithCategory
+              imageType="rightImage"
+              currentValue={item.rightImage}
+              currentCategory={item.rightImageCategory}
+              onImageUpdate={(value) => updateItem(idx, 'rightImage', value)}
+              onCategoryUpdate={(value) => updateItem(idx, 'rightImageCategory', value)}
+              categories={categories}
+              label="Right Image"
+            />
+            
+            {/* Right Bottom Image with Category */}
+            <FeatureImageWithCategory
+              imageType="rightBottomImage"
+              currentValue={item.rightBottomImage}
+              currentCategory={item.rightBottomImageCategory}
+              onImageUpdate={(value) => updateItem(idx, 'rightBottomImage', value)}
+              onCategoryUpdate={(value) => updateItem(idx, 'rightBottomImageCategory', value)}
+              categories={categories}
+              label="Right Bottom Image"
+            />
+            
+            {/* Display selected categories summary */}
+            {(item.leftImageCategory || item.rightImageCategory || item.rightBottomImageCategory) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">Image Category Links:</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {item.leftImageCategory && (
+                    <div className="text-xs">
+                      <span className="font-medium">Left Image:</span>{' '}
+                      <span className="text-blue-600">
+                        {categories.find(cat => cat.id === item.leftImageCategory)?.name}
+                      </span>
+                    </div>
+                  )}
+                  {item.rightImageCategory && (
+                    <div className="text-xs">
+                      <span className="font-medium">Right Image:</span>{' '}
+                      <span className="text-blue-600">
+                        {categories.find(cat => cat.id === item.rightImageCategory)?.name}
+                      </span>
+                    </div>
+                  )}
+                  {item.rightBottomImageCategory && (
+                    <div className="text-xs">
+                      <span className="font-medium">Right Bottom Image:</span>{' '}
+                      <span className="text-blue-600">
+                        {categories.find(cat => cat.id === item.rightBottomImageCategory)?.name}
+                      </span>
+                    </div>
                   )}
                 </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={item.title || ''}
-                      onChange={(e) => updateItem(idx, 'title', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                      placeholder="e.g., rings collection description"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Subtitle</label>
-                    <input
-                      type="text"
-                      value={item.subtitle || ''}
-                      onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                      placeholder="e.g., Discover our exclusive collection"
-                    />
-                  </div>
-                  <ImageUpload 
-                    currentValue={item.leftImage}
-                    onUpdate={(value) => updateItem(idx, 'leftImage', value)}
-                    label="Left Image"
-                  />
-                  <ImageUpload 
-                    currentValue={item.rightImage}
-                    onUpdate={(value) => updateItem(idx, 'rightImage', value)}
-                    label="Right Image"
-                  />
-                  <ImageUpload 
-                    currentValue={item.rightBottomImage}
-                    onUpdate={(value) => updateItem(idx, 'rightBottomImage', value)}
-                    label="Right Bottom Image"
-                  />
-                </div>
               </div>
-            ))}
-            
-            <button
-              onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              Add Feature Item
-            </button>
-            
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <button
-                onClick={() => saveSection(section.id, formData)}
-                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <Save className="w-4 h-4" />
-                Save Changes
-              </button>
-              <button
-                onClick={() => deleteSection(section.id)}
-                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Section
-              </button>
-            </div>
+            )}
           </div>
-        );
-
+        </div>
+      ))}
+      
+      <button
+        onClick={addItem}
+        className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
+      >
+        <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+        Add Feature Item
+      </button>
+      
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <button
+          onClick={() => saveSection(section.id, formData)}
+          className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Save className="w-4 h-4" />
+          Save Changes
+        </button>
+        <button
+          onClick={() => deleteSection(section.id)}
+          className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Section
+        </button>
+      </div>
+    </div>
+  );
       case 'collection':
         return (
           <div className="space-y-6">
@@ -1328,28 +2902,85 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     />
                   </div>
                   
-                  {/* Multiple Images Upload */}
+                  {/* Multiple Images Upload with Category Selection */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Collection Images (Up to 4)</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[0, 1, 2, 3].map((imageIndex) => (
-                        <div key={imageIndex} className="space-y-2">
-                          <label className="block text-xs font-medium text-gray-500">
-                            Image {imageIndex + 1}
-                          </label>
-                          <ImageUpload
-                            currentValue={item.images?.[imageIndex] || ''}
-                            onUpdate={(value) => {
-                              const newImages = [...(item.images || ['', '', '', ''])];
-                              newImages[imageIndex] = value;
-                              updateItem(idx, 'images', newImages);
-                            }}
-                            label={`Image ${imageIndex + 1}`}
-                          />
-                        </div>
-                      ))}
+                      {[0, 1, 2, 3].map((imageIndex) => {
+                        const imageCategory = item.imageCategories?.[imageIndex];
+                        const category = categories.find(cat => cat.id === imageCategory);
+                        
+                        return (
+                          <div key={imageIndex} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-medium text-gray-500">
+                                Image {imageIndex + 1}
+                              </label>
+                              {category && (
+                                <span className="text-xs text-green-600 font-medium">
+                                  {category.name}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <ImageUpload
+                                currentValue={item.images?.[imageIndex] || ''}
+                                onUpdate={(value) => {
+                                  const newImages = [...(item.images || ['', '', '', ''])];
+                                  newImages[imageIndex] = value;
+                                  updateItem(idx, 'images', newImages);
+                                }}
+                                label={`Image ${imageIndex + 1}`}
+                              />
+                              
+                              {/* Category Selection for this specific image */}
+                              {item.images?.[imageIndex] && (
+                                <div className="border rounded-lg p-3 bg-gray-50">
+                                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                                    Link this image to category:
+                                  </label>
+                                  <select
+                                    value={imageCategory || ''}
+                                    onChange={(e) => {
+                                      const newImageCategories = [...(item.imageCategories || [null, null, null, null])];
+                                      newImageCategories[imageIndex] = e.target.value || null;
+                                      updateItem(idx, 'imageCategories', newImageCategories);
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                  >
+                                    <option value="">Select Category</option>
+                                    {categories.map((cat) => (
+                                      <option key={cat.id} value={cat.id}>
+                                        {cat.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {category && (
+                                    <div className="mt-2 text-xs text-gray-600">
+                                      This image will link to: <span className="font-medium">{category.name}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                  
+                  {/* Category Selection for Collection - NEW: Each image can have its own category */}
+                  <CollectionCategorySelector 
+                    item={item}
+                    onUpdate={(updatedItem) => {
+                      updateEntireItem(idx, updatedItem);
+                    }}
+                    categories={categories}
+                    onBulkCategoryAssignment={(categoriesArray) => {
+                      handleBulkCategoryAssignment(idx, categoriesArray);
+                    }}
+                  />
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -1368,6 +2999,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                         value={item.ctaLink || ''}
                         onChange={(e) => updateItem(idx, 'ctaLink', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                        placeholder="/collection"
                       />
                     </div>
                   </div>
@@ -1479,6 +3111,17 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     onUpdate={(updatedItem) => {
                       updateEntireItem(idx, updatedItem);
                     }}
+                    categories={categories}
+                  />
+                  
+                  {/* Product Selection */}
+                  <ProductSelector
+                    item={item}
+                    onUpdate={(updatedItem) => {
+                      updateEntireItem(idx, updatedItem);
+                    }}
+                    categories={categories}
+                    products={products}
                   />
                   
                   {/* Display selected category info */}
@@ -1489,6 +3132,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                           categories.find(cat => cat.id === item.selectedCategories[0])?.name
                         }
                       </p>
+                      {item.selectedProducts && item.selectedProducts.length > 0 && (
+                        <p className="text-sm text-green-800 mt-1">
+                          <strong>Selected Products:</strong> {item.selectedProducts.length} products
+                        </p>
+                      )}
                       <p className="text-xs text-blue-600 mt-1">
                         This will be stored in collection_category table with category_id: {item.selectedCategories[0]}
                       </p>
@@ -1524,6 +3172,101 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
             </div>
           </div>
         );
+        
+      case 'story-upload':
+        return (
+          <div className="space-y-6">
+            {formData.items?.map((item, idx) => (
+              <div key={idx} className="border-2 border-gray-200 p-4 sm:p-6 rounded-lg bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                  <h3 className="font-semibold text-lg">Story Upload {idx + 1}</h3>
+                  {formData.items.length > 1 && (
+                    <button
+                      onClick={() => removeItem(idx)}
+                      className="text-red-600 hover:text-red-700 self-end sm:self-auto"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={item.title || ''}
+                      onChange={(e) => updateItem(idx, 'title', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                      placeholder="e.g., Our Stories"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Subtitle</label>
+                    <input
+                      type="text"
+                      value={item.subtitle || ''}
+                      onChange={(e) => updateItem(idx, 'subtitle', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                      placeholder="e.g., Watch our latest video stories"
+                    />
+                  </div>
+                  
+                  {/* Multiple Video Uploads */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Story Videos (Up to 4)</label>
+                    <p className="text-xs text-gray-500 mb-3">Maximum 50MB per video. Supported formats: MP4, WebM, OGG, MOV</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[0, 1, 2, 3].map((videoIndex) => (
+                        <div key={videoIndex} className="space-y-2">
+                          <label className="block text-xs font-medium text-gray-500">
+                            Video {videoIndex + 1}
+                          </label>
+                          <VideoUpload
+                            currentValue={item.videos?.[videoIndex] || ''}
+                            onUpdate={(value) => {
+                              const newVideos = [...(item.videos || ['', '', '', ''])];
+                              newVideos[videoIndex] = value;
+                              updateItem(idx, 'videos', newVideos);
+                            }}
+                            label={`Video ${videoIndex + 1}`}
+                            recommendedSize="Max 50MB"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <button
+              onClick={addItem}
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              Add Story Section
+            </button>
+            
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <button
+                onClick={() => saveSection(section.id, formData)}
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                <Save className="w-4 h-4" />
+                Save Changes
+              </button>
+              <button
+                onClick={() => deleteSection(section.id)}
+                className="bg-red-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-red-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Section
+              </button>
+            </div>
+          </div>
+        );
 
       default:
         return (
@@ -1534,103 +3277,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     }
   };
 
-  // Hero Slider Component - IMAGES ONLY
-  const HeroSlider = ({ items }) => {
-    const [currentSlide, setCurrentSlide] = useState(0);
-    
-    useEffect(() => {
-      if (items.length <= 1) return;
-      
-      const timer = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % items.length);
-      }, 5000);
-      
-      return () => clearInterval(timer);
-    }, [items.length]);
-    
-    const nextSlide = () => {
-      setCurrentSlide((prev) => (prev + 1) % items.length);
-    };
-    
-    const prevSlide = () => {
-      setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-    };
-    
-    const goToSlide = (index) => {
-      setCurrentSlide(index);
-    };
-
-    const getImageUrl = (imagePath) => {
-      if (!imagePath) return '';
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-        return imagePath;
-      }
-      return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-    };
-    
-    return (
-      <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[80vh] overflow-hidden">
-        {items.map((item, idx) => (
-          <div
-            key={idx}
-            className={`transition-opacity duration-500 ease-in-out w-full h-full ${
-              idx === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
-            }`}
-          >
-            {item.image && (
-              <img 
-                src={getImageUrl(item.image)} 
-                alt={item.title || 'Hero'} 
-                className="w-full h-full object-cover"
-                onError={(e) => { 
-                  e.target.style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-        ))}
-        
-        {/* Navigation Arrows */}
-        {items.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
-            >
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 sm:p-3 transition-all text-white"
-            >
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
-        
-        {/* Dots Indicator */}
-        {items.length > 1 && (
-          <div className="absolute bottom-2 sm:bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-2">
-            {items.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => goToSlide(idx)}
-                className={`w-2 h-2 sm:w-2 sm:h-2 md:w-3 md:h-3 rounded-full transition-all ${
-                  idx === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Collection Slider Component - MULTIPLE IMAGES PER COLLECTION
+  // Collection Slider Component - Updated to support individual image categories
   const CollectionSlider = ({ items }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const itemsPerView = typeof window !== 'undefined' ? (window.innerWidth < 640 ? 1 : window.innerWidth < 1024 ? 2 : 3) : 3;
@@ -1667,27 +3314,50 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
       return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     };
 
-    // Function to ensure we always have exactly 4 image slots
-    const renderImageGrid = (images) => {
-      const imageArray = images || [];
+    const handleImageClick = (item, imageIndex) => {
+      const categoryId = item.imageCategories?.[imageIndex];
+      if (categoryId && item.redirectToCategory) {
+        const category = categories.find(cat => cat.id === categoryId);
+        alert(`Redirecting to category: ${category?.name || 'Unknown Category'}\nURL: /category/${categoryId}`);
+      }
+    };
+
+    const renderImageGrid = (item) => {
+      const images = item.images || [];
+      const imageCategories = item.imageCategories || [null, null, null, null];
       
       return (
         <div className="grid grid-cols-2 gap-1 sm:gap-2 mb-3 sm:mb-4">
-          {/* Always render exactly 4 slots */}
           {Array.from({ length: 4 }).map((_, imageIdx) => {
-            const image = imageArray[imageIdx];
+            const image = images[imageIdx];
+            const categoryId = imageCategories[imageIdx];
+            const category = categories.find(cat => cat.id === categoryId);
             
             return (
-              <div key={imageIdx} className="relative overflow-hidden aspect-square bg-gray-100 rounded-lg">
+              <div 
+                key={imageIdx} 
+                className="relative overflow-hidden aspect-square bg-gray-100 rounded-lg cursor-pointer"
+                onClick={() => handleImageClick(item, imageIdx)}
+              >
                 {image ? (
-                  <img 
-                    src={getImageUrl(image)} 
-                    alt={`Collection image ${imageIdx + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    onError={(e) => { 
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                    }}
-                  />
+                  <>
+                    <img 
+                      src={getImageUrl(image)} 
+                      alt={`Collection image ${imageIdx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => { 
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="12" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                    {category && (
+                      <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-1 py-0.5 rounded flex items-center gap-1">
+                        <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        {category.name}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs rounded-lg">
                     No Image {imageIdx + 1}
@@ -1706,9 +3376,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
           <div className="relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
               {visibleItems.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-lg overflow-hidden group p-3 sm:p-4 border border-gray-100 hover:shadow-lg transition-shadow">
-                  {/* 2x2 Image Grid - Always shows 4 slots */}
-                  {renderImageGrid(item.images)}
+                <div 
+                  key={idx} 
+                  className="bg-white rounded-lg overflow-hidden group p-3 sm:p-4 border border-gray-100 hover:shadow-lg transition-shadow"
+                >
+                  {/* Image Grid with individual category links */}
+                  {renderImageGrid(item)}
                   
                   {/* Collection Title and Info */}
                   <div className="text-center">
@@ -1716,8 +3389,26 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                     {item.subtitle && (
                       <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3">{item.subtitle}</p>
                     )}
+                    
+                    {/* Category Links Summary */}
+                    {item.redirectToCategory && item.imageCategories && item.imageCategories.some(cat => cat) && (
+                      <div className="mb-2 sm:mb-3">
+                        <div className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full mb-2">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                          Images linked to categories
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Click on images to visit their linked categories
+                        </div>
+                      </div>
+                    )}
+                    
                     {item.cta && (
-                      <button className="bg-black text-white px-4 sm:px-6 py-1 sm:py-2 rounded-md hover:bg-gray-800 transition-colors text-xs sm:text-sm">
+                      <button 
+                        className="px-4 sm:px-6 py-1 sm:py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors text-xs sm:text-sm"
+                      >
                         {item.cta}
                       </button>
                     )}
@@ -1770,6 +3461,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
     );
   };
 
+  // Preview Section Component - Updated to handle individual image categories and products
   const PreviewSection = ({ section }) => {
     const getImageUrl = (imagePath) => {
       if (!imagePath) return '';
@@ -1783,74 +3475,191 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
     switch (section.type) {
       case 'hero':
-        return <HeroSlider items={section.data.items} />;
-
-      case 'feature-section':
         return (
-          <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-            <div className="max-w-6xl mx-auto">
-              {section.data.items?.map((item, idx) => (
-                <div key={idx} className="mb-8 sm:mb-12 md:mb-16 last:mb-0">
-                  {/* Item Title and Subtitle */}
-                  {(item.title || item.subtitle) && (
-                    <div className="text-center mb-6 sm:mb-8">
-                      {item.title && (
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">{item.title}</h2>
-                      )}
-                      {item.subtitle && (
-                        <p className="text-base sm:text-lg md:text-xl text-gray-600">{item.subtitle}</p>
-                      )}
-                    </div>
-                  )}
+          <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] xl:h-[80vh] overflow-hidden">
+            {section.data.items.map((item, idx) => (
+              <div key={idx} className="w-full h-full">
+                {item.image && (
+                  <img 
+                    src={getImageUrl(item.image)} 
+                    alt={item.title || 'Hero'} 
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+      // case 'feature-section':
+      //   return (
+      //     <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      //       <div className="max-w-6xl mx-auto">
+      //         {section.data.items?.map((item, idx) => (
+      //           <div key={idx} className="mb-8 sm:mb-12 md:mb-16 last:mb-0">
+      //             {(item.title || item.subtitle) && (
+      //               <div className="text-center mb-6 sm:mb-8">
+      //                 {item.title && (
+      //                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">{item.title}</h2>
+      //                 )}
+      //                 {item.subtitle && (
+      //                   <p className="text-base sm:text-lg md:text-xl text-gray-600">{item.subtitle}</p>
+      //                 )}
+      //               </div>
+      //             )}
                   
-                  {/* Image Layout */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Left Image - Full Height */}
-                    <div className="lg:row-span-2">
-                      {item.leftImage && (
-                        <img 
-                          src={getImageUrl(item.leftImage)} 
-                          alt={item.title || 'Feature'} 
-                          className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-lg sm:rounded-xl shadow-md"
-                          onError={(e) => { 
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="400"%3E%3Crect fill="%23f3f4f6" width="600" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ELeft Image%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      )}
-                    </div>
+      //             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      //               <div className="lg:row-span-2">
+      //                 {item.leftImage && (
+      //                   <img 
+      //                     src={getImageUrl(item.leftImage)} 
+      //                     alt={item.title || 'Feature'} 
+      //                     className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-lg sm:rounded-xl shadow-md"
+      //                   />
+      //                 )}
+      //               </div>
                     
-                    {/* Right Side - Two Images */}
-                    <div className="space-y-4 sm:space-y-6">
-                      {/* Right Top Image */}
-                      {item.rightImage && (
+      //               <div className="space-y-4 sm:space-y-6">
+      //                 {item.rightImage && (
+      //                   <img 
+      //                     src={getImageUrl(item.rightImage)} 
+      //                     alt={`${item.title || 'Feature'} right top`} 
+      //                     className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
+      //                   />
+      //                 )}
+                      
+      //                 {item.rightBottomImage && (
+      //                   <img 
+      //                     src={getImageUrl(item.rightBottomImage)} 
+      //                     alt={`${item.title || 'Feature'} right bottom`} 
+      //                     className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
+      //                   />
+      //                 )}
+      //               </div>
+      //             </div>
+      //           </div>
+      //         ))}
+      //       </div>
+      //     </div>
+      //   );
+      case 'feature-section':
+  return (
+    <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <div className="max-w-6xl mx-auto">
+        {section.data.items?.map((item, idx) => {
+          
+          // Helper function to handle image click with category
+          const handleImageClick = (imageType) => {
+            const categoryId = item[`${imageType}Category`];
+            if (categoryId) {
+              const category = categories.find(cat => cat.id === categoryId);
+              alert(`Redirecting to category: ${category?.name || 'Unknown Category'}\nURL: /category/${categoryId}`);
+            }
+          };
+
+          return (
+            <div key={idx} className="mb-8 sm:mb-12 md:mb-16 last:mb-0">
+              {(item.title || item.subtitle) && (
+                <div className="text-center mb-6 sm:mb-8">
+                  {item.title && (
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">{item.title}</h2>
+                  )}
+                  {item.subtitle && (
+                    <p className="text-base sm:text-lg md:text-xl text-gray-600">{item.subtitle}</p>
+                  )}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Left Image */}
+                <div 
+                  className="lg:row-span-2 relative group cursor-pointer"
+                  onClick={() => handleImageClick('leftImage')}
+                >
+                  {item.leftImage && (
+                    <>
+                      <img 
+                        src={getImageUrl(item.leftImage)} 
+                        alt={item.title || 'Feature'} 
+                        className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
+                      />
+                      {item.leftImageCategory && (
+                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                          Click to visit category
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Right Top Image */}
+                  <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => handleImageClick('rightImage')}
+                  >
+                    {item.rightImage && (
+                      <>
                         <img 
                           src={getImageUrl(item.rightImage)} 
                           alt={`${item.title || 'Feature'} right top`} 
-                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
-                          onError={(e) => { 
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Top Image%3C/text%3E%3C/svg%3E';
-                          }}
+                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
                         />
-                      )}
-                      
-                      {/* Right Bottom Image */}
-                      {item.rightBottomImage && (
+                        {item.rightImageCategory && (
+                          <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                            Click to visit category
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Right Bottom Image */}
+                  <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => handleImageClick('rightBottomImage')}
+                  >
+                    {item.rightBottomImage && (
+                      <>
                         <img 
                           src={getImageUrl(item.rightBottomImage)} 
                           alt={`${item.title || 'Feature'} right bottom`} 
-                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md"
-                          onError={(e) => { 
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="256"%3E%3Crect fill="%23f3f4f6" width="600" height="256"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ERight Bottom Image%3C/text%3E%3C/svg%3E';
-                          }}
+                          className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
                         />
-                      )}
-                    </div>
+                        {item.rightBottomImageCategory && (
+                          <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                            Click to visit category
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+              
+              {/* Display category info summary */}
+              {(item.leftImageCategory || item.rightImageCategory || item.rightBottomImageCategory) && (
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    Click on images to visit linked categories
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        );
+          );
+        })}
+      </div>
+    </div>
+  );
 
       case 'collection':
         return <CollectionSlider items={section.data.items} />;
@@ -1875,14 +3684,15 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                             src={getImageUrl(item.image)} 
                             alt={category.name} 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={(e) => { 
-                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                            }}
                           />
                         )}
                       </div>
                       <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{item.title || category.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-500 mt-1">{category.name}</p>
+                      {item.selectedProducts && item.selectedProducts.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {item.selectedProducts.length} featured products
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -1890,7 +3700,56 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
             </div>
           </div>
         );
-
+        
+      case 'story-upload':
+        return (
+          <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-white">
+            <div className="max-w-6xl mx-auto">
+              {section.data.items?.map((item, idx) => (
+                <div key={idx} className="mb-8 sm:mb-12 last:mb-0">
+                  {(item.title || item.subtitle) && (
+                    <div className="text-center mb-6 sm:mb-8">
+                      {item.title && (
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">
+                          {item.title}
+                        </h2>
+                      )}
+                      {item.subtitle && (
+                        <p className="text-base sm:text-lg md:text-xl text-gray-600">
+                          {item.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    {(item.videos || []).map((video, videoIdx) => (
+                      video ? (
+                        <div key={videoIdx} className="relative bg-black rounded-lg overflow-hidden aspect-video">
+                          <video
+                            src={getImageUrl(video)}
+                            className="w-full h-full object-cover"
+                            controls
+                            playsInline
+                            preload="metadata"
+                          />
+                        </div>
+                      ) : (
+                        <div key={videoIdx} className="relative bg-gray-100 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                          <div className="text-center p-4">
+                            <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 mx-auto mb-2" />
+                            <p className="text-xs sm:text-sm text-gray-500">Video {videoIdx + 1}</p>
+                            <p className="text-xs text-gray-400 mt-1">Not uploaded</p>
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -2055,16 +3914,6 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Home</h1>
-        
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {/* <button
-            onClick={() => setShowPreview(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base"
-          >
-            <Eye className="w-4 h-4" />
-            Preview Homepage
-          </button> */}
-        </div>
       </div>
       
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
@@ -2122,6 +3971,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
                 className="bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-orange-700 text-sm sm:text-base"
               >
                 Create Category Highlight
+              </button>
+              <button
+                onClick={() => addNewSection('story-upload')}
+                className="bg-teal-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-teal-700 text-sm sm:text-base"
+              >
+                Create Story Upload
               </button>
             </div>
           </div>

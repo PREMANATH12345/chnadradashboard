@@ -336,7 +336,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           } 
         }
       );
-
+    
       if (response.data.success) {
         setPendingProducts(response.data.data || []);
       } else {
@@ -357,8 +357,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         `${API_URL}/doAll`,
         {
           action: "get",
-          table: "admin_users",
-          where: { role: "vendor", is_deleted: 0 },
+          table: "users",
+          where: { user_type: "vendor", is_deleted: 0 },
         },
         { 
           headers: { 
@@ -1351,12 +1351,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         `${API_URL}/doAll`,
         {
           action: "get",
-          table: "admin_users",
-          where: { role: "vendor", is_deleted: 0 },
+          table: "users",
+          where: { user_type: "vendor", is_deleted: 0 },
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      console.log("response",response);
       if (response.data.success) {
         setVendors(response.data.data);
       }
@@ -4320,7 +4320,7 @@ const saveProducts = async () => {
       };
 
       const status = isVendor ? 'pending' : 'approved';
-      const vendorId = isVendor ? user.id : null;
+      const vendorId = isVendor ? user?.vendor_id : null;
 
       const productRes = await axios.post(`${API_URL}/doAll`, {
         action: 'insert',
@@ -4335,6 +4335,7 @@ const saveProducts = async () => {
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
         }
       }, { headers: { Authorization: `Bearer ${token}` } });
+      console.log("📝 Final Product Details Sent:", productRes);
 
       if (productRes.data.success && productRes.data.insertId) {
         const productDbId = productRes.data.insertId;

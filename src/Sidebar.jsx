@@ -19,15 +19,28 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <HomeIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
+        {
+      path: "attributes",
+      label: "Attributes",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
     {
       path: "categories",
       label: "Categories",
       icon: <RectangleStackIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
+
     {
-      path: "attributes",
-      label: "Attributes",
+      path: "feature",
+      label: "Featured Collection",
+      icon: <AdjustmentsHorizontalIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+    {
+      path: "target",
+      label: "Target Audience" ,
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
@@ -50,6 +63,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <CubeIcon className="w-4" />,
       roles: ["admin", "vendor"], // Both can see
     },
+    {
+      path:"vendorDash",
+      label:"vendorDash",
+      icon:<CubeIcon className="w-4"/>,
+      roles:["vendor"]
+    },
 
     {
       path: "reviews",
@@ -66,6 +85,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
     {
       path: "enquiry",
       label: "Enquiry",
+      icon: <ChartBarIcon className="w-4" />,
+      roles: ["admin"], // Only admin can see
+    },
+      {
+      path: "users",
+      label: "Users",
       icon: <ChartBarIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
     },
