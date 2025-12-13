@@ -175,57 +175,6 @@ function App() {
           />
           <Route
             path="analytics"
-<<<<<<< HEAD
-=======
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="blogs"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Blogs />
-              </ProtectedRoute>
-            }
-          />
-             <Route
-            path="users"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Users />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="faqs"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Faqs />
-              </ProtectedRoute>
-            }
-          />
-             <Route
-            path="feature"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Features />
-              </ProtectedRoute>
-            }
-          />
-             <Route
-            path="target"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <TargetAudience />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="orders"
->>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Orders />
