@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+
+=======
+>>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -14,10 +18,13 @@ import EnquiryPage from "./pages/Enquire";
 import Reviews from "./pages/reviews";
 import Blogs from "./pages/blogs";
 import Faqs from "./pages/Faq";
+<<<<<<< HEAD
+=======
 import TargetAudience from "./pages/TargetAudience";
 import Features from "./pages/Features";
 import Users from "./pages/Users";
 
+>>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -168,6 +175,8 @@ function App() {
           />
           <Route
             path="analytics"
+<<<<<<< HEAD
+=======
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Analytics />
@@ -211,6 +220,31 @@ function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <TargetAudience />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders"
+>>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="blogs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Blogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="Faq"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Faqs />
               </ProtectedRoute>
             }
           />
@@ -264,3 +298,339 @@ function App() {
 }
 
 export default App;
+
+
+// import { useState, useEffect } from "react";
+// import {
+//   BrowserRouter as Router,
+//   Routes,
+//   Route,
+//   Navigate,
+//   useLocation
+// } from "react-router-dom";
+// import { Toaster } from "react-hot-toast";
+
+// import Login from "./pages/Login";
+// import Dashboard from "./Dashboard";
+// import Homepage from "./pages/Homepage";
+// import Products from "./pages/Products";
+// import Analytics from "./pages/Analytics";
+// import VendorRegister from "./pages/VendorRegister";
+// import Categories from "./pages/Categories";
+// import Blogs from "./pages/blogs";
+// import Attributes from "./pages/Attributes";
+// import Orders from "./pages/Orders";
+// import EnquiryPage from "./pages/Enquire";
+
+// function App() {
+//   const [isAuthenticated, setIsAuthenticated] = useState(false);
+//   const [user, setUser] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     initAuth();
+//     // eslint-disable-next-line
+//   }, []);
+
+//   const initAuth = async () => {
+//     try {
+//       const params = new URLSearchParams(location.search);
+//       const vendor_id = params.get("vendor_id");
+//       const user_name = params.get("user_name");
+     
+
+//       // ✅ Call SSO ONLY if params exist
+//       if (vendor_id && user_name) {
+//         const sso_res = await ssoLogin({ vendor_id, user_name });
+
+//         if (sso_res?.success) {
+//           const user = sso_res.data.user;
+//           setUser(user);
+//           setIsAuthenticated(true);
+//           setVendor(
+//             user.role === "vendor" ||
+//             user.user_type === "vendor"
+//           );
+
+//           window.history.replaceState({}, "", location.pathname);
+//           setLoading(false);
+//           return;
+//         }
+//       }
+//     } catch (err) {
+//       console.log("SSO failed → fallback auth");
+//     }
+
+//     // ✅ fallback auth
+//     const token = localStorage.getItem("token");
+//     const savedUser = localStorage.getItem("user");
+
+//     if (token && savedUser) {
+//       const parsedUser = JSON.parse(savedUser);
+//       setUser(parsedUser);
+//       setIsAuthenticated(true);
+//       setVendor(
+//         parsedUser.role === "vendor" ||
+//         parsedUser.user_type === "vendor"
+//       );
+//     }
+
+//     setLoading(false);
+//   };
+
+//   return null;
+// };
+
+// /* =====================================================
+//    MAIN APP (NO useLocation HERE ❌)
+// ===================================================== */
+// function App() {
+//   const [isAuthenticated, setIsAuthenticated] = useState(false);
+//   const [Vendor, setVendor] = useState(false);
+//   const [user, setUser] = useState(null);
+//   const [loading, setLoading] = useState();
+
+//   const handleLogin = (userData) => {
+//     setUser(userData);
+//     setIsAuthenticated(true);
+//     setVendor(
+//       userData.role === "vendor" ||
+//       userData.user_type === "vendor"
+//     );
+//   };
+
+//   // const handleLogout = () => {
+    
+//   //   localStorage.clear();
+//   //   setUser(null);
+//   //   setIsAuthenticated(false);
+//   //   setVendor(false);
+//   // };
+// const handleLogout = () => {
+//   // Get values BEFORE clearing storage
+// const userData = JSON.parse(localStorage.getItem("user")); 
+
+
+
+//   // Clear user data
+//   localStorage.clear();
+//   setUser(null);
+//   setIsAuthenticated(false);
+//   setVendor(false);
+
+//   // // Redirect based on vendor flag
+//   if (userData?.role == "vendor") {
+//     window.location.href = "http://localhost:3001/";
+//   } else {
+//     window.location.href = "/";
+//   }
+// };
+
+
+
+
+//   const isAdmin = user?.role?.toLowerCase() === "admin";
+
+//   const ProtectedRoute = ({ children, requireAdmin = false }) => {
+//     if (!isAuthenticated) return <Navigate to="/login" />;
+//     if (requireAdmin && !isAdmin)
+//       return <Navigate to="/dashboard/products" />;
+//     return children;
+//   };
+
+//   if (loading) return <div className="p-10 text-center">Loading...</div>;
+
+//   return (
+//     <Router>
+//       {/* ✅ Auth logic runs INSIDE Router */}
+//       <AuthInitializer
+//         setUser={setUser}
+//         setIsAuthenticated={setIsAuthenticated}
+//         setVendor={setVendor}
+//         setLoading={setLoading}
+//       />
+
+//       <Toaster position="top-center" />
+
+//       <Routes>
+//         {/* LOGIN */}
+//         <Route
+//           path="/login"
+//           element={
+//             isAuthenticated ? (
+//               Vendor ? (
+//                 <Navigate to="/dashboard/products" />
+//               ) : (
+//                 <Navigate to="/dashboard/home" />
+//               )
+//             ) : (
+//               <Login onLogin={handleLogin} />
+//             )
+//           }
+//         />
+
+//         {/* DASHBOARD */}
+//         <Route
+//           path="/dashboard"
+//           element={
+//             <ProtectedRoute>
+//               <Dashboard onLogout={handleLogout} user={user} />
+//             </ProtectedRoute>
+//           }
+//         >
+//           {/* Admin-only routes */}
+//           <Route
+//             path="home"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <Homepage user={user} />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="blogs"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Blogs />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="faqs"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Faqs />
+//               </ProtectedRoute>
+//             }
+//           />
+
+//           <Route
+//             path="categories"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <Categories />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="enquiry"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <EnquiryPage />
+//               </ProtectedRoute>
+//             }
+//           />
+//                   <Route
+//             path="users"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Users />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="attributes"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Attributes />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="Feature"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Features />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="Target"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <TargetAudience />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="analytics"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Analytics />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="reviews"
+//             element={
+//               <ProtectedRoute requireAdmin={true}>
+//                 <Reviews />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="orders"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <EnquiryPage />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="attributes"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <Attributes />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="orders"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <Orders />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="vendorRegister"
+//             element={
+//               <ProtectedRoute requireAdmin>
+//                 <VendorRegister />
+//               </ProtectedRoute>
+//             }
+//           />
+//           <Route
+//             path="vendorDash"
+//             element={
+//               <ProtectedRoute requirevendor>
+//                 <VendorDash />
+//               </ProtectedRoute>
+//             }
+//           />
+
+//           {/* Shared route (both admin and vendor) */}
+//           <Route path="products" element={<Products />} />
+//         </Route>
+
+//         {/* Redirect root based on role */}
+//         <Route
+//           path="*"
+//           element={
+//             isAuthenticated ? (
+//               Vendor ? (
+//                 <Navigate to="/dashboard/products" />
+//               ) : (
+//                 <Navigate to="/dashboard/home" />
+//               )
+//             ) : (
+//               <Navigate to="/login" />
+//             )
+//           }
+//         />
+//       </Routes>
+//     </Router>
+//   );
+// }
+
+// export default App;
