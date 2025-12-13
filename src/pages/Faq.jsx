@@ -84,7 +84,6 @@ const Faqs= ({ onBack }) => {
         where: { is_deleted: 0 },
       });
 
-      console.log("Raw FAQ API Response:", response);
 
       if (response && response.data) {
         if (Array.isArray(response.data)) {
@@ -198,7 +197,6 @@ const Faqs= ({ onBack }) => {
         },
       });
 
-      console.log("Add FAQ Response:", response);
 
       if (response && response.success) {
         toast.success("FAQ created successfully!");
@@ -221,7 +219,6 @@ const Faqs= ({ onBack }) => {
 
   // ========== EDIT FAQ ==========
   const handleEditFaq = (faq) => {
-    console.log("Editing FAQ ID:", faq.id);
 
     setSelectedFaq(faq);
     setFormData({
@@ -256,7 +253,6 @@ const Faqs= ({ onBack }) => {
         },
       });
 
-      console.log("Edit FAQ Response:", response);
 
       if (response && response.success) {
         toast.success("FAQ updated successfully!");
@@ -289,7 +285,6 @@ const Faqs= ({ onBack }) => {
 
     setProcessingId(faqId);
     try {
-      console.log("Attempting to delete FAQ ID:", faqId);
 
       const response = await DoAll({
         action: "update",
@@ -301,7 +296,6 @@ const Faqs= ({ onBack }) => {
         },
       });
 
-      console.log("Delete FAQ Full Response:", response);
 
       if (response?.success) {
         toast.success("FAQ deleted successfully!");
