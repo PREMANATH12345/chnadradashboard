@@ -16,6 +16,7 @@ import Blogs from "./pages/blogs";
 import Faqs from "./pages/Faq";
 import TargetAudience from "./pages/TargetAudience";
 import Features from "./pages/Features";
+import Users from "./pages/Users";
 
 
 function App() {
@@ -178,6 +179,14 @@ function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Blogs />
+              </ProtectedRoute>
+            }
+          />
+             <Route
+            path="users"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Users />
               </ProtectedRoute>
             }
           />

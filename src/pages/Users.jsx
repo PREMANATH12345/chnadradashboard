@@ -502,7 +502,7 @@ const Users = () => {
                 {/* View Details Button */}
                 <button
                   onClick={() => handleViewDetails(user)}
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
+                  className="w-full flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-600 text-white px-2 py-1.5 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
                 >
                   <Eye className="w-4 h-4" />
                   <span>View Details</span>
