@@ -244,7 +244,6 @@ const handleFileUpload = async (e) => {
     });
 
     const result = await response.json();
-    console.log("Upload Response:", result);
 
     if (result.success && result.data?.images?.length > 0) {
       const serverPath = result.data.images[0].url;

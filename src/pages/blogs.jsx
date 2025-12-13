@@ -69,7 +69,6 @@ const Blogs = ({ onBack }) => {
         where: { is_deleted: 0 },
       });
 
-      console.log("Raw Blogs API Response:", response);
 
       if (response && response.data) {
         if (Array.isArray(response.data)) {
@@ -172,7 +171,6 @@ const Blogs = ({ onBack }) => {
         },
       });
 
-      console.log("Add Blog Response:", response);
 
       if (response && response.success) {
         toast.success("Blog created successfully!");
@@ -195,8 +193,7 @@ const Blogs = ({ onBack }) => {
 
   // ========== EDIT BLOG ==========
   const handleEditBlog = (blog) => {
-    console.log("Editing blog ID:", blog.id);
-    console.log("Blog data:", blog);
+   
 
     setSelectedBlog(blog);
     setFormData({
@@ -238,7 +235,6 @@ const Blogs = ({ onBack }) => {
         },
       });
 
-      console.log("Edit Blog Response:", response);
 
       if (response && response.success) {
         toast.success("Blog updated successfully!");
@@ -273,7 +269,6 @@ const Blogs = ({ onBack }) => {
     try {
       const currentTime = getCurrentTimestamp();
 
-      console.log("Attempting to delete blog ID:", blogId);
 
       const response = await DoAll({
         action: "update",
@@ -286,7 +281,6 @@ const Blogs = ({ onBack }) => {
         },
       });
 
-      console.log("Delete Blog Full Response:", response);
 
       if (response?.success) {
         toast.success("Blog deleted successfully!");
@@ -333,7 +327,6 @@ const Blogs = ({ onBack }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    console.log(`Changing ${name} to:`, value);
     setFormData((prev) => ({
       ...prev,
       [name]: value,

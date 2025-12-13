@@ -87,7 +87,6 @@ export const vendorAPI = {
         order_by: 'created_at DESC'
       });
       
-      console.log('Unverified Vendors Response:', response);
       return response;
     } catch (error) {
       console.error('Error fetching unverified vendors:', error);
@@ -107,7 +106,6 @@ export const vendorAPI = {
         }
       });
       
-      console.log('Vendor Details Response:', response);
       return response;
     } catch (error) {
       console.error('Error fetching vendor details:', error);
@@ -132,7 +130,6 @@ export const vendorAPI = {
   //       }
   //     });
       
-  //     console.log('Verify Vendor Response:', response);
   //     return {
   //       ...response,
   //       message: 'Vendor verified successfully! They can now login.'
@@ -198,7 +195,6 @@ export const vendorAPI = {
       });
       */
       
-      console.log('Reject Vendor Response:', response);
       return {
         ...response,
         message: 'Vendor rejected successfully'

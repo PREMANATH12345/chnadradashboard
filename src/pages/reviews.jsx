@@ -67,7 +67,6 @@ const Reviews = ({ onBack }) => {
         where: { is_deleted: 0 },
       });
 
-      console.log("Raw Reviews API Response:", response);
 
       if (response && response.data) {
         if (Array.isArray(response.data)) {

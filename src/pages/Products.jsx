@@ -395,7 +395,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       setRejecting(true);
     }
 
-    console.log("Sending approval request for product:", productid);
 
     const response = await axios.post(
       `${API_URL}/products/vendor/approve`,
@@ -1356,7 +1355,6 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("response",response);
       if (response.data.success) {
         setVendors(response.data.data);
       }
@@ -4335,7 +4333,6 @@ const saveProducts = async () => {
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
         }
       }, { headers: { Authorization: `Bearer ${token}` } });
-      console.log("📝 Final Product Details Sent:", productRes);
 
       if (productRes.data.success && productRes.data.insertId) {
         const productDbId = productRes.data.insertId;
