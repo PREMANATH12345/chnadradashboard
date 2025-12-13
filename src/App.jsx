@@ -14,6 +14,9 @@ import EnquiryPage from "./pages/Enquire";
 import Reviews from "./pages/reviews";
 import Blogs from "./pages/blogs";
 import Faqs from "./pages/Faq";
+import TargetAudience from "./pages/TargetAudience";
+import Features from "./pages/Features";
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -166,6 +169,46 @@ function App() {
           />
           <Route
             path="analytics"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="blogs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Blogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="faqs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Faqs />
+              </ProtectedRoute>
+            }
+          />
+             <Route
+            path="feature"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Features />
+              </ProtectedRoute>
+            }
+          />
+             <Route
+            path="target"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <TargetAudience />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Orders />
