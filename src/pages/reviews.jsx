@@ -288,8 +288,8 @@ const Reviews = ({ onBack }) => {
     return (
       <div className="min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-6">
-            <div className="flex items-center justify-center space-x-2 text-blue-600">
+          <div className="bg-white rounded-xl shadow-lg border border-emerald-100 p-6">
+            <div className="flex items-center justify-center space-x-2 text-emerald-600">
               <Loader className="w-5 h-5 animate-spin" />
               <span className="text-base font-medium">Loading reviews...</span>
             </div>
@@ -306,7 +306,7 @@ const Reviews = ({ onBack }) => {
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 mb-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
+              <div className="p-2 bg-emerald-500 rounded-lg">
                 <Star className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -322,7 +322,7 @@ const Reviews = ({ onBack }) => {
             <div className="flex items-center space-x-3">
               <button
                 onClick={fetchReviews}
-                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg flex items-center space-x-2 transition-all duration-200"
+                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-medium rounded-lg flex items-center space-x-2 transition-all duration-200"
               >
                 <Loader className="w-4 h-4" />
                 <span>Refresh</span>
@@ -332,11 +332,11 @@ const Reviews = ({ onBack }) => {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-              <div className="text-2xl font-bold text-blue-700">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+              <div className="text-2xl font-bold text-emerald-700">
                 {reviews.length}
               </div>
-              <div className="text-sm text-blue-600">Total Reviews</div>
+              <div className="text-sm text-emerald-600">Total Reviews</div>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
               <div className="text-2xl font-bold text-emerald-700">
@@ -375,7 +375,7 @@ const Reviews = ({ onBack }) => {
                 placeholder="Search by name or review content..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
               />
               {searchTerm && (
                 <button
@@ -391,7 +391,7 @@ const Reviews = ({ onBack }) => {
             <select
               value={ratingFilter}
               onChange={(e) => setRatingFilter(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
             >
               <option value="all">All Ratings</option>
               <option value="5">★★★★★ 5 Stars</option>
@@ -405,7 +405,7 @@ const Reviews = ({ onBack }) => {
             <select
               value={visibilityFilter}
               onChange={(e) => setVisibilityFilter(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
             >
               <option value="all">All Reviews</option>
               <option value="visible">Visible Only</option>
@@ -416,7 +416,7 @@ const Reviews = ({ onBack }) => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-sm"
             >
               <option value="latest">Sort by: Latest First</option>
               <option value="oldest">Sort by: Oldest First</option>
@@ -475,13 +475,13 @@ const Reviews = ({ onBack }) => {
                       <div className="flex items-center space-x-3 mb-2">
                         <div
                           className={`p-2 rounded-lg ${
-                            review.is_hidden ? "bg-red-100" : "bg-blue-100"
+                            review.is_hidden ? "bg-red-100" : "bg-emerald-100"
                           }`}
                         >
                           {review.is_hidden ? (
                             <EyeOff className="w-4 h-4 text-red-600" />
                           ) : (
-                            <User className="w-4 h-4 text-blue-600" />
+                            <User className="w-4 h-4 text-emerald-600" />
                           )}
                         </div>
                         <div>
@@ -607,7 +607,7 @@ const Reviews = ({ onBack }) => {
                     {/* Full Preview Button */}
                     <button
                       onClick={() => handlePreviewReview(review)}
-                      className="flex-1 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
+                      className="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
                     >
                       <Eye className="w-3 h-3" />
                       Full Preview
@@ -636,9 +636,9 @@ const Reviews = ({ onBack }) => {
         {/* Empty State */}
         {filteredReviews.length === 0 && (
           <div className="text-center py-12">
-            <div className="bg-white rounded-xl border border-blue-100 p-8 max-w-md mx-auto shadow-lg">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-blue-500" />
+            <div className="bg-white rounded-xl border border-emerald-100 p-8 max-w-md mx-auto shadow-lg">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-emerald-500" />
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
                 {hasActiveFilters ? "No reviews found" : "No Reviews Available"}
@@ -651,7 +651,7 @@ const Reviews = ({ onBack }) => {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Clear All Filters
                 </button>
@@ -697,10 +697,10 @@ const Reviews = ({ onBack }) => {
 
                   <div className="space-y-6">
                     {/* Reviewer Info */}
-                    <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="bg-emerald-50 p-4 rounded-lg">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-100 rounded-full">
-                          <User className="w-5 h-5 text-blue-600" />
+                        <div className="p-2 bg-emerald-100 rounded-full">
+                          <User className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-800">
@@ -834,7 +834,7 @@ const Reviews = ({ onBack }) => {
                     disabled={saving}
                     className="sr-only peer"
                   />
-                  <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                  <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                   <span className="ml-3 text-sm font-medium text-gray-700">
                     {saving ? (
                       <Loader className="w-4 h-4 animate-spin inline" />
