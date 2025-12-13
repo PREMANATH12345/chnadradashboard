@@ -52,7 +52,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       roles: ["admin"], // Only admin can see
     },
     {
-      path: "faqs",
+      path: "Faq",
       label: "Faqs",
       icon: <AdjustmentsHorizontalIcon className="w-4" />,
       roles: ["admin"], // Only admin can see
