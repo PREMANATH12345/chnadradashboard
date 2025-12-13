@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -18,13 +14,6 @@ import EnquiryPage from "./pages/Enquire";
 import Reviews from "./pages/reviews";
 import Blogs from "./pages/blogs";
 import Faqs from "./pages/Faq";
-<<<<<<< HEAD
-=======
-import TargetAudience from "./pages/TargetAudience";
-import Features from "./pages/Features";
-import Users from "./pages/Users";
-
->>>>>>> 8ce2aac6b57a294f16bf8205310e3556e1dc1015
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
