@@ -14,12 +14,6 @@ import EnquiryPage from "./pages/Enquire";
 import Reviews from "./pages/reviews";
 import Blogs from "./pages/blogs";
 import Faqs from "./pages/Faq";
-<<<<<<< HEAD
-import TargetAudience from "./pages/TargetAudience";
-import Features from "./pages/Features";
-
-=======
->>>>>>> 3ef651fffcb48d44214490837af2c79a2a9edc63
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -170,49 +164,6 @@ function App() {
           />
           <Route
             path="analytics"
-<<<<<<< HEAD
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="blogs"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Blogs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="faqs"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Faqs />
-              </ProtectedRoute>
-            }
-          />
-             <Route
-            path="feature"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Features />
-              </ProtectedRoute>
-            }
-          />
-             <Route
-            path="target"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <TargetAudience />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="orders"
-=======
->>>>>>> 3ef651fffcb48d44214490837af2c79a2a9edc63
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Orders />
