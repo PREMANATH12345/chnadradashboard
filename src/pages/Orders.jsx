@@ -26,8 +26,8 @@ const Orders = () => {
 
 
       // FIXED: Check response.data.success for nested structure
-      if (response?.data?.success) {
-        setOrders(response.data.data || []);
+    if (response?.success) {
+  setOrders(response.data || []);
       } else {
         console.warn('No orders data found or API error');
         setOrders([]);
@@ -53,8 +53,8 @@ const Orders = () => {
 
 
       // FIXED: Check response.data.success for nested structure
-      if (response?.data?.success) {
-        setEnquiries(response.data.data || []);
+      if (response?.success) {
+       setEnquiries(response.data || []);
       } else {
         console.warn('No enquiries data found or API error');
         setEnquiries([]);
@@ -76,13 +76,8 @@ const Orders = () => {
         }
       });
 
-      if (response?.data?.success) {
-        const usersMap = {};
-        response.data.data.forEach(user => {
-          usersMap[user.id] = user;
-        });
-        setUsers(usersMap);
-      
+     if (response?.success) {
+        setUsers(response.data || {});
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -110,60 +105,60 @@ const Orders = () => {
   }, []);
 
   // Filter data based on user type and order type
-  useEffect(() => {
-    if (orderType === 'razorpay') {
-      const userOrders = orders.filter(order => {
-        // If admin, show all orders
-        if (userType === 'admin') return true;
+useEffect(() => {
+  if (orderType === 'razorpay') {
+    const userOrders = orders.filter(order => {
+      // If admin, show all orders
+      if (userType === 'admin') return true;
+      
+      // Get current logged-in user
+      const userData = localStorage.getItem('user');
+      if (!userData) return false;
+      
+      try {
+        const user = JSON.parse(userData);
         
-        // Get current logged-in user
-        const userData = localStorage.getItem('user');
-        if (!userData) return false;
-        
-        try {
-          const user = JSON.parse(userData);
-          
-          // For customers, show their own orders
-          if (userType === 'customer') {
-            return order.user_id === user.id;
-          }
-          
-          // For vendors, show orders where product belongs to them
-          // You might need to join with products table to check vendor ownership
-          return true;
-        } catch (error) {
-          console.error('Error parsing user data for filtering:', error);
-          return false;
+        // For customers, show their own orders
+        if (userType === 'customer') {
+          return order.user_id === user.id;
         }
-      });
-      setFilteredOrders(userOrders);
-    } else {
-      const userEnquiries = enquiries.filter(enquiry => {
-        // If admin, show all enquiries
-        if (userType === 'admin') return true;
         
-        // Get current logged-in user
-        const userData = localStorage.getItem('user');
-        if (!userData) return false;
+        // For vendors, show orders where product belongs to them
+        return true;
+      } catch (error) {
+        console.error('Error parsing user data for filtering:', error);
+        return false;
+      }
+    });
+    setFilteredOrders(userOrders);
+  } else if (orderType === 'enquiry') {
+    const userEnquiries = enquiries.filter(enquiry => {
+      // If admin, show all enquiries
+      if (userType === 'admin') return true;
+      
+      // Get current logged-in user
+      const userData = localStorage.getItem('user');
+      if (!userData) return false;
+      
+      try {
+        const user = JSON.parse(userData);
         
-        try {
-          const user = JSON.parse(userData);
-          
-          // For customers, show their own enquiries
-          if (userType === 'customer') {
-            return enquiry.user_id === user.id;
-          }
-          
-          // For vendors, show enquiries where product belongs to them
-          return true;
-        } catch (error) {
-          console.error('Error parsing user data for filtering:', error);
-          return false;
+        // For customers, show their own enquiries
+        if (userType === 'customer') {
+          return enquiry.user_id === user.id;
         }
-      });
-      setFilteredEnquiries(userEnquiries);
-    }
-  }, [orders, enquiries, userType, orderType]);
+        
+        // For vendors, show enquiries where product belongs to them
+        return true;
+      } catch (error) {
+        console.error('Error parsing user data for filtering:', error);
+        return false;
+      }
+    });
+    setFilteredEnquiries(userEnquiries);
+  }
+  // For "orders" tab, we don't need to filter anything since it's empty
+}, [orders, enquiries, userType, orderType]);
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
@@ -211,7 +206,8 @@ const Orders = () => {
   };
 
   // Get current data based on user type and order type
-  const currentData = orderType === 'razorpay' ? filteredOrders : filteredEnquiries;
+  const currentData = orderType === 'razorpay' ? filteredOrders : orderType === 'enquiry' ? filteredEnquiries : [];
+
 
   // Get user info from users map
   const getUserInfo = (userId) => {
@@ -243,14 +239,16 @@ const Orders = () => {
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-            {orderType === 'razorpay' ? 'Purchase Orders' : 'Enquiries'}
-          </h1>
-          <p className="text-gray-600">
-            Manage your {orderType === 'razorpay' ? 'purchase orders' : 'customer enquiries'}
-          </p>
-        </div>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+          {orderType === 'razorpay' ? 'Purchase Orders' : 
+          orderType === 'orders' ? 'Manual Orders' : 'Enquiries'} {/* Added condition */}
+        </h1>
+        <p className="text-gray-600">
+          {orderType === 'razorpay' ? 'Manage your purchase orders' : 
+          orderType === 'orders' ? 'Manage your manual orders' : 'Manage customer enquiries'}
+        </p>
+      </div>
 
         {/* Selection Controls */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
@@ -291,51 +289,66 @@ const Orders = () => {
             )}
 
             {/* Order Type Selection */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">Data Type</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setOrderType('razorpay')}
-                  className={`p-3 rounded-lg border transition-all ${
-                    orderType === 'razorpay'
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <span className={`font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
-                    Purchases
-                  </span>
-                </button>
-                
-                <button
-                  onClick={() => setOrderType('enquiry')}
-                  className={`p-3 rounded-lg border transition-all ${
-                    orderType === 'enquiry'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <span className={`font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
-                    Enquiries
-                  </span>
-                </button>
-              </div>
-            </div>
+{/* Order Type Selection */}
+<div>
+  <h3 className="text-sm font-semibold text-gray-800 mb-3">Data Type</h3>
+  <div className="grid grid-cols-3 gap-2"> {/* Changed from grid-cols-2 */}
+    <button
+      onClick={() => setOrderType('razorpay')}
+      className={`p-3 rounded-lg border transition-all ${
+        orderType === 'razorpay'
+          ? 'border-purple-500 bg-purple-50'
+          : 'border-gray-200 bg-white'
+      }`}
+    >
+      <span className={`font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
+        Purchases
+      </span>
+    </button>
+    
+<button
+  onClick={() => setOrderType('orders')}
+  className={`p-3 rounded-lg border transition-all ${
+    orderType === 'orders'
+      ? 'border-green-500 bg-green-50'
+      : 'border-gray-200 bg-white'
+  }`}
+>
+  <span className={`font-medium ${orderType === 'orders' ? 'text-green-700' : 'text-gray-600'}`}>
+    Orders
+  </span>
+</button>
+    
+    <button
+      onClick={() => setOrderType('enquiry')}
+      className={`p-3 rounded-lg border transition-all ${
+        orderType === 'enquiry'
+          ? 'border-orange-500 bg-orange-50'
+          : 'border-gray-200 bg-white'
+      }`}
+    >
+      <span className={`font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
+        Enquiries
+      </span>
+    </button>
+  </div>
+</div>
           </div>
         </div>
 
         {/* Stats and Refresh */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-gray-800">
-                {userType === 'customer' ? 'Your' : userType === 'vendor' ? 'Vendor' : 'All'} -{' '}
-                {orderType === 'razorpay' ? 'Purchase Orders' : 'Enquiries'}
-              </h2>
-              <p className="text-gray-600">
-                {currentData.length} {currentData.length === 1 ? 'record' : 'records'} found
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">
+              {userType === 'customer' ? 'Your' : userType === 'vendor' ? 'Vendor' : 'All'} -{' '}
+              {orderType === 'razorpay' ? 'Purchase Orders' : 
+              orderType === 'orders' ? 'Orders' : 'Enquiries'} {/* Added condition */}
+            </h2>
+            <p className="text-gray-600">
+              {currentData.length} {currentData.length === 1 ? 'record' : 'records'} found
+            </p>
+          </div>
             <div className="flex items-center gap-4">
               <div className="flex space-x-4">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
@@ -343,9 +356,11 @@ const Orders = () => {
                   <div className="text-sm text-blue-600">Total</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-lg font-bold text-green-600">
+                 <div className="text-lg font-bold text-green-600">
                     {currentData.filter(item => 
-                      (orderType === 'razorpay' ? item.payment_status === 'completed' : item.status === 'completed')
+                      (orderType === 'razorpay' ? item.payment_status === 'completed' : 
+                      orderType === 'enquiry' ? item.status === 'completed' : 
+                      false)
                     ).length}
                   </div>
                   <div className="text-sm text-green-600">Completed</div>
@@ -375,110 +390,108 @@ const Orders = () => {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               {orderType === 'razorpay' ? (
-                /* PURCHASES TABLE */
+  /* PURCHASES TABLE - your existing purchases table code */
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-100">
+      <tr>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Order ID
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Customer
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Product Details
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Amount
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Date
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Status
+        </th>
+      </tr>
+    </thead>
+    <tbody className="bg-white divide-y divide-gray-200">
+      {filteredOrders.length > 0 ? (
+        filteredOrders.map((order) => {
+          const userInfo = getUserInfo(order.user_id);
+          
+          return (
+            <tr key={order.id} className="hover:bg-gray-50">
+              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {order.razorpay_payment_id ? (
+                  <div>
+                    <div className="font-medium">{order.razorpay_payment_id}</div>
+                    <div className="text-xs text-gray-500">Ref: ORD-{order.id}</div>
+                  </div>
+                ) : (
+                  `ORD-${order.id}`
+                )}
+              </td>
+              
+              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                <div className="font-medium">ID: {order.user_id}</div>
+                <div className="text-xs text-gray-500">{userInfo.name}</div>
+                <div className="text-xs text-gray-500">{userInfo.email}</div>
+              </td>
+              
+              <td className="px-4 py-4">
+                <div className="text-sm font-medium text-gray-900">{order.product_title}</div>
+                {order.metal && order.metal !== "" && (
+                  <div className="text-xs text-gray-500">Metal: {order.metal}</div>
+                )}
+                {order.diamond && order.diamond !== "" && (
+                  <div className="text-xs text-gray-500">Diamond: {order.diamond}</div>
+                )}
+                {order.size && order.size !== "" && (
+                  <div className="text-xs text-gray-500">Size: {order.size}</div>
+                )}
+                {order.files && order.files !== "[]" && order.files !== "" && (
+                  <div className="text-xs text-blue-500 mt-1">
+                    Files: {typeof order.files === 'string' ? order.files : 'Selected'}
+                  </div>
+                )}
+              </td>
+              
+              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                {formatAmount(order.amount)}
+              </td>
+              
+              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                {formatDate(order.created_at)}
+              </td>
+              
+              <td className="px-4 py-4 whitespace-nowrap">
+                <StatusBadge status={order.payment_status} />
+              </td>
+            </tr>
+          );
+        })
+      ) : (
+        <tr>
+          <td colSpan={6} className="px-4 py-12 text-center">
+            <div className="text-4xl mb-4">📦</div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No purchase orders found
+            </h3>
+            <p className="text-gray-500">
+              {userType === 'customer' 
+                ? 'You have no purchase orders yet.' 
+                : 'There are no purchase orders at the moment.'
+              }
+            </p>
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+              ) : orderType === 'enquiry' ? (
+                /* ENQUIRIES TABLE - your existing enquiries table code */
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Product Details
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredOrders.length > 0 ? (
-                      filteredOrders.map((order) => {
-                        const userInfo = getUserInfo(order.user_id);
-                        
-                        return (
-                          <tr key={order.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {order.razorpay_payment_id ? (
-                                <div>
-                                  <div className="font-medium">{order.razorpay_payment_id}</div>
-                                  <div className="text-xs text-gray-500">Ref: ORD-{order.id}</div>
-                                </div>
-                              ) : (
-                                `ORD-${order.id}`
-                              )}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                              <div className="font-medium">{userInfo.name}</div>
-                              <div className="text-xs text-gray-500">{userInfo.email}</div>
-                              {userInfo.phone !== 'N/A' && (
-                                <div className="text-xs text-gray-500">{userInfo.phone}</div>
-                              )}
-                            </td>
-                            
-                            <td className="px-4 py-4">
-                              <div className="text-sm font-medium text-gray-900">{order.product_title}</div>
-                              {order.metal && order.metal !== "" && (
-                                <div className="text-xs text-gray-500">Metal: {order.metal}</div>
-                              )}
-                              {order.diamond && order.diamond !== "" && (
-                                <div className="text-xs text-gray-500">Diamond: {order.diamond}</div>
-                              )}
-                              {order.size && order.size !== "" && (
-                                <div className="text-xs text-gray-500">Size: {order.size}</div>
-                              )}
-                              {order.files && order.files !== "[]" && order.files !== "" && (
-                                <div className="text-xs text-blue-500 mt-1">
-                                  Files: {typeof order.files === 'string' ? order.files : 'Selected'}
-                                </div>
-                              )}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                              {formatAmount(order.amount)}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                              {formatDate(order.created_at)}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <StatusBadge status={order.payment_status} />
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center">
-                          <div className="text-4xl mb-4">📦</div>
-                          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                            No purchase orders found
-                          </h3>
-                          <p className="text-gray-500">
-                            {userType === 'customer' 
-                              ? 'You have no purchase orders yet.' 
-                              : 'There are no purchase orders at the moment.'
-                            }
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              ) : (
-                /* ENQUIRIES TABLE */
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-100">
+                <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Enquiry ID
@@ -493,6 +506,127 @@ const Orders = () => {
                         Type
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        File Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Submitted
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredEnquiries.length > 0 ? (
+                    filteredEnquiries.map((enquiry) => {
+                      const userInfo = getUserInfo(enquiry.user_id);
+                      
+                      // Parse JSON columns
+                      let productDetails = {};
+                      let fileTypes = [];
+                      
+                      try {
+                        productDetails = typeof enquiry.enquiry_product_details === 'string' 
+                          ? JSON.parse(enquiry.enquiry_product_details) 
+                          : enquiry.enquiry_product_details || {};
+                      } catch (e) {
+                        console.error('Error parsing enquiry_product_details:', e);
+                      }
+                      
+                      try {
+                        fileTypes = typeof enquiry.enquiry_file_types === 'string'
+                          ? JSON.parse(enquiry.enquiry_file_types)
+                          : enquiry.enquiry_file_types || [];
+                      } catch (e) {
+                        console.error('Error parsing enquiry_file_types:', e);
+                      }
+                      
+                      return (
+                        <tr key={enquiry.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ENQ-{enquiry.id}
+                          </td>
+                          
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <div className="font-medium">ID: {enquiry.user_id}</div>
+                            <div className="text-xs text-gray-500">{userInfo.name}</div>
+                            <div className="text-xs text-gray-500">{userInfo.email}</div>
+                          </td>
+                          
+                          <td className="px-4 py-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {enquiry.product_title || productDetails.product_name}
+                            </div>
+                            {productDetails.metal_name && (
+                              <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
+                            )}
+                            {productDetails.diamond_name && (
+                              <div className="text-xs text-gray-500">Diamond: {productDetails.diamond_name}</div>
+                            )}
+                            {productDetails.size_name && (
+                              <div className="text-xs text-gray-500">Size: {productDetails.size_name} ({productDetails.size_mm}mm)</div>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {enquiry.enquiry_type || 'General'}
+                          </td>
+                          
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            {fileTypes.length > 0 ? (
+                              <div className="space-y-1">
+                                {fileTypes.map((file, idx) => (
+                                  <div key={idx} className="text-xs">
+                                    <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded">
+                                      {file.file_type.replace('_', ' ').toUpperCase()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">No files</span>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {formatDate(enquiry.created_at)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <div className="text-4xl mb-4">📋</div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          No enquiries found
+                        </h3>
+                        <p className="text-gray-500">
+                          {userType === 'customer' 
+                            ? 'You have no enquiries yet.' 
+                            : 'There are no enquiries at the moment.'
+                          }
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                </table>
+              ) : (
+                /* ORDERS TABLE - New empty table for "Orders" tab */
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Order ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Product
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -501,67 +635,17 @@ const Orders = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEnquiries.length > 0 ? (
-                      filteredEnquiries.map((enquiry) => {
-                        const userInfo = getUserInfo(enquiry.user_id);
-                        
-                        return (
-                          <tr key={enquiry.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              ENQ-{enquiry.id}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                              <div className="font-medium">{userInfo.name}</div>
-                              <div className="text-xs text-gray-500">{userInfo.email}</div>
-                            </td>
-                            
-                            <td className="px-4 py-4">
-                              <div className="text-sm font-medium text-gray-900">{enquiry.product_title}</div>
-                              {enquiry.metal && enquiry.metal !== "" && (
-                                <div className="text-xs text-gray-500">Metal: {enquiry.metal}</div>
-                              )}
-                              {enquiry.diamond && enquiry.diamond !== "" && (
-                                <div className="text-xs text-gray-500">Diamond: {enquiry.diamond}</div>
-                              )}
-                              {enquiry.size && enquiry.size !== "" && (
-                                <div className="text-xs text-gray-500">Size: {enquiry.size}</div>
-                              )}
-                              {enquiry.unavailable_size && (
-                                <div className="text-xs text-yellow-600 mt-1">Made to Order Size</div>
-                              )}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                              {enquiry.enquiry_type || 'General'}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                              {formatDate(enquiry.created_at)}
-                            </td>
-                            
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <StatusBadge status={enquiry.status} />
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center">
-                          <div className="text-4xl mb-4">📋</div>
-                          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                            No enquiries found
-                          </h3>
-                          <p className="text-gray-500">
-                            {userType === 'customer' 
-                              ? 'You have no enquiries yet.' 
-                              : 'There are no enquiries at the moment.'
-                            }
-                          </p>
-                        </td>
-                      </tr>
-                    )}
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <div className="text-4xl mb-4">📦</div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          No orders found
+                        </h3>
+                        <p className="text-gray-500">
+                          There are no orders at the moment.
+                        </p>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               )}
