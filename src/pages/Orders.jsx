@@ -24,10 +24,9 @@ const Orders = () => {
         }
       });
 
-
       // FIXED: Check response.data.success for nested structure
-    if (response?.success) {
-  setOrders(response.data || []);
+      if (response?.success) {
+        setOrders(response.data || []);
       } else {
         console.warn('No orders data found or API error');
         setOrders([]);
@@ -51,10 +50,9 @@ const Orders = () => {
         }
       });
 
-
       // FIXED: Check response.data.success for nested structure
       if (response?.success) {
-       setEnquiries(response.data || []);
+        setEnquiries(response.data || []);
       } else {
         console.warn('No enquiries data found or API error');
         setEnquiries([]);
@@ -76,7 +74,7 @@ const Orders = () => {
         }
       });
 
-     if (response?.success) {
+      if (response?.success) {
         setUsers(response.data || {});
       }
     } catch (error) {
@@ -105,60 +103,60 @@ const Orders = () => {
   }, []);
 
   // Filter data based on user type and order type
-useEffect(() => {
-  if (orderType === 'razorpay') {
-    const userOrders = orders.filter(order => {
-      // If admin, show all orders
-      if (userType === 'admin') return true;
-      
-      // Get current logged-in user
-      const userData = localStorage.getItem('user');
-      if (!userData) return false;
-      
-      try {
-        const user = JSON.parse(userData);
+  useEffect(() => {
+    if (orderType === 'razorpay') {
+      const userOrders = orders.filter(order => {
+        // If admin, show all orders
+        if (userType === 'admin') return true;
         
-        // For customers, show their own orders
-        if (userType === 'customer') {
-          return order.user_id === user.id;
+        // Get current logged-in user
+        const userData = localStorage.getItem('user');
+        if (!userData) return false;
+        
+        try {
+          const user = JSON.parse(userData);
+          
+          // For customers, show their own orders
+          if (userType === 'customer') {
+            return order.user_id === user.id;
+          }
+          
+          // For vendors, show orders where product belongs to them
+          return true;
+        } catch (error) {
+          console.error('Error parsing user data for filtering:', error);
+          return false;
         }
+      });
+      setFilteredOrders(userOrders);
+    } else if (orderType === 'enquiry') {
+      const userEnquiries = enquiries.filter(enquiry => {
+        // If admin, show all enquiries
+        if (userType === 'admin') return true;
         
-        // For vendors, show orders where product belongs to them
-        return true;
-      } catch (error) {
-        console.error('Error parsing user data for filtering:', error);
-        return false;
-      }
-    });
-    setFilteredOrders(userOrders);
-  } else if (orderType === 'enquiry') {
-    const userEnquiries = enquiries.filter(enquiry => {
-      // If admin, show all enquiries
-      if (userType === 'admin') return true;
-      
-      // Get current logged-in user
-      const userData = localStorage.getItem('user');
-      if (!userData) return false;
-      
-      try {
-        const user = JSON.parse(userData);
+        // Get current logged-in user
+        const userData = localStorage.getItem('user');
+        if (!userData) return false;
         
-        // For customers, show their own enquiries
-        if (userType === 'customer') {
-          return enquiry.user_id === user.id;
+        try {
+          const user = JSON.parse(userData);
+          
+          // For customers, show their own enquiries
+          if (userType === 'customer') {
+            return enquiry.user_id === user.id;
+          }
+          
+          // For vendors, show enquiries where product belongs to them
+          return true;
+        } catch (error) {
+          console.error('Error parsing user data for filtering:', error);
+          return false;
         }
-        
-        // For vendors, show enquiries where product belongs to them
-        return true;
-      } catch (error) {
-        console.error('Error parsing user data for filtering:', error);
-        return false;
-      }
-    });
-    setFilteredEnquiries(userEnquiries);
-  }
-  // For "orders" tab, we don't need to filter anything since it's empty
-}, [orders, enquiries, userType, orderType]);
+      });
+      setFilteredEnquiries(userEnquiries);
+    }
+    // For "orders" tab, we don't need to filter anything since it's empty
+  }, [orders, enquiries, userType, orderType]);
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
@@ -173,7 +171,7 @@ useEffect(() => {
     const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
 
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-medium border ${config.color}`}>
+      <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium border ${config.color} whitespace-nowrap`}>
         {config.label}
       </span>
     );
@@ -184,13 +182,22 @@ useEffect(() => {
     if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      // Use abbreviated format for mobile
+      if (window.innerWidth < 768) {
+        return date.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      } else {
+        return date.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
     } catch (error) {
       console.error('Error formatting date:', error);
       return 'Invalid Date';
@@ -207,7 +214,6 @@ useEffect(() => {
 
   // Get current data based on user type and order type
   const currentData = orderType === 'razorpay' ? filteredOrders : orderType === 'enquiry' ? filteredEnquiries : [];
-
 
   // Get user info from users map
   const getUserInfo = (userId) => {
@@ -235,52 +241,52 @@ useEffect(() => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-          {orderType === 'razorpay' ? 'Purchase Orders' : 
-          orderType === 'orders' ? 'Manual Orders' : 'Enquiries'} {/* Added condition */}
-        </h1>
-        <p className="text-gray-600">
-          {orderType === 'razorpay' ? 'Manage your purchase orders' : 
-          orderType === 'orders' ? 'Manage your manual orders' : 'Manage customer enquiries'}
-        </p>
-      </div>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+            {orderType === 'razorpay' ? 'Purchase Orders' : 
+            orderType === 'orders' ? 'Manual Orders' : 'Enquiries'}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            {orderType === 'razorpay' ? 'Manage your purchase orders' : 
+            orderType === 'orders' ? 'Manage your manual orders' : 'Manage customer enquiries'}
+          </p>
+        </div>
 
         {/* Selection Controls */}
-        <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             
             {/* User Type Selection - Only show for admin */}
             {userType === 'admin' && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">View As</h3>
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2 sm:mb-3">View As</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setUserType('customer')}
-                    className={`p-3 rounded-lg border transition-all ${
+                    className={`p-2 sm:p-3 rounded-lg border transition-all ${
                       userType === 'customer'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 bg-white'
                     }`}
                   >
-                    <span className={`font-medium ${userType === 'customer' ? 'text-blue-700' : 'text-gray-600'}`}>
+                    <span className={`text-xs sm:text-sm font-medium ${userType === 'customer' ? 'text-blue-700' : 'text-gray-600'}`}>
                       Customer View
                     </span>
                   </button>
                   
                   <button
                     onClick={() => setUserType('vendor')}
-                    className={`p-3 rounded-lg border transition-all ${
+                    className={`p-2 sm:p-3 rounded-lg border transition-all ${
                       userType === 'vendor'
                         ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 bg-white'
                     }`}
                   >
-                    <span className={`font-medium ${userType === 'vendor' ? 'text-green-700' : 'text-gray-600'}`}>
+                    <span className={`text-xs sm:text-sm font-medium ${userType === 'vendor' ? 'text-green-700' : 'text-gray-600'}`}>
                       Vendor View
                     </span>
                   </button>
@@ -289,89 +295,88 @@ useEffect(() => {
             )}
 
             {/* Order Type Selection */}
-{/* Order Type Selection */}
-<div>
-  <h3 className="text-sm font-semibold text-gray-800 mb-3">Data Type</h3>
-  <div className="grid grid-cols-3 gap-2"> {/* Changed from grid-cols-2 */}
-    <button
-      onClick={() => setOrderType('razorpay')}
-      className={`p-3 rounded-lg border transition-all ${
-        orderType === 'razorpay'
-          ? 'border-purple-500 bg-purple-50'
-          : 'border-gray-200 bg-white'
-      }`}
-    >
-      <span className={`font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
-        Purchases
-      </span>
-    </button>
-    
-<button
-  onClick={() => setOrderType('orders')}
-  className={`p-3 rounded-lg border transition-all ${
-    orderType === 'orders'
-      ? 'border-green-500 bg-green-50'
-      : 'border-gray-200 bg-white'
-  }`}
->
-  <span className={`font-medium ${orderType === 'orders' ? 'text-green-700' : 'text-gray-600'}`}>
-    Orders
-  </span>
-</button>
-    
-    <button
-      onClick={() => setOrderType('enquiry')}
-      className={`p-3 rounded-lg border transition-all ${
-        orderType === 'enquiry'
-          ? 'border-orange-500 bg-orange-50'
-          : 'border-gray-200 bg-white'
-      }`}
-    >
-      <span className={`font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
-        Enquiries
-      </span>
-    </button>
-  </div>
-</div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2 sm:mb-3">Data Type</h3>
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                <button
+                  onClick={() => setOrderType('razorpay')}
+                  className={`p-2 sm:p-3 rounded-lg border transition-all ${
+                    orderType === 'razorpay'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`text-xs sm:text-sm font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
+                    Purchases
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => setOrderType('orders')}
+                  className={`p-2 sm:p-3 rounded-lg border transition-all ${
+                    orderType === 'orders'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`text-xs sm:text-sm font-medium ${orderType === 'orders' ? 'text-green-700' : 'text-gray-600'}`}>
+                    Orders
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => setOrderType('enquiry')}
+                  className={`p-2 sm:p-3 rounded-lg border transition-all ${
+                    orderType === 'enquiry'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`text-xs sm:text-sm font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
+                    Enquiries
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Stats and Refresh */}
-        <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-gray-800">
-              {userType === 'customer' ? 'Your' : userType === 'vendor' ? 'Vendor' : 'All'} -{' '}
-              {orderType === 'razorpay' ? 'Purchase Orders' : 
-              orderType === 'orders' ? 'Orders' : 'Enquiries'} {/* Added condition */}
-            </h2>
-            <p className="text-gray-600">
-              {currentData.length} {currentData.length === 1 ? 'record' : 'records'} found
-            </p>
-          </div>
-            <div className="flex items-center gap-4">
-              <div className="flex space-x-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-lg font-bold text-blue-600">{currentData.length}</div>
-                  <div className="text-sm text-blue-600">Total</div>
+        <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div>
+              <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
+                {userType === 'customer' ? 'Your' : userType === 'vendor' ? 'Vendor' : 'All'} -{' '}
+                {orderType === 'razorpay' ? 'Purchase Orders' : 
+                orderType === 'orders' ? 'Orders' : 'Enquiries'}
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-600">
+                {currentData.length} {currentData.length === 1 ? 'record' : 'records'} found
+              </p>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex space-x-2 sm:space-x-4">
+                <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg min-w-[70px] sm:min-w-[80px]">
+                  <div className="text-base sm:text-lg font-bold text-blue-600">{currentData.length}</div>
+                  <div className="text-xs sm:text-sm text-blue-600">Total</div>
                 </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                 <div className="text-lg font-bold text-green-600">
+                <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg min-w-[70px] sm:min-w-[80px]">
+                  <div className="text-base sm:text-lg font-bold text-green-600">
                     {currentData.filter(item => 
                       (orderType === 'razorpay' ? item.payment_status === 'completed' : 
                       orderType === 'enquiry' ? item.status === 'completed' : 
                       false)
                     ).length}
                   </div>
-                  <div className="text-sm text-green-600">Completed</div>
+                  <div className="text-xs sm:text-sm text-green-600">Completed</div>
                 </div>
               </div>
               <button
                 onClick={handleRefresh}
-                className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="p-2 sm:p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 title="Refresh data"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
@@ -381,269 +386,272 @@ useEffect(() => {
 
         {/* Loading State */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading data...</p>
+          <div className="text-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Loading data...</p>
           </div>
         ) : (
           /* Orders/Enquiries Table */
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
               {orderType === 'razorpay' ? (
-  /* PURCHASES TABLE - your existing purchases table code */
-  <table className="min-w-full divide-y divide-gray-200">
-    <thead className="bg-gray-100">
-      <tr>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Order ID
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Customer
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Product Details
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Amount
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Date
-        </th>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Status
-        </th>
-      </tr>
-    </thead>
-    <tbody className="bg-white divide-y divide-gray-200">
-      {filteredOrders.length > 0 ? (
-        filteredOrders.map((order) => {
-          const userInfo = getUserInfo(order.user_id);
-          
-          return (
-            <tr key={order.id} className="hover:bg-gray-50">
-              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {order.razorpay_payment_id ? (
-                  <div>
-                    <div className="font-medium">{order.razorpay_payment_id}</div>
-                    <div className="text-xs text-gray-500">Ref: ORD-{order.id}</div>
-                  </div>
-                ) : (
-                  `ORD-${order.id}`
-                )}
-              </td>
-              
-              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                <div className="font-medium">{userInfo.name}</div>
-                <div className="text-xs text-gray-500">{userInfo.email}</div>
-                {userInfo.phone !== 'N/A' && (
-                  <div className="text-xs text-gray-500">{userInfo.phone}</div>
-                )}
-              </td>
-              
-              <td className="px-4 py-4">
-                <div className="text-sm font-medium text-gray-900">{order.product_title}</div>
-                {order.metal && order.metal !== "" && (
-                  <div className="text-xs text-gray-500">Metal: {order.metal}</div>
-                )}
-                {order.diamond && order.diamond !== "" && (
-                  <div className="text-xs text-gray-500">Diamond: {order.diamond}</div>
-                )}
-                {order.size && order.size !== "" && (
-                  <div className="text-xs text-gray-500">Size: {order.size}</div>
-                )}
-                {order.files && order.files !== "[]" && order.files !== "" && (
-                  <div className="text-xs text-blue-500 mt-1">
-                    Files: {typeof order.files === 'string' ? order.files : 'Selected'}
-                  </div>
-                )}
-              </td>
-              
-              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                {formatAmount(order.amount)}
-              </td>
-              
-              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                {formatDate(order.created_at)}
-              </td>
-              
-              <td className="px-4 py-4 whitespace-nowrap">
-                <StatusBadge status={order.payment_status} />
-              </td>
-            </tr>
-          );
-        })
-      ) : (
-        <tr>
-          <td colSpan={6} className="px-4 py-12 text-center">
-            <div className="text-4xl mb-4">📦</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              No purchase orders found
-            </h3>
-            <p className="text-gray-500">
-              {userType === 'customer' 
-                ? 'You have no purchase orders yet.' 
-                : 'There are no purchase orders at the moment.'
-              }
-            </p>
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-              ) : orderType === 'enquiry' ? (
-                /* ENQUIRIES TABLE - your existing enquiries table code */
+                /* PURCHASES TABLE - Responsive version */
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Enquiry ID
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Order ID
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Product Details
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                        Amount
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEnquiries.length > 0 ? (
-                  filteredEnquiries.map((enquiry) => {
-                    const userInfo = getUserInfo(enquiry.user_id);
-                    
-                    // Parse JSON columns
-                    let productDetails = {};
-                    let fileTypes = [];
-                    
-                    try {
-                      productDetails = typeof enquiry.enquiry_product_details === 'string' 
-                        ? JSON.parse(enquiry.enquiry_product_details) 
-                        : enquiry.enquiry_product_details || {};
-                    } catch (e) {
-                      console.error('Error parsing enquiry_product_details:', e);
-                    }
-                    
-                    try {
-                      fileTypes = typeof enquiry.enquiry_file_types === 'string'
-                        ? JSON.parse(enquiry.enquiry_file_types)
-                        : enquiry.enquiry_file_types || [];
-                    } catch (e) {
-                      console.error('Error parsing enquiry_file_types:', e);
-                    }
-                    
-                    return (
-                      <tr key={enquiry.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ENQ-{enquiry.id}
-                        </td>
+                    {filteredOrders.length > 0 ? (
+                      filteredOrders.map((order) => {
+                        const userInfo = getUserInfo(order.user_id);
                         
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <div className="font-medium">ID: {enquiry.user_id}</div>
-                          <div className="text-xs text-gray-500">{userInfo.name}</div>
-                          <div className="text-xs text-gray-500">{userInfo.email}</div>
-                        </td>
-                        
-                        <td className="px-4 py-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {enquiry.product_title || productDetails.product_name}
-                          </div>
-                          {productDetails.metal_name && (
-                            <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
-                          )}
-                          {productDetails.diamond_name && (
-                            <div className="text-xs text-gray-500">Diamond: {productDetails.diamond_name}</div>
-                          )}
-                          {productDetails.size_name && (
-                            <div className="text-xs text-gray-500">Size: {productDetails.size_name} ({productDetails.size_mm}mm)</div>
-                          )}
-                        </td>
-                        
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {enquiry.enquiry_type || 'General'}
-                        </td>
-                        
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          {fileTypes.length > 0 ? (
-                            <div className="space-y-1">
-                              {fileTypes.map((file, idx) => (
-                                <div key={idx} className="text-xs">
-                                  <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded">
-                                    {file.file_type.replace('_', ' ').toUpperCase()}
-                                  </span>
+                        return (
+                          <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm font-medium text-gray-900">
+                              {order.razorpay_payment_id ? (
+                                <div>
+                                  <div className="font-medium truncate max-w-[120px] sm:max-w-none">{order.razorpay_payment_id}</div>
+                                  <div className="text-xs text-gray-500">Ref: ORD-{order.id}</div>
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">No files</span>
-                          )}
-                        </td>
-                        
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatDate(enquiry.created_at)}
+                              ) : (
+                                `ORD-${order.id}`
+                              )}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm text-gray-600">
+                              <div className="font-medium truncate max-w-[80px] sm:max-w-none">{userInfo.name}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-[80px] sm:max-w-none">{userInfo.email}</div>
+                              {userInfo.phone !== 'N/A' && (
+                                <div className="text-xs text-gray-500 hidden sm:block">{userInfo.phone}</div>
+                              )}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4">
+                              <div className="text-sm font-medium text-gray-900 truncate max-w-[100px] sm:max-w-none">{order.product_title}</div>
+                              {order.metal && order.metal !== "" && (
+                                <div className="text-xs text-gray-500 hidden sm:block">Metal: {order.metal}</div>
+                              )}
+                              {order.diamond && order.diamond !== "" && (
+                                <div className="text-xs text-gray-500 hidden sm:block">Diamond: {order.diamond}</div>
+                              )}
+                              {order.size && order.size !== "" && (
+                                <div className="text-xs text-gray-500 hidden sm:block">Size: {order.size}</div>
+                              )}
+                              {order.files && order.files !== "[]" && order.files !== "" && (
+                                <div className="text-xs text-blue-500 mt-1">
+                                  <span className="sm:hidden">📎</span>
+                                  <span className="hidden sm:inline">Files: {typeof order.files === 'string' ? order.files : 'Selected'}</span>
+                                </div>
+                              )}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm font-medium hidden sm:table-cell">
+                              {formatAmount(order.amount)}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm text-gray-600">
+                              {formatDate(order.created_at)}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4">
+                              <StatusBadge status={order.payment_status} />
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 sm:py-12 text-center">
+                          <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">📦</div>
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">
+                            No purchase orders found
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {userType === 'customer' 
+                              ? 'You have no purchase orders yet.' 
+                              : 'There are no purchase orders at the moment.'
+                            }
+                          </p>
                         </td>
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
-                      <div className="text-4xl mb-4">📋</div>
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        No enquiries found
-                      </h3>
-                      <p className="text-gray-500">
-                        {userType === 'customer' 
-                          ? 'You have no enquiries yet.' 
-                          : 'There are no enquiries at the moment.'
+                    )}
+                  </tbody>
+                </table>
+              ) : orderType === 'enquiry' ? (
+                /* ENQUIRIES TABLE - Responsive version */
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Enquiry ID
+                      </th>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                        Product Details
+                      </th>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Files
+                      </th>
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredEnquiries.length > 0 ? (
+                      filteredEnquiries.map((enquiry) => {
+                        const userInfo = getUserInfo(enquiry.user_id);
+                        
+                        // Parse JSON columns
+                        let productDetails = {};
+                        let fileTypes = [];
+                        
+                        try {
+                          productDetails = typeof enquiry.enquiry_product_details === 'string' 
+                            ? JSON.parse(enquiry.enquiry_product_details) 
+                            : enquiry.enquiry_product_details || {};
+                        } catch (e) {
+                          console.error('Error parsing enquiry_product_details:', e);
                         }
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+                        
+                        try {
+                          fileTypes = typeof enquiry.enquiry_file_types === 'string'
+                            ? JSON.parse(enquiry.enquiry_file_types)
+                            : enquiry.enquiry_file_types || [];
+                        } catch (e) {
+                          console.error('Error parsing enquiry_file_types:', e);
+                        }
+                        
+                        return (
+                          <tr key={enquiry.id} className="hover:bg-gray-50">
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm font-medium text-gray-900">
+                              ENQ-{enquiry.id}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm text-gray-600">
+                              <div className="font-medium truncate max-w-[80px] sm:max-w-none">{userInfo.name}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-[80px] sm:max-w-none">{userInfo.email}</div>
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 hidden sm:table-cell">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {enquiry.product_title || productDetails.product_name}
+                              </div>
+                              {productDetails.metal_name && (
+                                <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
+                              )}
+                              {productDetails.diamond_name && (
+                                <div className="text-xs text-gray-500 hidden md:block">Diamond: {productDetails.diamond_name}</div>
+                              )}
+                              {productDetails.size_name && (
+                                <div className="text-xs text-gray-500 hidden md:block">Size: {productDetails.size_name}</div>
+                              )}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm text-gray-600">
+                              {enquiry.enquiry_type || 'General'}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4">
+                              {fileTypes.length > 0 ? (
+                                <div className="space-y-1">
+                                  {fileTypes.map((file, idx) => (
+                                    <div key={idx} className="text-xs">
+                                      <span className="inline-block px-1 sm:px-2 py-1 bg-green-100 text-green-700 rounded text-xs truncate max-w-[80px] sm:max-w-none">
+                                        {window.innerWidth < 640 
+                                          ? file.file_type.charAt(0).toUpperCase()
+                                          : file.file_type.replace('_', ' ').toUpperCase()
+                                        }
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">No files</span>
+                              )}
+                            </td>
+                            
+                            <td className="px-2 py-3 sm:px-4 sm:py-4 text-sm text-gray-600">
+                              {formatDate(enquiry.created_at)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 sm:py-12 text-center">
+                          <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">📋</div>
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">
+                            No enquiries found
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {userType === 'customer' 
+                              ? 'You have no enquiries yet.' 
+                              : 'There are no enquiries at the moment.'
+                            }
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
                 </table>
               ) : (
                 /* ORDERS TABLE - New empty table for "Orders" tab */
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Order ID
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                         Product
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                         Amount
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center">
-                        <div className="text-4xl mb-4">📦</div>
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                      <td colSpan={6} className="px-4 py-8 sm:py-12 text-center">
+                        <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">📦</div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">
                           No orders found
                         </h3>
-                        <p className="text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500">
                           There are no orders at the moment.
                         </p>
                       </td>
@@ -657,12 +665,12 @@ useEffect(() => {
 
         {/* Debug Info (remove in production) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-100 rounded-lg">
             <details>
-              <summary className="cursor-pointer text-sm font-medium text-gray-700">
+              <summary className="cursor-pointer text-xs sm:text-sm font-medium text-gray-700">
                 Debug Info (Development Only)
               </summary>
-              <div className="mt-2 text-xs text-gray-600">
+              <div className="mt-2 text-xs text-gray-600 grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <div>Total Orders: {orders.length}</div>
                 <div>Total Enquiries: {enquiries.length}</div>
                 <div>Filtered Orders: {filteredOrders.length}</div>

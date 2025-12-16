@@ -659,7 +659,7 @@ function App() {
             }
           />
           <Route
-            path="faqs"
+            path="Faq"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Faqs />
