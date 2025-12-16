@@ -99,12 +99,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <ChartPieIcon className="w-4" />,
       roles: ["admin"],
     },
-    {
-      path: "enquiry",
-      label: "Enquiry",
-      icon: <ChatBubbleLeftRightIcon className="w-4" />,
-      roles: ["admin"],
-    },
+    // {
+    //   path: "enquiry",
+    //   label: "Enquiry",
+    //   icon: <ChatBubbleLeftRightIcon className="w-4" />,
+    //   roles: ["admin"],
+    // },
     {
       path: "users",
       label: "Users",

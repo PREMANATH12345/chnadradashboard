@@ -1,3 +1,4 @@
+// orders.jsx
 import React, { useState, useEffect } from 'react';
 import { DoAll } from '../api/auth';
 import toast from 'react-hot-toast';
@@ -19,9 +20,7 @@ const Orders = () => {
       const response = await DoAll({
         action: 'get',
         table: 'purchases',
-        where: {
-          is_deleted: 0
-        }
+        where: {}
       });
 
 
@@ -46,9 +45,7 @@ const Orders = () => {
       const response = await DoAll({
         action: 'get',
         table: 'enquiries',
-        where: {
-          is_deleted: 0
-        }
+        where: {}
       });
 
 
@@ -65,24 +62,31 @@ const Orders = () => {
     }
   };
 
-  // Fetch users to get customer details
-  const fetchUsers = async () => {
-    try {
-      const response = await DoAll({
-        action: 'get',
-        table: 'users',
-        where: {
-          is_deleted: 0
-        }
-      });
+const fetchUsers = async () => {
+  try {
+    const response = await DoAll({
+      action: 'get',
+      table: 'users',
+      where: {}
+    });
 
-     if (response?.success) {
-        setUsers(response.data || {});
+    console.log('👥 Users response:', response);
+
+    if (response?.success) {
+      // Convert array to object map
+      const usersMap = {};
+      if (Array.isArray(response.data)) {
+        response.data.forEach(user => {
+          usersMap[user.id] = user;
+        });
+        console.log('👥 Users map created:', Object.keys(usersMap).length, 'users');
+        setUsers(usersMap);
       }
-    } catch (error) {
-      console.error('Error fetching users:', error);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+};
 
   useEffect(() => {
     fetchOrders();
@@ -104,61 +108,107 @@ const Orders = () => {
     }
   }, []);
 
-  // Filter data based on user type and order type
+// Filter data based on user type and order type
 useEffect(() => {
+  console.log('🔄 Filtering - orderType:', orderType);
+  console.log('🔄 Raw orders:', orders.length);
+  console.log('🔄 Raw enquiries:', enquiries.length);
+  console.log('🔄 Current userType:', userType);
+  
   if (orderType === 'razorpay') {
-    const userOrders = orders.filter(order => {
-      // If admin, show all orders
-      if (userType === 'admin') return true;
+    // ✅ FOR ADMIN: Show ALL orders
+    if (userType === 'admin') {
+      console.log('✅ Admin view - showing all', orders.length, 'orders');
+      setFilteredOrders(orders);
+      return;
+    }
+    
+    // For non-admin users, filter by user_id
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      setFilteredOrders([]);
+      return;
+    }
+    
+    try {
+      const user = JSON.parse(userData);
+      const userId = user.id || user.admin_id;
       
-      // Get current logged-in user
-      const userData = localStorage.getItem('user');
-      if (!userData) return false;
-      
-      try {
-        const user = JSON.parse(userData);
-        
-        // For customers, show their own orders
+      const userOrders = orders.filter(order => {
         if (userType === 'customer') {
-          return order.user_id === user.id;
+          return String(order.user_id) === String(userId);
         }
-        
-        // For vendors, show orders where product belongs to them
-        return true;
-      } catch (error) {
-        console.error('Error parsing user data for filtering:', error);
+        if (userType === 'vendor') {
+          return true; // Show all for vendors
+        }
         return false;
-      }
-    });
-    setFilteredOrders(userOrders);
+      });
+      
+      console.log('🔄 Filtered orders:', userOrders.length);
+      setFilteredOrders(userOrders);
+    } catch (error) {
+      console.error('Error filtering orders:', error);
+      setFilteredOrders([]);
+    }
+    
   } else if (orderType === 'enquiry') {
-    const userEnquiries = enquiries.filter(enquiry => {
-      // If admin, show all enquiries
-      if (userType === 'admin') return true;
+    // ✅ FOR ADMIN: Show ALL enquiries
+    if (userType === 'admin') {
+      console.log('✅ Admin view - showing all', enquiries.length, 'enquiries');
+      setFilteredEnquiries(enquiries);
+      return;
+    }
+    
+    // For non-admin users, filter by user_id
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      setFilteredEnquiries([]);
+      return;
+    }
+    
+    try {
+      const user = JSON.parse(userData);
+      const userId = user.id || user.admin_id;
       
-      // Get current logged-in user
-      const userData = localStorage.getItem('user');
-      if (!userData) return false;
-      
-      try {
-        const user = JSON.parse(userData);
-        
-        // For customers, show their own enquiries
+      const userEnquiries = enquiries.filter(enquiry => {
         if (userType === 'customer') {
-          return enquiry.user_id === user.id;
+          return String(enquiry.user_id) === String(userId);
         }
-        
-        // For vendors, show enquiries where product belongs to them
-        return true;
-      } catch (error) {
-        console.error('Error parsing user data for filtering:', error);
+        if (userType === 'vendor') {
+          return true; // Show all for vendors
+        }
         return false;
-      }
-    });
-    setFilteredEnquiries(userEnquiries);
+      });
+      
+      console.log('🔄 Filtered enquiries:', userEnquiries.length);
+      setFilteredEnquiries(userEnquiries);
+    } catch (error) {
+      console.error('Error filtering enquiries:', error);
+      setFilteredEnquiries([]);
+    }
   }
-  // For "orders" tab, we don't need to filter anything since it's empty
 }, [orders, enquiries, userType, orderType]);
+
+
+// Get current user data from localStorage to determine user type
+useEffect(() => {
+  const userData = localStorage.getItem('user');
+  console.log('👤 Raw userData from localStorage:', userData);
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      console.log('👤 Parsed user:', user);
+      
+      // ✅ FIX: Check 'role' field for admin, 'user_type' for others
+      const detectedType = user.role || user.user_type || 'customer';
+      console.log('👤 Detected user_type:', detectedType);
+      setUserType(detectedType);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      setUserType('customer');
+    }
+  }
+}, []);
 
   const StatusBadge = ({ status }) => {
     const statusConfig = {
@@ -252,87 +302,51 @@ useEffect(() => {
 
         {/* Selection Controls */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* User Type Selection - Only show for admin */}
-            {userType === 'admin' && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">View As</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setUserType('customer')}
-                    className={`p-3 rounded-lg border transition-all ${
-                      userType === 'customer'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <span className={`font-medium ${userType === 'customer' ? 'text-blue-700' : 'text-gray-600'}`}>
-                      Customer View
-                    </span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setUserType('vendor')}
-                    className={`p-3 rounded-lg border transition-all ${
-                      userType === 'vendor'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <span className={`font-medium ${userType === 'vendor' ? 'text-green-700' : 'text-gray-600'}`}>
-                      Vendor View
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
-
+          <div className="grid grid-cols-1 gap-6">
             {/* Order Type Selection */}
-{/* Order Type Selection */}
-<div>
-  <h3 className="text-sm font-semibold text-gray-800 mb-3">Data Type</h3>
-  <div className="grid grid-cols-3 gap-2"> {/* Changed from grid-cols-2 */}
-    <button
-      onClick={() => setOrderType('razorpay')}
-      className={`p-3 rounded-lg border transition-all ${
-        orderType === 'razorpay'
-          ? 'border-purple-500 bg-purple-50'
-          : 'border-gray-200 bg-white'
-      }`}
-    >
-      <span className={`font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
-        Purchases
-      </span>
-    </button>
-    
-<button
-  onClick={() => setOrderType('orders')}
-  className={`p-3 rounded-lg border transition-all ${
-    orderType === 'orders'
-      ? 'border-green-500 bg-green-50'
-      : 'border-gray-200 bg-white'
-  }`}
->
-  <span className={`font-medium ${orderType === 'orders' ? 'text-green-700' : 'text-gray-600'}`}>
-    Orders
-  </span>
-</button>
-    
-    <button
-      onClick={() => setOrderType('enquiry')}
-      className={`p-3 rounded-lg border transition-all ${
-        orderType === 'enquiry'
-          ? 'border-orange-500 bg-orange-50'
-          : 'border-gray-200 bg-white'
-      }`}
-    >
-      <span className={`font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
-        Enquiries
-      </span>
-    </button>
-  </div>
-</div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">Data Type</h3>
+              <div className="grid grid-cols-3 gap-2"> {/* Changed from grid-cols-2 */}
+                <button
+                  onClick={() => setOrderType('razorpay')}
+                  className={`p-3 rounded-lg border transition-all ${
+                    orderType === 'razorpay'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`font-medium ${orderType === 'razorpay' ? 'text-purple-700' : 'text-gray-600'}`}>
+                    Purchases
+                  </span>
+                </button>
+                
+            <button
+              onClick={() => setOrderType('orders')}
+              className={`p-3 rounded-lg border transition-all ${
+                orderType === 'orders'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200 bg-white'
+              }`}
+            >
+              <span className={`font-medium ${orderType === 'orders' ? 'text-green-700' : 'text-gray-600'}`}>
+                Orders
+              </span>
+            </button>
+                
+                <button
+                  onClick={() => setOrderType('enquiry')}
+                  className={`p-3 rounded-lg border transition-all ${
+                    orderType === 'enquiry'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`font-medium ${orderType === 'enquiry' ? 'text-orange-700' : 'text-gray-600'}`}>
+                    Enquiries
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -441,21 +455,56 @@ useEffect(() => {
               </td>
               
               <td className="px-4 py-4">
-                <div className="text-sm font-medium text-gray-900">{order.product_title}</div>
-                {order.metal && order.metal !== "" && (
-                  <div className="text-xs text-gray-500">Metal: {order.metal}</div>
-                )}
-                {order.diamond && order.diamond !== "" && (
-                  <div className="text-xs text-gray-500">Diamond: {order.diamond}</div>
-                )}
-                {order.size && order.size !== "" && (
-                  <div className="text-xs text-gray-500">Size: {order.size}</div>
-                )}
-                {order.files && order.files !== "[]" && order.files !== "" && (
-                  <div className="text-xs text-blue-500 mt-1">
-                    Files: {typeof order.files === 'string' ? order.files : 'Selected'}
-                  </div>
-                )}
+                {(() => {
+                  // Parse purchased_product_details
+                  let productDetails = {};
+                  let fileDetails = [];
+                  
+                  try {
+                    productDetails = typeof order.purchased_product_details === 'string' 
+                      ? JSON.parse(order.purchased_product_details) 
+                      : order.purchased_product_details || {};
+                  } catch (e) {
+                    console.error('Error parsing purchased_product_details:', e);
+                  }
+                  
+                  try {
+                    fileDetails = typeof order.purchased_file_details === 'string'
+                      ? JSON.parse(order.purchased_file_details)
+                      : order.purchased_file_details || [];
+                  } catch (e) {
+                    console.error('Error parsing purchased_file_details:', e);
+                  }
+                  
+                  return (
+                    <>
+                      <div className="text-sm font-medium text-gray-900">
+                        {productDetails.product_name || order.product_title || 'N/A'}
+                      </div>
+                      {productDetails.metal_name && (
+                        <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
+                      )}
+                      {productDetails.diamond_name && (
+                        <div className="text-xs text-gray-500">Diamond: {productDetails.diamond_name}</div>
+                      )}
+                      {productDetails.size_name && (
+                        <div className="text-xs text-gray-500">
+                          Size: {productDetails.size_name} 
+                          {productDetails.size_mm ? ` (${productDetails.size_mm}mm)` : ''}
+                        </div>
+                      )}
+                      {fileDetails.length > 0 && (
+                        <div className="mt-1 space-y-1">
+                          {fileDetails.map((file, idx) => (
+                            <div key={idx} className="text-xs text-blue-600">
+                              📎 {file.file_name} ({file.file_type})
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </td>
               
               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
