@@ -433,9 +433,11 @@ useEffect(() => {
               </td>
               
               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                <div className="font-medium">ID: {order.user_id}</div>
-                <div className="text-xs text-gray-500">{userInfo.name}</div>
+                <div className="font-medium">{userInfo.name}</div>
                 <div className="text-xs text-gray-500">{userInfo.email}</div>
+                {userInfo.phone !== 'N/A' && (
+                  <div className="text-xs text-gray-500">{userInfo.phone}</div>
+                )}
               </td>
               
               <td className="px-4 py-4">
@@ -491,7 +493,7 @@ useEffect(() => {
               ) : orderType === 'enquiry' ? (
                 /* ENQUIRIES TABLE - your existing enquiries table code */
                 <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100">
+                  <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Enquiry ID
@@ -506,108 +508,108 @@ useEffect(() => {
                         Type
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        File Type
+                        Date
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Submitted
+                        Status
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEnquiries.length > 0 ? (
-                    filteredEnquiries.map((enquiry) => {
-                      const userInfo = getUserInfo(enquiry.user_id);
-                      
-                      // Parse JSON columns
-                      let productDetails = {};
-                      let fileTypes = [];
-                      
-                      try {
-                        productDetails = typeof enquiry.enquiry_product_details === 'string' 
-                          ? JSON.parse(enquiry.enquiry_product_details) 
-                          : enquiry.enquiry_product_details || {};
-                      } catch (e) {
-                        console.error('Error parsing enquiry_product_details:', e);
-                      }
-                      
-                      try {
-                        fileTypes = typeof enquiry.enquiry_file_types === 'string'
-                          ? JSON.parse(enquiry.enquiry_file_types)
-                          : enquiry.enquiry_file_types || [];
-                      } catch (e) {
-                        console.error('Error parsing enquiry_file_types:', e);
-                      }
-                      
-                      return (
-                        <tr key={enquiry.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            ENQ-{enquiry.id}
-                          </td>
-                          
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            <div className="font-medium">ID: {enquiry.user_id}</div>
-                            <div className="text-xs text-gray-500">{userInfo.name}</div>
-                            <div className="text-xs text-gray-500">{userInfo.email}</div>
-                          </td>
-                          
-                          <td className="px-4 py-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {enquiry.product_title || productDetails.product_name}
+                {filteredEnquiries.length > 0 ? (
+                  filteredEnquiries.map((enquiry) => {
+                    const userInfo = getUserInfo(enquiry.user_id);
+                    
+                    // Parse JSON columns
+                    let productDetails = {};
+                    let fileTypes = [];
+                    
+                    try {
+                      productDetails = typeof enquiry.enquiry_product_details === 'string' 
+                        ? JSON.parse(enquiry.enquiry_product_details) 
+                        : enquiry.enquiry_product_details || {};
+                    } catch (e) {
+                      console.error('Error parsing enquiry_product_details:', e);
+                    }
+                    
+                    try {
+                      fileTypes = typeof enquiry.enquiry_file_types === 'string'
+                        ? JSON.parse(enquiry.enquiry_file_types)
+                        : enquiry.enquiry_file_types || [];
+                    } catch (e) {
+                      console.error('Error parsing enquiry_file_types:', e);
+                    }
+                    
+                    return (
+                      <tr key={enquiry.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          ENQ-{enquiry.id}
+                        </td>
+                        
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <div className="font-medium">ID: {enquiry.user_id}</div>
+                          <div className="text-xs text-gray-500">{userInfo.name}</div>
+                          <div className="text-xs text-gray-500">{userInfo.email}</div>
+                        </td>
+                        
+                        <td className="px-4 py-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {enquiry.product_title || productDetails.product_name}
+                          </div>
+                          {productDetails.metal_name && (
+                            <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
+                          )}
+                          {productDetails.diamond_name && (
+                            <div className="text-xs text-gray-500">Diamond: {productDetails.diamond_name}</div>
+                          )}
+                          {productDetails.size_name && (
+                            <div className="text-xs text-gray-500">Size: {productDetails.size_name} ({productDetails.size_mm}mm)</div>
+                          )}
+                        </td>
+                        
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {enquiry.enquiry_type || 'General'}
+                        </td>
+                        
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {fileTypes.length > 0 ? (
+                            <div className="space-y-1">
+                              {fileTypes.map((file, idx) => (
+                                <div key={idx} className="text-xs">
+                                  <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded">
+                                    {file.file_type.replace('_', ' ').toUpperCase()}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                            {productDetails.metal_name && (
-                              <div className="text-xs text-gray-500">Metal: {productDetails.metal_name}</div>
-                            )}
-                            {productDetails.diamond_name && (
-                              <div className="text-xs text-gray-500">Diamond: {productDetails.diamond_name}</div>
-                            )}
-                            {productDetails.size_name && (
-                              <div className="text-xs text-gray-500">Size: {productDetails.size_name} ({productDetails.size_mm}mm)</div>
-                            )}
-                          </td>
-                          
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {enquiry.enquiry_type || 'General'}
-                          </td>
-                          
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {fileTypes.length > 0 ? (
-                              <div className="space-y-1">
-                                {fileTypes.map((file, idx) => (
-                                  <div key={idx} className="text-xs">
-                                    <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded">
-                                      {file.file_type.replace('_', ' ').toUpperCase()}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-gray-400">No files</span>
-                            )}
-                          </td>
-                          
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {formatDate(enquiry.created_at)}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center">
-                        <div className="text-4xl mb-4">📋</div>
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                          No enquiries found
-                        </h3>
-                        <p className="text-gray-500">
-                          {userType === 'customer' 
-                            ? 'You have no enquiries yet.' 
-                            : 'There are no enquiries at the moment.'
-                          }
-                        </p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
+                          ) : (
+                            <span className="text-xs text-gray-400">No files</span>
+                          )}
+                        </td>
+                        
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {formatDate(enquiry.created_at)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="text-4xl mb-4">📋</div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        No enquiries found
+                      </h3>
+                      <p className="text-gray-500">
+                        {userType === 'customer' 
+                          ? 'You have no enquiries yet.' 
+                          : 'There are no enquiries at the moment.'
+                        }
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
                 </table>
               ) : (
                 /* ORDERS TABLE - New empty table for "Orders" tab */
