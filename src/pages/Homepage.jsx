@@ -4224,15 +4224,15 @@ const SectionEditor = ({ section }) => {
             >
               Preview
             </PrimaryButton> */}
-            <PrimaryButton
+            {/* <PrimaryButton
               onClick={() => setShowAddSectionDropdown(!showAddSectionDropdown)}
               icon={<FiPlus />}
               className="w-full sm:w-auto"
             >
               Add New Section
-            </PrimaryButton>
+            </PrimaryButton> */}
 
-            {showAddSectionDropdown && (
+            {/* {showAddSectionDropdown && (
               <div className="absolute right-0 mt-16 sm:mt-12 w-full sm:w-64 bg-white rounded-xl border border-gray-200 shadow-lg z-50">
                 <div className="p-2">
                   {Object.entries(SECTION_CONFIG).map(([type, config]) => (
@@ -4258,11 +4258,11 @@ const SectionEditor = ({ section }) => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {Object.entries(SECTION_CONFIG).map(([type, config]) => (
             <DashboardCard
               key={type}
@@ -4273,7 +4273,7 @@ const SectionEditor = ({ section }) => {
               onClick={() => addNewSection(type)}
             />
           ))}
-        </div>
+        </div> */}
 
         <SectionCard title="Homepage Sections">
           {sections.length === 0 ? (
@@ -4295,57 +4295,61 @@ const SectionEditor = ({ section }) => {
               </PrimaryButton>
             </div>
           ) : (
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <div
-                  key={section.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-3 rounded-lg ${
-                        SECTION_CONFIG[section.type]?.color || "bg-gray-500"
-                      } text-white`}
-                    >
-                      {SECTION_CONFIG[section.type]?.icon || (
-                        <FiLayers className="w-5 h-5" />
-                      )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sections.map((section) => {
+                const sectionConfig = SECTION_CONFIG[section.type] || {};
+                const sectionColor = sectionConfig?.color || "bg-gray-500";
+                const SectionIcon = sectionConfig?.icon || FiLayers;
+                const sectionName = sectionConfig?.name || section.type;
+
+                return (
+                  <div
+                    key={section.id}
+                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-all hover:border-gray-300 group"
+                  >
+                    {/* Card Header with Icon and Actions */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div
+                        className={`p-3 rounded-lg ${sectionColor} text-white`}
+                      >
+                        {SectionIcon}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge active={section.enabled} />
+                        <button
+                          onClick={() => {
+                            setSelectedSection(section);
+                            setView("section-edit");
+                          }}
+                          className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors"
+                          title="Edit section"
+                        >
+                          <FiEdit className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">
+
+                    {/* Card Content */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-gray-900 text-lg truncate">
                         {section.name}
                       </h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <StatusBadge active={section.enabled} />
-                        <span className="text-xs text-gray-500">
-                          {SECTION_CONFIG[section.type]?.name || section.type}
-                        </span>
+
+                      <div className="text-sm text-gray-500">{sectionName}</div>
+
+                      {/* Additional Section Info - Optional */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <div className="flex items-center justify-between text-xs text-gray-400">
+                          <span>Order: {section.order + 1}</span>
+                          <span className="px-2 py-1 bg-gray-50 rounded">
+                            {section.enabled ? "Active" : "Inactive"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {/* <button
-                      onClick={() => toggleSection(section.id)}
-                      className={`text-sm font-medium px-3 py-1 rounded-lg ${
-                        section.enabled
-                          ? "bg-green-100 text-green-800 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      }`}
-                    >
-                      {section.enabled ? "Active" : "Inactive"}
-                    </button> */}
-                    <button
-                      onClick={() => {
-                        setSelectedSection(section);
-                        setView("section-edit");
-                      }}
-                      className="text-emerald-600 hover:text-emerald-700"
-                    >
-                      <FiEdit className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </SectionCard>
