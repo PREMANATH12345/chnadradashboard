@@ -1,3 +1,4 @@
+// Enquire.jsx
 import { useState, useEffect } from "react";
 import { DoAll } from "../auth/api";
 import toast from "react-hot-toast";

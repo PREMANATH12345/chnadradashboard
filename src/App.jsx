@@ -626,14 +626,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* <Route
             path="enquiry"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <EnquiryPage />
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="attributes"
             element={
