@@ -2348,7 +2348,7 @@ const FILE_TYPE_OPTIONS = [
     label: "CAM Product",
     emoji: "⚙️",
     requiresPrice: true,
-    requiresUpload: true,
+    requiresUpload: false,
   },
   {
     value: "rubber_mold",
@@ -4351,7 +4351,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       label: "CAM Product",
       emoji: "⚙️",
       requiresPrice: true,
-      requiresUpload: true,
+      requiresUpload: false,
     },
     {
       value: "rubber_mold",
