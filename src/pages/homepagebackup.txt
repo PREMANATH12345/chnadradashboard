@@ -793,24 +793,29 @@ const ProductSelector = ({ item, onUpdate, categories, products }) => {
                     key={productId}
                     className="border border-gray-200 rounded-lg overflow-hidden"
                   >
-                    <div className="aspect-square bg-gray-100">
-                      <img
-                        src={getImageUrl(getProductImage(product))}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src =
-                            'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f3f4f6"/><text x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="10">No Image</text></svg>';
-                        }}
-                      />
-                    </div>
-                    <div className="p-2 bg-gray-50 border-t">
-                      <p className="text-xs font-medium truncate">
+                    {/* Image section commented out */}
+                    {/* <div className="aspect-square bg-gray-100">
+    <img
+      src={getImageUrl(getProductImage(product))}
+      alt={product.name}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        e.target.src =
+          'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f3f4f6"/><text x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="10">No Image</text></svg>';
+      }}
+    />
+  </div> */}
+
+                    <div className="p-3 bg-gray-50">
+                      {/* Only showing product name */}
+                      <p className="text-sm font-medium truncate text-center">
                         {product.name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        ₹{product.price || "0"}
-                      </p>
+
+                      {/* Price commented out */}
+                      {/* <p className="text-xs text-gray-500">
+      ₹{product.price || "0"}
+    </p> */}
                     </div>
                   </div>
                 );
@@ -879,45 +884,61 @@ const ProductSelector = ({ item, onUpdate, categories, products }) => {
                       }`}
                       onClick={() => handleProductToggle(product.id)}
                     >
-                      <div className="relative aspect-square bg-gray-100">
-                        {productImage ? (
-                          <img
-                            src={getImageUrl(productImage)}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <HiOutlineShoppingBag className="w-8 h-8" />
-                          </div>
-                        )}
+                      {/* Image section commented out */}
+                      {/* <div className="relative aspect-square bg-gray-100">
+      {productImage ? (
+        <img
+          src={getImageUrl(productImage)}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <HiOutlineShoppingBag className="w-8 h-8" />
+        </div>
+      )}
 
+      {isSelected && (
+        <div className="absolute top-2 right-2">
+          <div className="bg-emerald-600 text-white rounded-full p-1">
+            <FiCheck className="w-3 h-3" />
+          </div>
+        </div>
+      )}
+    </div> */}
+
+                      <div className="p-4">
+                        {/* Only showing product name - centered and larger */}
+                        <p className="text-base font-medium truncate text-center">
+                          {product.name}
+                        </p>
+
+                        {/* Price commented out */}
+                        {/* <p className="text-xs text-gray-500">
+        ₹{product.price || "0"}
+      </p> */}
+
+                        {/* ID and selected status commented out */}
+                        {/* <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-400">
+          ID: {product.id}
+        </span>
+        {isSelected && (
+          <span className="text-xs text-emerald-600 font-medium">
+            Selected
+          </span>
+        )}
+      </div> */}
+
+                        {/* Selected indicator (simplified version) */}
                         {isSelected && (
-                          <div className="absolute top-2 right-2">
-                            <div className="bg-emerald-600 text-white rounded-full p-1">
+                          <div className="flex justify-center mt-2">
+                            <div className="bg-emerald-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                               <FiCheck className="w-3 h-3" />
+                              Selected
                             </div>
                           </div>
                         )}
-                      </div>
-
-                      <div className="p-3">
-                        <p className="text-sm font-medium truncate">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          ₹{product.price || "0"}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-400">
-                            ID: {product.id}
-                          </span>
-                          {isSelected && (
-                            <span className="text-xs text-emerald-600 font-medium">
-                              Selected
-                            </span>
-                          )}
-                        </div>
                       </div>
                     </div>
                   );
@@ -2302,144 +2323,165 @@ const Homepage = () => {
     }
   };
 
-  // Load sections
-  const loadSections = async () => {
-    try {
-      setLoading(true);
-      const token = getAuthToken();
+const loadSections = async () => {
+  try {
+    setLoading(true);
+    const token = getAuthToken();
 
-      const response = await fetch(`${API_URL}/doAll`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          action: "get",
-          table: "homepage_sections",
-          order_by: { order_position: "ASC" },
-        }),
-      });
+    const response = await fetch(`${API_URL}/doAll`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        action: "get",
+        table: "homepage_sections",
+        order_by: { order_position: "ASC" },
+      }),
+    });
 
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-      const result = await response.json();
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const result = await response.json();
 
-      if (!result.success)
-        throw new Error(result.message || "API returned unsuccessful response");
+    if (!result.success)
+      throw new Error(result.message || "API returned unsuccessful response");
 
-      if (result.data?.length > 0) {
-        const loadedSections = await Promise.all(
-          result.data.map(async (row) => {
-            try {
-              const sectionData = JSON.parse(row.section_data || "{}");
+    if (result.data?.length > 0) {
+      const loadedSections = await Promise.all(
+        result.data.map(async (row) => {
+          try {
+            const sectionData = JSON.parse(row.section_data || "{}");
 
-              // Find this part in loadSections function:
-              if (row.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
-                sectionData.items = [];
+            // Handle category highlight sections
+            if (row.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
+              // Fetch category data from collection_category table
+              const categoryResponse = await fetch(`${API_URL}/doAll`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  action: "get",
+                  table: "collection_category",
+                  where: {
+                    section_id: row.id,
+                    is_deleted: 0,
+                  },
+                  order_by: { display_order: "ASC" },
+                }),
+              });
 
-                // Add this check for section name to load specific category highlight
-                const sectionName = row.name || "";
-                const isHighlightCategory1 = sectionName
-                  .toLowerCase()
-                  .includes("category1");
-                const isHighlightCategory2 = sectionName
-                  .toLowerCase()
-                  .includes("category2");
+              if (categoryResponse.ok) {
+                const categoryResult = await categoryResponse.json();
+                if (categoryResult.success && categoryResult.data?.length > 0) {
+                  // Transform DB data to match component structure - IMPORTANT: Preserve the ID
+                  sectionData.items = categoryResult.data.map((catItem) => {
+                    let imageUrl = "";
+                    try {
+                      if (catItem.images) {
+                        if (Array.isArray(catItem.images)) {
+                          imageUrl = catItem.images[0] || "";
+                        } else if (typeof catItem.images === "string") {
+                          // Try to parse as JSON
+                          try {
+                            const parsed = JSON.parse(catItem.images);
+                            if (Array.isArray(parsed)) {
+                              imageUrl = parsed[0] || "";
+                            } else if (typeof parsed === "string") {
+                              imageUrl = parsed;
+                            }
+                          } catch (e) {
+                            // If parsing fails, check if it's a URL
+                            if (
+                              catItem.images.startsWith("/") ||
+                              catItem.images.startsWith("http")
+                            ) {
+                              imageUrl = catItem.images;
+                            }
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Error parsing images:", e);
+                    }
 
-                // if (sectionData.items && sectionData.items.length > 0) {
-                //   const categoryResponse = await fetch(`${API_URL}/doAll`, {
-                //     method: "POST",
-                //     headers: {
-                //       "Content-Type": "application/json",
-                //       Authorization: `Bearer ${token}`,
-                //     },
-                //     body: JSON.stringify({
-                //       action: "get",
-                //       table: "collection_category",
-                //       where: {
-                //         section_id: row.id,
-                //         is_deleted: 0,
-                //       },
-                //       order_by: { display_order: "ASC" },
-                //     }),
-                //   });
+                    let selectedProducts = [];
+                    try {
+                      if (catItem.selected_products) {
+                        if (typeof catItem.selected_products === "string") {
+                          selectedProducts = JSON.parse(
+                            catItem.selected_products
+                          );
+                        } else if (Array.isArray(catItem.selected_products)) {
+                          selectedProducts = catItem.selected_products;
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Error parsing selected_products:", e);
+                    }
 
-                //   if (categoryResponse.ok) {
-                //     const categoryResult = await categoryResponse.json();
-                //     if (
-                //       categoryResult.success &&
-                //       categoryResult.data?.length > 0
-                //     ) {
-                //       // Keep only the first item for each highlight section
-                //       const categoryItems = categoryResult.data.map(
-                //         (catItem) => ({
-                //           id: catItem.id,
-                //           title: catItem.title || "",
-                //           image: JSON.parse(catItem.images || "[]")[0] || "",
-                //           selectedCategories: [catItem.category_id],
-                //           selectedProducts: JSON.parse(
-                //             catItem.selected_products || "[]"
-                //           ),
-                //         })
-                //       );
-
-                //       // If it's HighlightCategory1 or 2, take only first item
-                //       if (isHighlightCategory1 || isHighlightCategory2) {
-                //         sectionData.items = categoryItems.slice(0, 1);
-                //       } else {
-                //         sectionData.items = categoryItems;
-                //       }
-                //     } else {
-                //       // No data in DB - create empty item for display
-                //       sectionData.items = [
-                //         {
-                //           id: Date.now(),
-                //           title: "",
-                //           image: "",
-                //           selectedCategories: [],
-                //           selectedProducts: [],
-                //         },
-                //       ];
-                //     }
-                //   }
-                // }
+                    return {
+                      id: catItem.id, // CRITICAL: Preserve the database ID
+                      title: catItem.title || "",
+                      image: imageUrl,
+                      selectedCategories: catItem.category_id
+                        ? [catItem.category_id]
+                        : [],
+                      selectedProducts: selectedProducts,
+                    };
+                  });
+                } else {
+                  // If no data in DB, check if section_data has items
+                  if (!sectionData.items || sectionData.items.length === 0) {
+                    sectionData.items = [
+                      {
+                        id: Date.now(),
+                        title: "",
+                        image: "",
+                        selectedCategories: [],
+                        selectedProducts: [],
+                      },
+                    ];
+                  }
+                }
               }
-
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: sectionData,
-              };
-            } catch (error) {
-              console.error(`Error processing section ${row.id}:`, error);
-              return {
-                id: row.id,
-                name: row.name,
-                type: row.type,
-                enabled: row.enabled === 1,
-                order: row.order_position,
-                data: { items: [] },
-              };
             }
-          })
-        );
 
-        setSections(loadedSections.filter((section) => section !== null));
-      } else {
-        setSections([]);
-      }
-    } catch (error) {
-      console.error("Error loading sections:", error);
-      alert("Failed to load sections from database: " + error.message);
-    } finally {
-      setLoading(false);
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: sectionData,
+            };
+          } catch (error) {
+            console.error(`Error processing section ${row.id}:`, error);
+            return {
+              id: row.id,
+              name: row.name,
+              type: row.type,
+              enabled: row.enabled === 1,
+              order: row.order_position,
+              data: { items: [] },
+            };
+          }
+        })
+      );
+
+      setSections(loadedSections.filter((section) => section !== null));
+    } else {
+      setSections([]);
     }
-  };
-
+  } catch (error) {
+    console.error("Error loading sections:", error);
+    alert("Failed to load sections from database: " + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     loadSections();
     fetchCategories().then(setCategories);
@@ -2558,208 +2600,234 @@ const Homepage = () => {
     }
   };
 
-  const saveCategoryData = async (sectionId, categoryData) => {
-    try {
-      const token = getAuthToken();
+const saveCategoryData = async (sectionId, categoryData) => {
+  try {
+    const token = getAuthToken();
 
-      await fetch(`${API_URL}/doAll`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+    // First, get existing records to update instead of insert
+    const existingResponse = await fetch(`${API_URL}/doAll`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        action: "get",
+        table: "collection_category",
+        where: {
+          section_id: sectionId,
+          is_deleted: 0,
         },
-        body: JSON.stringify({
-          action: "soft_delete",
-          table: "collection_category",
-          where: { section_id: sectionId },
-        }),
-      });
+        order_by: { display_order: "ASC" },
+      }),
+    });
 
-      // In saveCategoryData function, after checking if categoryData.items?.length > 0:
-      if (categoryData.items?.length > 0) {
-        // For single category sections (HighlightCategory1/2), take only first item
-        const itemsToSave = categoryData.items;
+    const existingResult = await existingResponse.json();
+    const existingItems = existingResult.success
+      ? existingResult.data || []
+      : [];
 
-        for (const [index, item] of itemsToSave.entries()) {
-          if (item.selectedCategories?.length > 0) {
-            const categoryId = item.selectedCategories[0];
-            const category = categories.find((cat) => cat.id === categoryId);
+    // Save new category data
+    if (categoryData.items?.length > 0) {
+      for (const [index, item] of categoryData.items.entries()) {
+        if (item.selectedCategories?.length > 0) {
+          const categoryId = item.selectedCategories[0];
+          const category = categories.find((cat) => cat.id === categoryId);
 
-            if (category) {
-              // Check if this item already exists in DB
-              const existingItemResponse = await fetch(`${API_URL}/doAll`, {
+          if (category) {
+            // Check if this item already exists (by comparing title and category_id)
+            const existingItem = existingItems.find(
+              (existing) =>
+                existing.id === item.id ||
+                (existing.category_id === categoryId &&
+                  existing.title === (item.title || category.name))
+            );
+
+            if (existingItem) {
+              // UPDATE existing record
+              await fetch(`${API_URL}/doAll`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                  action: "get",
+                  action: "update",
                   table: "collection_category",
-                  where: {
+                  data: {
+                    category_id: categoryId,
+                    title: item.title || category.name,
+                    images: JSON.stringify(item.image ? [item.image] : []),
+                    selected_products: JSON.stringify(
+                      item.selectedProducts || []
+                    ),
+                    display_order: index,
+                    updated_at: new Date()
+                      .toISOString()
+                      .slice(0, 19)
+                      .replace("T", " "),
+                  },
+                  where: { id: existingItem.id },
+                }),
+              });
+            } else {
+              // INSERT new record
+              await fetch(`${API_URL}/doAll`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  action: "insert",
+                  table: "collection_category",
+                  data: {
                     section_id: sectionId,
-                    id: item.id,
+                    category_id: categoryId,
+                    title: item.title || category.name,
+                    images: JSON.stringify(item.image ? [item.image] : []),
+                    selected_products: JSON.stringify(
+                      item.selectedProducts || []
+                    ),
+                    display_order: index,
+                    updated_at: new Date()
+                      .toISOString()
+                      .slice(0, 19)
+                      .replace("T", " "),
                     is_deleted: 0,
                   },
                 }),
               });
-
-              const existingResult = await existingItemResponse.json();
-
-              if (existingResult.success && existingResult.data?.length > 0) {
-                // Update existing
-                await fetch(`${API_URL}/doAll`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    action: "update",
-                    table: "collection_category",
-                    data: {
-                      category_id: categoryId,
-                      title: item.title || category.name,
-                      images: JSON.stringify(item.image ? [item.image] : []),
-                      selected_products: JSON.stringify(
-                        item.selectedProducts || []
-                      ),
-                      display_order: index,
-                      updated_at: new Date()
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace("T", " "),
-                    },
-                    where: { id: item.id },
-                  }),
-                });
-              } else {
-                // Insert new
-                await fetch(`${API_URL}/doAll`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    action: "insert",
-                    table: "collection_category",
-                    data: {
-                      section_id: sectionId,
-                      category_id: categoryId,
-                      title: item.title || category.name,
-                      images: JSON.stringify(item.image ? [item.image] : []),
-                      selected_products: JSON.stringify(
-                        item.selectedProducts || []
-                      ),
-                      display_order: index,
-                      updated_at: new Date()
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace("T", " "),
-                      is_deleted: 0,
-                    },
-                  }),
-                });
-              }
             }
           }
         }
       }
-    } catch (error) {
-      console.error("Error saving category data:", error);
-      throw error;
-    }
-  };
 
-  const saveSection = async (sectionId, newData) => {
-    try {
-      const token = getAuthToken();
-      const section = sections.find((s) => s.id === sectionId);
+      // Soft delete any items that are no longer in the current data
+      const currentItemIds = categoryData.items
+        .filter((item) => item.selectedCategories?.length > 0)
+        .map((item) => item.id);
 
-      if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
-        const itemsWithIds =
-          newData.items?.map((item, index) => ({
-            ...item,
-            id: item.id || Date.now() + index,
-          })) || [];
-
-        const dataForHomepageSections = {
-          ...newData,
-          items: itemsWithIds.map((item) => ({
-            id: item.id,
-            title: item.title,
-            image: item.image,
-            selectedCategories: item.selectedCategories,
-            selectedProducts: item.selectedProducts,
-          })),
-        };
-
-        const response = await fetch(`${API_URL}/doAll`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            action: "update",
-            table: "homepage_sections",
-            data: { section_data: JSON.stringify(dataForHomepageSections) },
-            where: { id: sectionId },
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          await saveCategoryData(sectionId, {
-            ...newData,
-            items: itemsWithIds,
+      for (const existingItem of existingItems) {
+        if (!currentItemIds.includes(existingItem.id)) {
+          await fetch(`${API_URL}/doAll`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              action: "soft_delete",
+              table: "collection_category",
+              where: { id: existingItem.id },
+            }),
           });
-          setSections(
-            sections.map((s) =>
-              s.id === sectionId
-                ? { ...s, data: { ...newData, items: itemsWithIds } }
-                : s
-            )
-          );
-          alert("Section saved successfully!");
-        } else {
-          alert("Failed to save section: " + result.message);
-        }
-      } else {
-        const response = await fetch(`${API_URL}/doAll`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            action: "update",
-            table: "homepage_sections",
-            data: { section_data: JSON.stringify(newData) },
-            where: { id: sectionId },
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          setSections(
-            sections.map((s) =>
-              s.id === sectionId ? { ...s, data: newData } : s
-            )
-          );
-          alert("Section saved successfully!");
-        } else {
-          alert("Failed to save section: " + result.message);
         }
       }
-    } catch (error) {
-      console.error("Error saving section:", error);
-      alert("Error saving section. Please try again.");
     }
-  };
+  } catch (error) {
+    console.error("Error saving category data:", error);
+    throw error;
+  }
+};
+
+const saveSection = async (sectionId, newData) => {
+  try {
+    const token = getAuthToken();
+    const section = sections.find((s) => s.id === sectionId);
+
+    if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
+      const itemsWithIds =
+        newData.items?.map((item, index) => ({
+          ...item,
+          id: item.id || Date.now() + index,
+        })) || [];
+
+      // First, update the homepage_sections table with basic data
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "update",
+          table: "homepage_sections",
+          data: {
+            section_data: JSON.stringify({
+              items: itemsWithIds.map((item) => ({
+                id: item.id,
+                title: item.title,
+                image: item.image,
+                selectedCategories: item.selectedCategories,
+                selectedProducts: item.selectedProducts,
+              })),
+            }),
+          },
+          where: { id: sectionId },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Then save detailed data to collection_category table
+        await saveCategoryData(sectionId, {
+          ...newData,
+          items: itemsWithIds,
+        });
+
+        // Update local state
+        setSections(
+          sections.map((s) =>
+            s.id === sectionId
+              ? {
+                  ...s,
+                  data: {
+                    ...newData,
+                    items: itemsWithIds,
+                  },
+                }
+              : s
+          )
+        );
+        alert("Section saved successfully!");
+      } else {
+        alert("Failed to save section: " + result.message);
+      }
+    } else {
+      const response = await fetch(`${API_URL}/doAll`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "update",
+          table: "homepage_sections",
+          data: { section_data: JSON.stringify(newData) },
+          where: { id: sectionId },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSections(
+          sections.map((s) =>
+            s.id === sectionId ? { ...s, data: newData } : s
+          )
+        );
+        alert("Section saved successfully!");
+      } else {
+        alert("Failed to save section: " + result.message);
+      }
+    }
+  } catch (error) {
+    console.error("Error saving section:", error);
+    alert("Error saving section. Please try again.");
+  }
+};
 
   const getDefaultDataForType = (type) => {
     switch (type) {
@@ -2956,232 +3024,783 @@ const Homepage = () => {
     }
   };
 
-  const SectionEditor = ({ section }) => {
-    const [formData, setFormData] = useState(() => {
-      const sectionData = section.data || {};
-      let items = sectionData.items || [];
+const SectionEditor = ({ section }) => {
+  const [formData, setFormData] = useState(() => {
+    const sectionData = section.data || {};
+    let items = sectionData.items || [];
 
-      if (
-        section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT &&
-        items.length > 0
-      ) {
-        items = items.map((item) => ({
-          ...item,
-          id: item.id || Date.now() + Math.random(),
+    // Ensure items have proper structure for category highlights
+    if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
+      if (items.length === 0) {
+        // If no items, create an empty one for display
+        items = [
+          {
+            id: Date.now(),
+            title: "",
+            image: "",
+            selectedCategories: [],
+            selectedProducts: [],
+          },
+        ];
+      } else {
+        // Ensure each item has required fields and preserve existing IDs
+        items = items.map((item, index) => ({
+          id: item.id || Date.now() + index, // Preserve existing ID or create new one
           title: item.title || "",
           image: item.image || "",
           selectedCategories: item.selectedCategories || [],
           selectedProducts: item.selectedProducts || [],
         }));
       }
+    }
 
-      if (section.type === SECTION_TYPES.HERO && items.length > 0) {
-        items = items.map((item) => ({
-          ...item,
-          selectedCategory: item.selectedCategory || null,
-          redirectToCategory: item.redirectToCategory || false,
-        }));
-      }
+    // Handle other section types
+    if (section.type === SECTION_TYPES.HERO && items.length > 0) {
+      items = items.map((item) => ({
+        ...item,
+        selectedCategory: item.selectedCategory || null,
+        redirectToCategory: item.redirectToCategory || false,
+      }));
+    }
 
-      if (section.type === SECTION_TYPES.COLLECTION && items.length > 0) {
-        items = items.map((item) => ({
-          ...item,
-          redirectToCategory: item.redirectToCategory || false,
-          images: item.images || ["", "", "", ""],
-          imageCategories: item.imageCategories || [null, null, null, null],
-        }));
-      }
+    if (section.type === SECTION_TYPES.COLLECTION && items.length > 0) {
+      items = items.map((item) => ({
+        ...item,
+        redirectToCategory: item.redirectToCategory || false,
+        images: item.images || ["", "", "", ""],
+        imageCategories: item.imageCategories || [null, null, null, null],
+      }));
+    }
 
-      if (section.type === SECTION_TYPES.FEATURE && items.length > 0) {
-        items = items.map((item) => ({
-          ...item,
-          leftImageCategory: item.leftImageCategory || null,
-          rightImageCategory: item.rightImageCategory || null,
-          rightBottomImageCategory: item.rightBottomImageCategory || null,
-        }));
-      }
+    if (section.type === SECTION_TYPES.FEATURE && items.length > 0) {
+      items = items.map((item) => ({
+        ...item,
+        leftImageCategory: item.leftImageCategory || null,
+        rightImageCategory: item.rightImageCategory || null,
+        rightBottomImageCategory: item.rightBottomImageCategory || null,
+      }));
+    }
 
-      return { ...sectionData, items };
+    if (section.type === SECTION_TYPES.STORY && items.length > 0) {
+      items = items.map((item) => ({
+        ...item,
+        videos: item.videos || ["", "", "", ""],
+      }));
+    }
+
+    return { ...sectionData, items };
+  });
+
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+
+  const updateItem = (index, field, value) => {
+    const newItems = [...(formData.items || [])];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const updateEntireItem = (index, updatedItem) => {
+    const newItems = [...(formData.items || [])];
+    newItems[index] = updatedItem;
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const addItem = () => {
+    const newItem = getNewItemTemplate(
+      section.type,
+      (formData.items?.length || 0) + 1
+    );
+    setFormData({
+      ...formData,
+      items: [...(formData.items || []), newItem],
     });
+  };
 
-    const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const removeItem = (index) => {
+    const newItems = (formData.items || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, items: newItems });
+  };
 
-    const updateItem = (index, field, value) => {
-      const newItems = [...(formData.items || [])];
-      newItems[index] = { ...newItems[index], [field]: value };
-      setFormData({ ...formData, items: newItems });
-    };
-
-    const updateEntireItem = (index, updatedItem) => {
-      const newItems = [...(formData.items || [])];
-      newItems[index] = updatedItem;
-      setFormData({ ...formData, items: newItems });
-    };
-
-    const addItem = () => {
-      const newItem = getNewItemTemplate(
-        section.type,
-        (formData.items?.length || 0) + 1
-      );
-      setFormData({
-        ...formData,
-        items: [...(formData.items || []), newItem],
-      });
-    };
-
-    const removeItem = (index) => {
-      const newItems = (formData.items || []).filter((_, i) => i !== index);
-      setFormData({ ...formData, items: newItems });
-    };
-
-    const handleBulkUploadComplete = (paths) => {
-      if (section.type === SECTION_TYPES.COLLECTION) {
-        const newItems = [];
-        for (let i = 0; i < paths.length; i += 4) {
-          const itemImages = paths.slice(i, i + 4);
-          while (itemImages.length < 4) {
-            itemImages.push("");
-          }
-
-          const itemId = (formData.items?.length || 0) + newItems.length + 1;
-          const template = getNewItemTemplate(section.type, itemId);
-          newItems.push({
-            ...template,
-            images: itemImages,
-            title: `Collection ${itemId}`,
-            subtitle: "New collection",
-          });
+  const handleBulkUploadComplete = (paths) => {
+    if (section.type === SECTION_TYPES.COLLECTION) {
+      const newItems = [];
+      for (let i = 0; i < paths.length; i += 4) {
+        const itemImages = paths.slice(i, i + 4);
+        while (itemImages.length < 4) {
+          itemImages.push("");
         }
 
-        setFormData({
-          ...formData,
-          items: [...(formData.items || []), ...newItems],
+        const itemId = (formData.items?.length || 0) + newItems.length + 1;
+        const template = getNewItemTemplate(section.type, itemId);
+        newItems.push({
+          ...template,
+          images: itemImages,
+          title: `Collection ${itemId}`,
+          subtitle: "New collection",
         });
-        setShowBulkUpload(false);
-
-        alert(
-          `${paths.length} images uploaded successfully! Please assign categories to each image.`
-        );
-      } else if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
-        const newItems = paths.map((url, idx) => {
-          const itemId = (formData.items?.length || 0) + idx + 1;
-          const template = getNewItemTemplate(section.type, itemId);
-          return { ...template, image: url };
-        });
-
-        setFormData({
-          ...formData,
-          items: [...(formData.items || []), ...newItems],
-        });
-        setShowBulkUpload(false);
       }
-    };
 
-    const handleBulkCategoryAssignment = (itemIndex, categoriesArray) => {
-      const newItems = [...(formData.items || [])];
-      newItems[itemIndex] = {
-        ...newItems[itemIndex],
-        imageCategories: categoriesArray,
-      };
-      setFormData({ ...formData, items: newItems });
-    };
+      setFormData({
+        ...formData,
+        items: [...(formData.items || []), ...newItems],
+      });
+      setShowBulkUpload(false);
 
-    const getNewItemTemplate = (type, id) => {
-      switch (type) {
-        case SECTION_TYPES.HERO:
-          return {
-            id,
-            type: "image",
-            title: "",
-            subtitle: "",
-            description: "",
-            image: "",
-            cta: "Shop Now",
-            ctaLink: "/",
-            selectedCategory: null,
-            redirectToCategory: false,
-          };
-        case SECTION_TYPES.FEATURE:
-          return {
-            id,
-            leftImage: "",
-            rightImage: "",
-            rightBottomImage: "",
-            title: "",
-            subtitle: "",
-            leftImageCategory: null,
-            rightImageCategory: null,
-            rightBottomImageCategory: null,
-          };
-        case SECTION_TYPES.COLLECTION:
-          return {
-            id,
-            title: "",
-            subtitle: "",
-            images: ["", "", "", ""],
-            cta: "View Collection",
-            ctaLink: "/collection",
-            redirectToCategory: false,
-            imageCategories: [null, null, null, null],
-          };
-        case SECTION_TYPES.CATEGORY_HIGHLIGHT:
-          return {
-            id,
-            title: "",
-            image: "",
-            selectedCategories: [],
-            selectedProducts: [],
-          };
-        case SECTION_TYPES.STORY:
-          return {
-            id,
-            title: "",
-            subtitle: "",
-            videos: ["", "", "", ""],
-          };
-        default:
-          return { id };
-      }
-    };
+      alert(
+        `${paths.length} images uploaded successfully! Please assign categories to each image.`
+      );
+    } else if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
+      const newItems = paths.map((url, idx) => {
+        const itemId = (formData.items?.length || 0) + idx + 1;
+        const template = getNewItemTemplate(section.type, itemId);
+        return { ...template, image: url };
+      });
 
-    switch (section.type) {
+      setFormData({
+        ...formData,
+        items: [...(formData.items || []), ...newItems],
+      });
+      setShowBulkUpload(false);
+    }
+  };
+
+  const handleBulkCategoryAssignment = (itemIndex, categoriesArray) => {
+    const newItems = [...(formData.items || [])];
+    newItems[itemIndex] = {
+      ...newItems[itemIndex],
+      imageCategories: categoriesArray,
+    };
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const getNewItemTemplate = (type, id) => {
+    switch (type) {
       case SECTION_TYPES.HERO:
-        return (
-          <div className="space-y-6">
-            {formData.items?.map((item, idx) => (
-              <SectionCard key={idx} title={`Hero Banner ${idx + 1}`}>
+        return {
+          id,
+          type: "image",
+          title: "",
+          subtitle: "",
+          description: "",
+          image: "",
+          cta: "Shop Now",
+          ctaLink: "/",
+          selectedCategory: null,
+          redirectToCategory: false,
+        };
+      case SECTION_TYPES.FEATURE:
+        return {
+          id,
+          leftImage: "",
+          rightImage: "",
+          rightBottomImage: "",
+          title: "",
+          subtitle: "",
+          leftImageCategory: null,
+          rightImageCategory: null,
+          rightBottomImageCategory: null,
+        };
+      case SECTION_TYPES.COLLECTION:
+        return {
+          id,
+          title: "",
+          subtitle: "",
+          images: ["", "", "", ""],
+          cta: "View Collection",
+          ctaLink: "/collection",
+          redirectToCategory: false,
+          imageCategories: [null, null, null, null],
+        };
+      case SECTION_TYPES.CATEGORY_HIGHLIGHT:
+        return {
+          id,
+          title: "",
+          image: "",
+          selectedCategories: [],
+          selectedProducts: [],
+        };
+      case SECTION_TYPES.STORY:
+        return {
+          id,
+          title: "",
+          subtitle: "",
+          videos: ["", "", "", ""],
+        };
+      default:
+        return { id };
+    }
+  };
+
+  switch (section.type) {
+    case SECTION_TYPES.HERO:
+      return (
+        <div className="space-y-6">
+          {formData.items?.map((item, idx) => (
+            <SectionCard key={idx} title={`Hero Banner ${idx + 1}`}>
+              <div className="space-y-6">
+                <FormInput
+                  label="Title"
+                  value={item.title}
+                  onChange={(e) => updateItem(idx, "title", e.target.value)}
+                  placeholder="Enter banner title"
+                />
+                <FormInput
+                  label="Subtitle"
+                  value={item.subtitle}
+                  onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
+                  placeholder="Enter banner subtitle"
+                />
+                <FormTextarea
+                  label="Description"
+                  value={item.description}
+                  onChange={(e) =>
+                    updateItem(idx, "description", e.target.value)
+                  }
+                  placeholder="Enter banner description"
+                />
+
+                <ImageUpload
+                  currentValue={item.image}
+                  onUpdate={(value) => updateItem(idx, "image", value)}
+                  label="Hero Image"
+                  recommendedSize="1900×600"
+                />
+
+                <HeroCategorySelector
+                  item={item}
+                  onUpdate={(updatedItem) => updateEntireItem(idx, updatedItem)}
+                  categories={categories}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput
+                    label="CTA Text"
+                    value={item.cta}
+                    onChange={(e) => updateItem(idx, "cta", e.target.value)}
+                    placeholder="e.g., Shop Now"
+                  />
+                  <FormInput
+                    label="CTA Link"
+                    value={item.ctaLink}
+                    onChange={(e) => updateItem(idx, "ctaLink", e.target.value)}
+                    disabled={item.redirectToCategory}
+                    placeholder={
+                      item.redirectToCategory
+                        ? "Auto-generated from category"
+                        : "/shop"
+                    }
+                  />
+                </div>
+
+                {formData.items.length > 1 && (
+                  <div className="pt-4 border-t">
+                    <SecondaryButton
+                      onClick={() => removeItem(idx)}
+                      variant="red"
+                      icon={<FiTrash2 />}
+                      className="w-full"
+                    >
+                      Remove This Banner
+                    </SecondaryButton>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          ))}
+
+          <button
+            onClick={addItem}
+            className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
+                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
+                       transition-colors flex items-center justify-center gap-3"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span className="font-medium">Add Hero Banner</span>
+          </button>
+
+          <div className="flex flex-col md:flex-row gap-3 pt-6">
+            <PrimaryButton
+              onClick={() => saveSection(section.id, formData)}
+              icon={<FiSave />}
+              className="flex-1"
+            >
+              Save Changes
+            </PrimaryButton>
+            {/* <SecondaryButton
+              onClick={() => deleteSection(section.id)}
+              variant="red"
+              icon={<FiTrash2 />}
+              className="flex-1"
+            >
+              Delete Section
+            </SecondaryButton> */}
+          </div>
+        </div>
+      );
+
+    case SECTION_TYPES.FEATURE:
+      return (
+        <div className="space-y-6">
+          {formData.items?.map((item, idx) => (
+            <SectionCard key={idx} title={`Feature Item ${idx + 1}`}>
+              <div className="space-y-6">
+                <FormInput
+                  label="Title"
+                  value={item.title || ""}
+                  onChange={(e) => updateItem(idx, "title", e.target.value)}
+                  placeholder="e.g., rings collection description"
+                />
+
+                <FormInput
+                  label="Subtitle"
+                  value={item.subtitle || ""}
+                  onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
+                  placeholder="e.g., Discover our exclusive collection"
+                />
+
+                <FeatureImageWithCategory
+                  imageType="leftImage"
+                  currentValue={item.leftImage}
+                  currentCategory={item.leftImageCategory}
+                  onImageUpdate={(value) => updateItem(idx, "leftImage", value)}
+                  onCategoryUpdate={(value) =>
+                    updateItem(idx, "leftImageCategory", value)
+                  }
+                  categories={categories}
+                  label="Left Image"
+                />
+
+                <FeatureImageWithCategory
+                  imageType="rightImage"
+                  currentValue={item.rightImage}
+                  currentCategory={item.rightImageCategory}
+                  onImageUpdate={(value) =>
+                    updateItem(idx, "rightImage", value)
+                  }
+                  onCategoryUpdate={(value) =>
+                    updateItem(idx, "rightImageCategory", value)
+                  }
+                  categories={categories}
+                  label="Right Image"
+                />
+
+                <FeatureImageWithCategory
+                  imageType="rightBottomImage"
+                  currentValue={item.rightBottomImage}
+                  currentCategory={item.rightBottomImageCategory}
+                  onImageUpdate={(value) =>
+                    updateItem(idx, "rightBottomImage", value)
+                  }
+                  onCategoryUpdate={(value) =>
+                    updateItem(idx, "rightBottomImageCategory", value)
+                  }
+                  categories={categories}
+                  label="Right Bottom Image"
+                />
+
+                {(item.leftImageCategory ||
+                  item.rightImageCategory ||
+                  item.rightBottomImageCategory) && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <h4 className="text-sm font-medium text-emerald-900 mb-2">
+                      Image Category Links:
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {item.leftImageCategory && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">
+                            Left Image:
+                          </span>
+                          <span className="text-xs text-emerald-700">
+                            {
+                              categories.find(
+                                (cat) => cat.id === item.leftImageCategory
+                              )?.name
+                            }
+                          </span>
+                        </div>
+                      )}
+                      {item.rightImageCategory && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">
+                            Right Image:
+                          </span>
+                          <span className="text-xs text-emerald-700">
+                            {
+                              categories.find(
+                                (cat) => cat.id === item.rightImageCategory
+                              )?.name
+                            }
+                          </span>
+                        </div>
+                      )}
+                      {item.rightBottomImageCategory && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">
+                            Right Bottom Image:
+                          </span>
+                          <span className="text-xs text-emerald-700">
+                            {
+                              categories.find(
+                                (cat) =>
+                                  cat.id === item.rightBottomImageCategory
+                              )?.name
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {formData.items.length > 1 && (
+                  <div className="pt-4 border-t">
+                    <SecondaryButton
+                      onClick={() => removeItem(idx)}
+                      variant="red"
+                      icon={<FiTrash2 />}
+                      className="w-full"
+                    >
+                      Remove This Feature
+                    </SecondaryButton>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          ))}
+
+          {/* <button
+            onClick={addItem}
+            className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
+                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
+                       transition-colors flex items-center justify-center gap-3"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span className="font-medium">Add Feature Item</span>
+          </button> */}
+
+          <div className="flex flex-col md:flex-row gap-3 pt-6">
+            <PrimaryButton
+              onClick={() => saveSection(section.id, formData)}
+              icon={<FiSave />}
+              className="flex-1"
+            >
+              Save Changes
+            </PrimaryButton>
+            {/* <SecondaryButton
+              onClick={() => deleteSection(section.id)}
+              variant="red"
+              icon={<FiTrash2 />}
+              className="flex-1"
+            >
+              Delete Section
+            </SecondaryButton> */}
+          </div>
+        </div>
+      );
+
+    case SECTION_TYPES.COLLECTION:
+      return (
+        <div className="space-y-6">
+          <SectionCard title="Bulk Upload">
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h4 className="font-medium text-gray-900">
+                    Upload Multiple Images
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Max 10 images • Each collection needs 4 images
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowBulkUpload(!showBulkUpload)}
+                  className="text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  {showBulkUpload ? "Hide Upload" : "Show Upload"}
+                </button>
+              </div>
+              {showBulkUpload && (
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) =>
+                      handleBulkImageUpload(e, handleBulkUploadComplete)
+                    }
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    id="bulk-upload"
+                  />
+                  <PrimaryButton icon={<FiUpload />} className="w-full">
+                    Upload Multiple Images (Max 10)
+                  </PrimaryButton>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {formData.items?.map((item, idx) => (
+            <SectionCard key={idx} title={`Collection ${idx + 1}`}>
+              <div className="space-y-6">
+                <FormInput
+                  label="Title"
+                  value={item.title || ""}
+                  onChange={(e) => updateItem(idx, "title", e.target.value)}
+                  placeholder="Enter collection title"
+                />
+
+                <FormInput
+                  label="Subtitle"
+                  value={item.subtitle || ""}
+                  onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
+                  placeholder="Enter collection subtitle"
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Collection Images (4 images required)
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[0, 1, 2, 3].map((imageIndex) => {
+                      const imageCategory = item.imageCategories?.[imageIndex];
+                      const category = categories.find(
+                        (cat) => cat.id === imageCategory
+                      );
+
+                      return (
+                        <div key={imageIndex} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Image {imageIndex + 1}
+                            </label>
+                            {category && (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                                <FiCheck className="w-3 h-3" />
+                                {category.name}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="space-y-3">
+                            <ImageUpload
+                              currentValue={item.images?.[imageIndex] || ""}
+                              onUpdate={(value) => {
+                                const newImages = [
+                                  ...(item.images || ["", "", "", ""]),
+                                ];
+                                newImages[imageIndex] = value;
+                                updateItem(idx, "images", newImages);
+                              }}
+                              label=""
+                            />
+
+                            {item.images?.[imageIndex] && (
+                              <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                <label className="block text-xs font-medium text-gray-700 mb-2">
+                                  Link this image to category:
+                                </label>
+                                <select
+                                  value={imageCategory || ""}
+                                  onChange={(e) => {
+                                    const newImageCategories = [
+                                      ...(item.imageCategories || [
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                      ]),
+                                    ];
+                                    newImageCategories[imageIndex] =
+                                      e.target.value || null;
+                                    updateItem(
+                                      idx,
+                                      "imageCategories",
+                                      newImageCategories
+                                    );
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                >
+                                  <option value="">Select Category</option>
+                                  {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                      {cat.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                {category && (
+                                  <div className="mt-2 text-xs text-gray-600">
+                                    This image will link to:{" "}
+                                    <span className="font-medium text-emerald-700">
+                                      {category.name}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <CollectionCategorySelector
+                  item={item}
+                  onUpdate={(updatedItem) => updateEntireItem(idx, updatedItem)}
+                  categories={categories}
+                  onBulkCategoryAssignment={(categoriesArray) => {
+                    handleBulkCategoryAssignment(idx, categoriesArray);
+                  }}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput
+                    label="CTA Text"
+                    value={item.cta || ""}
+                    onChange={(e) => updateItem(idx, "cta", e.target.value)}
+                    placeholder="e.g., View Collection"
+                  />
+                  <FormInput
+                    label="CTA Link"
+                    value={item.ctaLink || ""}
+                    onChange={(e) => updateItem(idx, "ctaLink", e.target.value)}
+                    placeholder="/collection"
+                  />
+                </div>
+
+                {(formData.items?.length || 0) > 1 && (
+                  <div className="pt-4 border-t">
+                    <SecondaryButton
+                      onClick={() => removeItem(idx)}
+                      variant="red"
+                      icon={<FiTrash2 />}
+                      className="w-full"
+                    >
+                      Remove This Collection
+                    </SecondaryButton>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          ))}
+
+          {/* <button
+            onClick={addItem}
+            className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
+                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
+                       transition-colors flex items-center justify-center gap-3"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span className="font-medium">Add Collectionmmm</span>
+          </button> */}
+
+          <div className="flex flex-col md:flex-row gap-3 pt-6">
+            <PrimaryButton
+              onClick={() => saveSection(section.id, formData)}
+              icon={<FiSave />}
+              className="flex-1"
+            >
+              Save Changes
+            </PrimaryButton>
+            {/* <SecondaryButton
+              onClick={() => deleteSection(section.id)}
+              variant="red"
+              icon={<FiTrash2 />}
+              className="flex-1"
+            >
+              Delete Section
+            </SecondaryButton> */}
+          </div>
+        </div>
+      );
+
+    case SECTION_TYPES.CATEGORY_HIGHLIGHT:
+      return (
+        <div className="space-y-6">
+          <SectionCard title="Bulk Upload">
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h4 className="font-medium text-gray-900">
+                    Upload Category Images
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Max 10 images • Each image becomes a category highlight
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowBulkUpload(!showBulkUpload)}
+                  className="text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  {showBulkUpload ? "Hide Upload" : "Show Upload"}
+                </button>
+              </div>
+              {showBulkUpload && (
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) =>
+                      handleBulkImageUpload(e, handleBulkUploadComplete)
+                    }
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    id="bulk-upload-category"
+                  />
+                  <PrimaryButton icon={<FiUpload />} className="w-full">
+                    Upload Multiple Category Images
+                  </PrimaryButton>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {!formData.items || formData.items.length === 0 ? (
+            <SectionCard>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FiPlus className="w-8 h-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No Category Highlights Added
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Start by adding your first category highlight below
+                </p>
+                <PrimaryButton
+                  onClick={addItem}
+                  icon={<FiPlus />}
+                  className="mx-auto"
+                >
+                  Add First Category Highlight
+                </PrimaryButton>
+              </div>
+            </SectionCard>
+          ) : (
+            formData.items.map((item, idx) => (
+              <SectionCard
+                key={item.id || idx}
+                title={`Category Highlight ${idx + 1}`}
+              >
                 <div className="space-y-6">
                   <FormInput
-                    label="Title"
-                    value={item.title}
+                    label="Display Title"
+                    value={item.title || ""}
                     onChange={(e) => updateItem(idx, "title", e.target.value)}
-                    placeholder="Enter banner title"
+                    placeholder="Enter display title (optional)"
                   />
-                  <FormInput
-                    label="Subtitle"
-                    value={item.subtitle}
-                    onChange={(e) =>
-                      updateItem(idx, "subtitle", e.target.value)
-                    }
-                    placeholder="Enter banner subtitle"
-                  />
-                  <FormTextarea
-                    label="Description"
-                    value={item.description}
-                    onChange={(e) =>
-                      updateItem(idx, "description", e.target.value)
-                    }
-                    placeholder="Enter banner description"
-                  />
+                  <p className="text-xs text-gray-500 -mt-3">
+                    Leave empty to use category name
+                  </p>
 
                   <ImageUpload
                     currentValue={item.image}
                     onUpdate={(value) => updateItem(idx, "image", value)}
-                    label="Hero Image"
-                    recommendedSize="1900×600"
+                    label="Category Image"
                   />
 
-                  <HeroCategorySelector
+                  <CategorySelector
                     item={item}
                     onUpdate={(updatedItem) =>
                       updateEntireItem(idx, updatedItem)
@@ -3189,696 +3808,45 @@ const Homepage = () => {
                     categories={categories}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormInput
-                      label="CTA Text"
-                      value={item.cta}
-                      onChange={(e) => updateItem(idx, "cta", e.target.value)}
-                      placeholder="e.g., Shop Now"
-                    />
-                    <FormInput
-                      label="CTA Link"
-                      value={item.ctaLink}
-                      onChange={(e) =>
-                        updateItem(idx, "ctaLink", e.target.value)
-                      }
-                      disabled={item.redirectToCategory}
-                      placeholder={
-                        item.redirectToCategory
-                          ? "Auto-generated from category"
-                          : "/shop"
-                      }
-                    />
-                  </div>
-
-                  {formData.items.length > 1 && (
-                    <div className="pt-4 border-t">
-                      <SecondaryButton
-                        onClick={() => removeItem(idx)}
-                        variant="red"
-                        icon={<FiTrash2 />}
-                        className="w-full"
-                      >
-                        Remove This Banner
-                      </SecondaryButton>
-                    </div>
-                  )}
-                </div>
-              </SectionCard>
-            ))}
-
-            <button
-              onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                       transition-colors flex items-center justify-center gap-3"
-            >
-              <FiPlus className="w-5 h-5" />
-              <span className="font-medium">Add Hero Banner</span>
-            </button>
-
-            <div className="flex flex-col md:flex-row gap-3 pt-6">
-              <PrimaryButton
-                onClick={() => saveSection(section.id, formData)}
-                icon={<FiSave />}
-                className="flex-1"
-              >
-                Save Changes
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => deleteSection(section.id)}
-                variant="red"
-                icon={<FiTrash2 />}
-                className="flex-1"
-              >
-                Delete Section
-              </SecondaryButton>
-            </div>
-          </div>
-        );
-
-      case SECTION_TYPES.FEATURE:
-        return (
-          <div className="space-y-6">
-            {formData.items?.map((item, idx) => (
-              <SectionCard key={idx} title={`Feature Item ${idx + 1}`}>
-                <div className="space-y-6">
-                  <FormInput
-                    label="Title"
-                    value={item.title || ""}
-                    onChange={(e) => updateItem(idx, "title", e.target.value)}
-                    placeholder="e.g., rings collection description"
-                  />
-
-                  <FormInput
-                    label="Subtitle"
-                    value={item.subtitle || ""}
-                    onChange={(e) =>
-                      updateItem(idx, "subtitle", e.target.value)
-                    }
-                    placeholder="e.g., Discover our exclusive collection"
-                  />
-
-                  <FeatureImageWithCategory
-                    imageType="leftImage"
-                    currentValue={item.leftImage}
-                    currentCategory={item.leftImageCategory}
-                    onImageUpdate={(value) =>
-                      updateItem(idx, "leftImage", value)
-                    }
-                    onCategoryUpdate={(value) =>
-                      updateItem(idx, "leftImageCategory", value)
-                    }
-                    categories={categories}
-                    label="Left Image"
-                  />
-
-                  <FeatureImageWithCategory
-                    imageType="rightImage"
-                    currentValue={item.rightImage}
-                    currentCategory={item.rightImageCategory}
-                    onImageUpdate={(value) =>
-                      updateItem(idx, "rightImage", value)
-                    }
-                    onCategoryUpdate={(value) =>
-                      updateItem(idx, "rightImageCategory", value)
-                    }
-                    categories={categories}
-                    label="Right Image"
-                  />
-
-                  <FeatureImageWithCategory
-                    imageType="rightBottomImage"
-                    currentValue={item.rightBottomImage}
-                    currentCategory={item.rightBottomImageCategory}
-                    onImageUpdate={(value) =>
-                      updateItem(idx, "rightBottomImage", value)
-                    }
-                    onCategoryUpdate={(value) =>
-                      updateItem(idx, "rightBottomImageCategory", value)
-                    }
-                    categories={categories}
-                    label="Right Bottom Image"
-                  />
-
-                  {(item.leftImageCategory ||
-                    item.rightImageCategory ||
-                    item.rightBottomImageCategory) && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                      <h4 className="text-sm font-medium text-emerald-900 mb-2">
-                        Image Category Links:
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {item.leftImageCategory && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium">
-                              Left Image:
-                            </span>
-                            <span className="text-xs text-emerald-700">
-                              {
-                                categories.find(
-                                  (cat) => cat.id === item.leftImageCategory
-                                )?.name
-                              }
-                            </span>
-                          </div>
-                        )}
-                        {item.rightImageCategory && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium">
-                              Right Image:
-                            </span>
-                            <span className="text-xs text-emerald-700">
-                              {
-                                categories.find(
-                                  (cat) => cat.id === item.rightImageCategory
-                                )?.name
-                              }
-                            </span>
-                          </div>
-                        )}
-                        {item.rightBottomImageCategory && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium">
-                              Right Bottom Image:
-                            </span>
-                            <span className="text-xs text-emerald-700">
-                              {
-                                categories.find(
-                                  (cat) =>
-                                    cat.id === item.rightBottomImageCategory
-                                )?.name
-                              }
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {formData.items.length > 1 && (
-                    <div className="pt-4 border-t">
-                      <SecondaryButton
-                        onClick={() => removeItem(idx)}
-                        variant="red"
-                        icon={<FiTrash2 />}
-                        className="w-full"
-                      >
-                        Remove This Feature
-                      </SecondaryButton>
-                    </div>
-                  )}
-                </div>
-              </SectionCard>
-            ))}
-
-            <button
-              onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                       transition-colors flex items-center justify-center gap-3"
-            >
-              <FiPlus className="w-5 h-5" />
-              <span className="font-medium">Add Feature Item</span>
-            </button>
-
-            <div className="flex flex-col md:flex-row gap-3 pt-6">
-              <PrimaryButton
-                onClick={() => saveSection(section.id, formData)}
-                icon={<FiSave />}
-                className="flex-1"
-              >
-                Save Changes
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => deleteSection(section.id)}
-                variant="red"
-                icon={<FiTrash2 />}
-                className="flex-1"
-              >
-                Delete Section
-              </SecondaryButton>
-            </div>
-          </div>
-        );
-
-      case SECTION_TYPES.COLLECTION:
-        return (
-          <div className="space-y-6">
-            <SectionCard title="Bulk Upload">
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      Upload Multiple Images
-                    </h4>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Max 10 images • Each collection needs 4 images
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowBulkUpload(!showBulkUpload)}
-                    className="text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    {showBulkUpload ? "Hide Upload" : "Show Upload"}
-                  </button>
-                </div>
-                {showBulkUpload && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) =>
-                        handleBulkImageUpload(e, handleBulkUploadComplete)
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      id="bulk-upload"
-                    />
-                    <PrimaryButton icon={<FiUpload />} className="w-full">
-                      Upload Multiple Images (Max 10)
-                    </PrimaryButton>
-                  </div>
-                )}
-              </div>
-            </SectionCard>
-
-            {formData.items?.map((item, idx) => (
-              <SectionCard key={idx} title={`Collection ${idx + 1}`}>
-                <div className="space-y-6">
-                  <FormInput
-                    label="Title"
-                    value={item.title || ""}
-                    onChange={(e) => updateItem(idx, "title", e.target.value)}
-                    placeholder="Enter collection title"
-                  />
-
-                  <FormInput
-                    label="Subtitle"
-                    value={item.subtitle || ""}
-                    onChange={(e) =>
-                      updateItem(idx, "subtitle", e.target.value)
-                    }
-                    placeholder="Enter collection subtitle"
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Collection Images (4 images required)
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {[0, 1, 2, 3].map((imageIndex) => {
-                        const imageCategory =
-                          item.imageCategories?.[imageIndex];
-                        const category = categories.find(
-                          (cat) => cat.id === imageCategory
-                        );
-
-                        return (
-                          <div key={imageIndex} className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <label className="block text-sm font-medium text-gray-700">
-                                Image {imageIndex + 1}
-                              </label>
-                              {category && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                                  <FiCheck className="w-3 h-3" />
-                                  {category.name}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="space-y-3">
-                              <ImageUpload
-                                currentValue={item.images?.[imageIndex] || ""}
-                                onUpdate={(value) => {
-                                  const newImages = [
-                                    ...(item.images || ["", "", "", ""]),
-                                  ];
-                                  newImages[imageIndex] = value;
-                                  updateItem(idx, "images", newImages);
-                                }}
-                                label=""
-                              />
-
-                              {item.images?.[imageIndex] && (
-                                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                                  <label className="block text-xs font-medium text-gray-700 mb-2">
-                                    Link this image to category:
-                                  </label>
-                                  <select
-                                    value={imageCategory || ""}
-                                    onChange={(e) => {
-                                      const newImageCategories = [
-                                        ...(item.imageCategories || [
-                                          null,
-                                          null,
-                                          null,
-                                          null,
-                                        ]),
-                                      ];
-                                      newImageCategories[imageIndex] =
-                                        e.target.value || null;
-                                      updateItem(
-                                        idx,
-                                        "imageCategories",
-                                        newImageCategories
-                                      );
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                  >
-                                    <option value="">Select Category</option>
-                                    {categories.map((cat) => (
-                                      <option key={cat.id} value={cat.id}>
-                                        {cat.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  {category && (
-                                    <div className="mt-2 text-xs text-gray-600">
-                                      This image will link to:{" "}
-                                      <span className="font-medium text-emerald-700">
-                                        {category.name}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <CollectionCategorySelector
+                  <ProductSelector
                     item={item}
                     onUpdate={(updatedItem) =>
                       updateEntireItem(idx, updatedItem)
                     }
                     categories={categories}
-                    onBulkCategoryAssignment={(categoriesArray) => {
-                      handleBulkCategoryAssignment(idx, categoriesArray);
-                    }}
+                    products={products}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormInput
-                      label="CTA Text"
-                      value={item.cta || ""}
-                      onChange={(e) => updateItem(idx, "cta", e.target.value)}
-                      placeholder="e.g., View Collection"
-                    />
-                    <FormInput
-                      label="CTA Link"
-                      value={item.ctaLink || ""}
-                      onChange={(e) =>
-                        updateItem(idx, "ctaLink", e.target.value)
-                      }
-                      placeholder="/collection"
-                    />
-                  </div>
-
-                  {(formData.items?.length || 0) > 1 && (
-                    <div className="pt-4 border-t">
-                      <SecondaryButton
-                        onClick={() => removeItem(idx)}
-                        variant="red"
-                        icon={<FiTrash2 />}
-                        className="w-full"
-                      >
-                        Remove This Collection
-                      </SecondaryButton>
-                    </div>
-                  )}
-                </div>
-              </SectionCard>
-            ))}
-
-            <button
-              onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                       transition-colors flex items-center justify-center gap-3"
-            >
-              <FiPlus className="w-5 h-5" />
-              <span className="font-medium">Add Collection</span>
-            </button>
-
-            <div className="flex flex-col md:flex-row gap-3 pt-6">
-              <PrimaryButton
-                onClick={() => saveSection(section.id, formData)}
-                icon={<FiSave />}
-                className="flex-1"
-              >
-                Save Changes
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => deleteSection(section.id)}
-                variant="red"
-                icon={<FiTrash2 />}
-                className="flex-1"
-              >
-                Delete Section
-              </SecondaryButton>
-            </div>
-          </div>
-        );
-
-      case SECTION_TYPES.CATEGORY_HIGHLIGHT:
-        return (
-          <div className="space-y-6">
-            <SectionCard title="Bulk Upload">
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      Upload Category Images
-                    </h4>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Max 10 images • Each image becomes a category highlight
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowBulkUpload(!showBulkUpload)}
-                    className="text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    {showBulkUpload ? "Hide Upload" : "Show Upload"}
-                  </button>
-                </div>
-                {showBulkUpload && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) =>
-                        handleBulkImageUpload(e, handleBulkUploadComplete)
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      id="bulk-upload-category"
-                    />
-                    <PrimaryButton icon={<FiUpload />} className="w-full">
-                      Upload Multiple Category Images
-                    </PrimaryButton>
-                  </div>
-                )}
-              </div>
-            </SectionCard>
-
-            {!formData.items || formData.items.length === 0 ? (
-              <SectionCard>
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FiPlus className="w-8 h-8 text-emerald-600" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No Category Highlights Added
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-6">
-                    Start by adding your first category highlight below
-                  </p>
-                  <PrimaryButton
-                    onClick={addItem}
-                    icon={<FiPlus />}
-                    className="mx-auto"
-                  >
-                    Add First Category Highlight
-                  </PrimaryButton>
-                </div>
-              </SectionCard>
-            ) : (
-              formData.items.map((item, idx) => (
-                <SectionCard
-                  key={item.id || idx}
-                  title={`Category Highlight ${idx + 1}`}
-                >
-                  <div className="space-y-6">
-                    <FormInput
-                      label="Display Title"
-                      value={item.title || ""}
-                      onChange={(e) => updateItem(idx, "title", e.target.value)}
-                      placeholder="Enter display title (optional)"
-                    />
-                    <p className="text-xs text-gray-500 -mt-3">
-                      Leave empty to use category name
-                    </p>
-
-                    <ImageUpload
-                      currentValue={item.image}
-                      onUpdate={(value) => updateItem(idx, "image", value)}
-                      label="Category Image"
-                    />
-
-                    <CategorySelector
-                      item={item}
-                      onUpdate={(updatedItem) =>
-                        updateEntireItem(idx, updatedItem)
-                      }
-                      categories={categories}
-                    />
-
-                    <ProductSelector
-                      item={item}
-                      onUpdate={(updatedItem) =>
-                        updateEntireItem(idx, updatedItem)
-                      }
-                      categories={categories}
-                      products={products}
-                    />
-
-                    {item.selectedCategories &&
-                      item.selectedCategories.length > 0 && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="text-emerald-600">
-                              <FiCheck className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-emerald-900">
-                                Category Selected
+                  {item.selectedCategories &&
+                    item.selectedCategories.length > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="text-emerald-600">
+                            <FiCheck className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-emerald-900">
+                              Category Selected
+                            </p>
+                            <p className="text-sm text-emerald-700 mt-1">
+                              {
+                                categories.find(
+                                  (cat) => cat.id === item.selectedCategories[0]
+                                )?.name
+                              }
+                            </p>
+                            {item.selectedProducts?.length > 0 && (
+                              <p className="text-sm text-green-800 mt-2">
+                                <span className="font-medium">
+                                  Featured Products:
+                                </span>{" "}
+                                {item.selectedProducts.length} selected
                               </p>
-                              <p className="text-sm text-emerald-700 mt-1">
-                                {
-                                  categories.find(
-                                    (cat) =>
-                                      cat.id === item.selectedCategories[0]
-                                  )?.name
-                                }
-                              </p>
-                              {item.selectedProducts?.length > 0 && (
-                                <p className="text-sm text-green-800 mt-2">
-                                  <span className="font-medium">
-                                    Featured Products:
-                                  </span>{" "}
-                                  {item.selectedProducts.length} selected
-                                </p>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                    {formData.items.length > 1 && (
-                      <div className="pt-4 border-t">
-                        <SecondaryButton
-                          onClick={() => removeItem(idx)}
-                          variant="red"
-                          icon={<FiTrash2 />}
-                          className="w-full"
-                        >
-                          Remove This Highlight
-                        </SecondaryButton>
                       </div>
                     )}
-                  </div>
-                </SectionCard>
-              ))
-            )}
-
-            {formData.items && formData.items.length > 0 && (
-              <button
-                onClick={addItem}
-                className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                         text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                         transition-colors flex items-center justify-center gap-3"
-              >
-                <FiPlus className="w-5 h-5" />
-                <span className="font-medium">Add Category Highlight</span>
-              </button>
-            )}
-
-            <div className="flex flex-col md:flex-row gap-3 pt-6">
-              <PrimaryButton
-                onClick={() => saveSection(section.id, formData)}
-                icon={<FiSave />}
-                className="flex-1"
-              >
-                Save Changes
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => deleteSection(section.id)}
-                variant="red"
-                icon={<FiTrash2 />}
-                className="flex-1"
-              >
-                Delete Section
-              </SecondaryButton>
-            </div>
-          </div>
-        );
-
-      case SECTION_TYPES.STORY:
-        return (
-          <div className="space-y-6">
-            {formData.items?.map((item, idx) => (
-              <SectionCard key={idx} title={`Story Upload ${idx + 1}`}>
-                <div className="space-y-6">
-                  <FormInput
-                    label="Title"
-                    value={item.title || ""}
-                    onChange={(e) => updateItem(idx, "title", e.target.value)}
-                    placeholder="e.g., Our Stories"
-                  />
-
-                  <FormInput
-                    label="Subtitle"
-                    value={item.subtitle || ""}
-                    onChange={(e) =>
-                      updateItem(idx, "subtitle", e.target.value)
-                    }
-                    placeholder="e.g., Watch our latest video stories"
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Story Videos (Up to 4)
-                    </label>
-                    <p className="text-xs text-emerald-600 font-medium mb-3">
-                      Maximum 50MB per video • Supported: MP4, WebM, OGG, MOV
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[0, 1, 2, 3].map((videoIndex) => (
-                        <div key={videoIndex} className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Video {videoIndex + 1}
-                          </label>
-                          <VideoUpload
-                            currentValue={item.videos?.[videoIndex] || ""}
-                            onUpdate={(value) => {
-                              const newVideos = [
-                                ...(item.videos || ["", "", "", ""]),
-                              ];
-                              newVideos[videoIndex] = value;
-                              updateItem(idx, "videos", newVideos);
-                            }}
-                            label=""
-                            recommendedSize="Max 50MB"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
                   {formData.items.length > 1 && (
                     <div className="pt-4 border-t">
@@ -3888,54 +3856,153 @@ const Homepage = () => {
                         icon={<FiTrash2 />}
                         className="w-full"
                       >
-                        Remove This Story Section
+                        Remove This Highlight
                       </SecondaryButton>
                     </div>
                   )}
                 </div>
               </SectionCard>
-            ))}
+            ))
+          )}
 
+          {/* {formData.items && formData.items.length > 0 && (
             <button
               onClick={addItem}
               className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                       transition-colors flex items-center justify-center gap-3"
+                         text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
+                         transition-colors flex items-center justify-center gap-3"
             >
               <FiPlus className="w-5 h-5" />
-              <span className="font-medium">Add Story Section</span>
+              <span className="font-medium">Add Category Highlight</span>
             </button>
+          )} */}
 
-            <div className="flex flex-col md:flex-row gap-3 pt-6">
-              <PrimaryButton
-                onClick={() => saveSection(section.id, formData)}
-                icon={<FiSave />}
-                className="flex-1"
-              >
-                Save Changes
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => deleteSection(section.id)}
-                variant="red"
-                icon={<FiTrash2 />}
-                className="flex-1"
-              >
-                Delete Section
-              </SecondaryButton>
-            </div>
+          <div className="flex flex-col md:flex-row gap-3 pt-6">
+            <PrimaryButton
+              onClick={() => saveSection(section.id, formData)}
+              icon={<FiSave />}
+              className="flex-1"
+            >
+              Save Changes
+            </PrimaryButton>
+            {/* <SecondaryButton
+              onClick={() => deleteSection(section.id)}
+              variant="red"
+              icon={<FiTrash2 />}
+              className="flex-1"
+            >
+              Delete Section
+            </SecondaryButton> */}
           </div>
-        );
+        </div>
+      );
 
-      default:
-        return (
-          <SectionCard>
-            <div className="text-center py-8 text-gray-500">
-              <p>Editor not available for this section type</p>
-            </div>
-          </SectionCard>
-        );
-    }
-  };
+    case SECTION_TYPES.STORY:
+      return (
+        <div className="space-y-6">
+          {formData.items?.map((item, idx) => (
+            <SectionCard key={idx} title={`Story Upload ${idx + 1}`}>
+              <div className="space-y-6">
+                <FormInput
+                  label="Title"
+                  value={item.title || ""}
+                  onChange={(e) => updateItem(idx, "title", e.target.value)}
+                  placeholder="e.g., Our Stories"
+                />
+
+                <FormInput
+                  label="Subtitle"
+                  value={item.subtitle || ""}
+                  onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
+                  placeholder="e.g., Watch our latest video stories"
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Story Videos (Up to 4)
+                  </label>
+                  <p className="text-xs text-emerald-600 font-medium mb-3">
+                    Maximum 50MB per video • Supported: MP4, WebM, OGG, MOV
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[0, 1, 2, 3].map((videoIndex) => (
+                      <div key={videoIndex} className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Video {videoIndex + 1}
+                        </label>
+                        <VideoUpload
+                          currentValue={item.videos?.[videoIndex] || ""}
+                          onUpdate={(value) => {
+                            const newVideos = [
+                              ...(item.videos || ["", "", "", ""]),
+                            ];
+                            newVideos[videoIndex] = value;
+                            updateItem(idx, "videos", newVideos);
+                          }}
+                          label=""
+                          recommendedSize="Max 50MB"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {formData.items.length > 1 && (
+                  <div className="pt-4 border-t">
+                    <SecondaryButton
+                      onClick={() => removeItem(idx)}
+                      variant="red"
+                      icon={<FiTrash2 />}
+                      className="w-full"
+                    >
+                      Remove This Story Section
+                    </SecondaryButton>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          ))}
+
+          {/* <button
+            onClick={addItem}
+            className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
+                       text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
+                       transition-colors flex items-center justify-center gap-3"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span className="font-medium">Add Story Section</span>
+          </button> */}
+
+          <div className="flex flex-col md:flex-row gap-3 pt-6">
+            <PrimaryButton
+              onClick={() => saveSection(section.id, formData)}
+              icon={<FiSave />}
+              className="flex-1"
+            >
+              Save Changes
+            </PrimaryButton>
+            {/* <SecondaryButton
+              onClick={() => deleteSection(section.id)}
+              variant="red"
+              icon={<FiTrash2 />}
+              className="flex-1"
+            >
+              Delete Section
+            </SecondaryButton> */}
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <SectionCard>
+          <div className="text-center py-8 text-gray-500">
+            <p>Editor not available for this section type</p>
+          </div>
+        </SectionCard>
+      );
+  }
+};
 
   if (loading) {
     return (
@@ -3948,40 +4015,40 @@ const Homepage = () => {
     );
   }
 
-  if (showPreview) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Homepage Preview
-              </h1>
-              <SecondaryButton
-                onClick={() => setShowPreview(false)}
-                icon={<FiEyeOff />}
-                className="w-full sm:w-auto"
-              >
-                Exit Preview
-              </SecondaryButton>
-            </div>
-          </div>
-        </div>
-        <div>
-          {sections
-            .filter((s) => s.enabled)
-            .sort((a, b) => a.order - b.order)
-            .map((section) => (
-              <PreviewSection
-                key={section.id}
-                section={section}
-                categories={categories}
-              />
-            ))}
-        </div>
-      </div>
-    );
-  }
+  // if (showPreview) {
+  //   return (
+  //     <div className="min-h-screen bg-white">
+  //       <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
+  //         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  //           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+  //             <h1 className="text-2xl font-bold text-gray-900">
+  //               Homepage Preview
+  //             </h1>
+  //             <SecondaryButton
+  //               onClick={() => setShowPreview(false)}
+  //               icon={<FiEyeOff />}
+  //               className="w-full sm:w-auto"
+  //             >
+  //               Exit Preview
+  //             </SecondaryButton>
+  //           </div>
+  //         </div>
+  //       </div>
+  //       <div>
+  //         {sections
+  //           .filter((s) => s.enabled)
+  //           .sort((a, b) => a.order - b.order)
+  //           .map((section) => (
+  //             <PreviewSection
+  //               key={section.id}
+  //               section={section}
+  //               categories={categories}
+  //             />
+  //           ))}
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // if (view === "reorder") {
   //   return (
@@ -4014,7 +4081,7 @@ const Homepage = () => {
   //                 onDragStart={() => handleDragStart(index)}
   //                 onDragOver={(e) => handleDragOver(e, index)}
   //                 onDragEnd={handleDragEnd}
-  //                 className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 
+  //                 className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4
   //                           bg-white border-2 rounded-xl cursor-move transition-all ${
   //                             draggedIndex === index
   //                               ? "opacity-50 border-emerald-500 bg-emerald-50"
@@ -4150,22 +4217,22 @@ const Homepage = () => {
             >
               Reorder Sections
             </SecondaryButton> */}
-            <PrimaryButton
+            {/* <PrimaryButton
               onClick={() => setShowPreview(true)}
               icon={<FiEye />}
               className="w-full sm:w-auto"
             >
               Preview
-            </PrimaryButton>
-            <PrimaryButton
+            </PrimaryButton> */}
+            {/* <PrimaryButton
               onClick={() => setShowAddSectionDropdown(!showAddSectionDropdown)}
               icon={<FiPlus />}
               className="w-full sm:w-auto"
             >
               Add New Section
-            </PrimaryButton>
+            </PrimaryButton> */}
 
-            {showAddSectionDropdown && (
+            {/* {showAddSectionDropdown && (
               <div className="absolute right-0 mt-16 sm:mt-12 w-full sm:w-64 bg-white rounded-xl border border-gray-200 shadow-lg z-50">
                 <div className="p-2">
                   {Object.entries(SECTION_CONFIG).map(([type, config]) => (
@@ -4191,11 +4258,11 @@ const Homepage = () => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {Object.entries(SECTION_CONFIG).map(([type, config]) => (
             <DashboardCard
               key={type}
@@ -4206,7 +4273,7 @@ const Homepage = () => {
               onClick={() => addNewSection(type)}
             />
           ))}
-        </div>
+        </div> */}
 
         <SectionCard title="Homepage Sections">
           {sections.length === 0 ? (
@@ -4228,57 +4295,61 @@ const Homepage = () => {
               </PrimaryButton>
             </div>
           ) : (
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <div
-                  key={section.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-3 rounded-lg ${
-                        SECTION_CONFIG[section.type]?.color || "bg-gray-500"
-                      } text-white`}
-                    >
-                      {SECTION_CONFIG[section.type]?.icon || (
-                        <FiLayers className="w-5 h-5" />
-                      )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sections.map((section) => {
+                const sectionConfig = SECTION_CONFIG[section.type] || {};
+                const sectionColor = sectionConfig?.color || "bg-gray-500";
+                const SectionIcon = sectionConfig?.icon || FiLayers;
+                const sectionName = sectionConfig?.name || section.type;
+
+                return (
+                  <div
+                    key={section.id}
+                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-all hover:border-gray-300 group"
+                  >
+                    {/* Card Header with Icon and Actions */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div
+                        className={`p-3 rounded-lg ${sectionColor} text-white`}
+                      >
+                        {SectionIcon}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge active={section.enabled} />
+                        <button
+                          onClick={() => {
+                            setSelectedSection(section);
+                            setView("section-edit");
+                          }}
+                          className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors"
+                          title="Edit section"
+                        >
+                          <FiEdit className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">
+
+                    {/* Card Content */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-gray-900 text-lg truncate">
                         {section.name}
                       </h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <StatusBadge active={section.enabled} />
-                        <span className="text-xs text-gray-500">
-                          {SECTION_CONFIG[section.type]?.name || section.type}
-                        </span>
+
+                      <div className="text-sm text-gray-500">{sectionName}</div>
+
+                      {/* Additional Section Info - Optional */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <div className="flex items-center justify-between text-xs text-gray-400">
+                          <span>Order: {section.order + 1}</span>
+                          <span className="px-2 py-1 bg-gray-50 rounded">
+                            {section.enabled ? "Active" : "Inactive"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className={`text-sm font-medium px-3 py-1 rounded-lg ${
-                        section.enabled
-                          ? "bg-green-100 text-green-800 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      }`}
-                    >
-                      {section.enabled ? "Active" : "Inactive"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedSection(section);
-                        setView("section-edit");
-                      }}
-                      className="text-emerald-600 hover:text-emerald-700"
-                    >
-                      <FiEdit className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </SectionCard>
