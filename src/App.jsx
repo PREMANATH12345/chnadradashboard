@@ -438,7 +438,7 @@ const AuthInitializer = ({
         }
       }
     } catch (err) {
-      console.log("SSO failed → fallback auth");
+      // console.log("SSO failed → fallback auth");
     }
 
     // ✅ fallback auth
