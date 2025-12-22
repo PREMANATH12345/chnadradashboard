@@ -395,7 +395,7 @@ import Features from "./pages/Features";
 import Users from "./pages/Users";
 import VendorDash from "./pages/VendorDash";
 import { ssoLogin } from "./api/auth";
-
+import Invoice from "./pages/invoice";
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
 ===================================================== */
@@ -626,14 +626,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* <Route
-            path="enquiry"
+           <Route
+            path="invoice"
             element={
               <ProtectedRoute requireAdmin={true}>
-                <EnquiryPage />
+                <Invoice />
               </ProtectedRoute>
             }
-          /> */}
+          /> 
           <Route
             path="attributes"
             element={

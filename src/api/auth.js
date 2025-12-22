@@ -259,3 +259,111 @@ export const vendorAPI = {
     }
   }
 };
+
+
+// Add these to your existing auth.js file
+
+export const invoiceDetailsAPI = {
+  // Get all invoice details
+  getInvoiceDetails: async () => {
+    try {
+      const response = await DoAll({
+        action: "get",
+        table: "invoice_details",
+        where: {},
+        order_by: "created_at DESC"
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      throw error;
+    }
+  },
+
+  // Get single invoice detail by ID
+  getInvoiceDetailById: async (id) => {
+    try {
+      const response = await DoAll({
+        action: "get",
+        table: "invoice_details",
+        where: {
+          id: id
+        }
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Error fetching invoice detail:', error);
+      throw error;
+    }
+  },
+
+  // Create new invoice detail
+  createInvoiceDetail: async (data) => {
+    try {
+      const response = await DoAll({
+        action: "insert",
+        table: "invoice_details",
+        data: {
+          ...data,
+          created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        }
+      });
+      
+      return {
+        ...response,
+        message: 'Invoice details created successfully!'
+      };
+    } catch (error) {
+      console.error('Error creating invoice detail:', error);
+      throw error;
+    }
+  },
+
+  // Update invoice detail
+  updateInvoiceDetail: async (id, data) => {
+    try {
+      const response = await DoAll({
+        action: "update",
+        table: "invoice_details",
+        data: {
+          ...data,
+          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        },
+        where: {
+          id: id
+        }
+      });
+      
+      return {
+        ...response,
+        message: 'Invoice details updated successfully!'
+      };
+    } catch (error) {
+      console.error('Error updating invoice detail:', error);
+      throw error;
+    }
+  },
+
+  // Delete invoice detail
+  deleteInvoiceDetail: async (id) => {
+    try {
+      const response = await DoAll({
+        action: "delete",
+        table: "invoice_details",
+        where: {
+          id: id
+        }
+      });
+      
+      return {
+        ...response,
+        message: 'Invoice details deleted successfully!'
+      };
+    } catch (error) {
+      console.error('Error deleting invoice detail:', error);
+      throw error;
+    }
+  }
+};
