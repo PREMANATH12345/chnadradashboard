@@ -395,7 +395,7 @@ import Features from "./pages/Features";
 import Users from "./pages/Users";
 import VendorDash from "./pages/VendorDash";
 import { ssoLogin } from "./api/auth";
-import Invoice from "./pages/invoice";
+import Invoice from "./pages/Invoice";
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
 ===================================================== */
