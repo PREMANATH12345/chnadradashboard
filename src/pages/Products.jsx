@@ -2247,6 +2247,29 @@ const EditProductPanel = ({
   );
   const [activeVariantTab, setActiveVariantTab] = useState("basic");
   const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
+  
+
+    const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+  
+  useEffect(() => {
+    fetchTargetAudienceOptions();
+  }, []);
+
+  const fetchTargetAudienceOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_URL}/target-audience/options`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        setTargetAudienceOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching target audience options:", error);
+    }
+  };
 
 
   // Reconstruct variant pricing from backend data
@@ -4256,34 +4279,34 @@ const renderVariantConfiguration = () => (
                   </div>
                 </div>
 
-                {/* Gender Selection */}
-                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
-                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
-                      <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                    <span>Target Gender/Age</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {["Kids", "Men", "Women"].map((gender) => (
-                      <label
-                        key={gender}
-                        className="flex flex-col items-center justify-center p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.gender.includes(gender)}
-                          onChange={() => toggleGender(gender)}
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 mb-1.5"
-                          disabled={!canEdit}
-                        />
-                        <span className="text-xs sm:text-sm font-medium text-gray-700">
-                          {gender}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+{/* Gender Selection - DYNAMIC */}
+<div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
+  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
+      <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
+    </div>
+    <span>Target Audience</span>
+  </label>
+  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    {targetAudienceOptions.map((option) => (
+      <label
+        key={option.id}
+        className="flex flex-col items-center justify-center p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
+      >
+        <input
+          type="checkbox"
+          checked={formData.gender.includes(option.gender)}
+          onChange={() => toggleGender(option.gender)}
+          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 mb-1.5"
+          disabled={!canEdit}
+        />
+        <span className="text-xs sm:text-sm font-medium text-gray-700">
+          {option.gender}
+        </span>
+      </label>
+    ))}
+  </div>
+</div>
 
                 {/* Image Management */}
                 <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
@@ -4500,6 +4523,28 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       requiresUpload: false,
     },
   ];
+
+    const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+  
+  useEffect(() => {
+    fetchTargetAudienceOptions();
+  }, []);
+
+  const fetchTargetAudienceOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_URL}/target-audience/options`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        setTargetAudienceOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching target audience options:", error);
+    }
+  };
 
   const checkSlugUniqueness = async (slug, productId = null) => {
     try {
@@ -5767,29 +5812,29 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </div>
               </div>
 
-              {/* Gender Options */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span>👥</span>
-                  Target Audience
+          {/* Gender Options - DYNAMIC */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span>👥</span>
+              Target Audience
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {targetAudienceOptions.map((option) => (
+                <label
+                  key={option.id}
+                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={product.gender.includes(option.gender)}
+                    onChange={() => toggleProductGender(product.id, option.gender)}
+                    className="w-4 h-4 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm text-gray-700">{option.gender}</span>
                 </label>
-                <div className="flex flex-wrap gap-3">
-                  {["Kids", "Men", "Women"].map((gender) => (
-                    <label
-                      key={gender}
-                      className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={product.gender.includes(gender)}
-                        onChange={() => toggleProductGender(product.id, gender)}
-                        className="w-4 h-4 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">{gender}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              ))}
+            </div>
+          </div>
             </div>
 
             {/* Image Upload Section */}
