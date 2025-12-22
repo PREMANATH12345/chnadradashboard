@@ -30,6 +30,10 @@ const Invoice = () => {
       
       if (response?.success) {
         setInvoiceDetails(response.data || []);
+        // Select first item by default if available
+        if (response.data && response.data.length > 0 && !selectedDetail) {
+          setSelectedDetail(response.data[0]);
+        }
       } else {
         setInvoiceDetails([]);
       }
@@ -62,12 +66,20 @@ const Invoice = () => {
         if (response.success) {
           toast.success(response.message || "Invoice details updated successfully!");
           setEditingId(null);
+          // Update selected detail if it's the one being edited
+          if (selectedDetail?.id === editingId) {
+            setSelectedDetail({...selectedDetail, ...formData});
+          }
         }
       } else {
         // Create new invoice detail
         const response = await invoiceDetailsAPI.createInvoiceDetail(formData);
         if (response.success) {
           toast.success(response.message || "Invoice details created successfully!");
+          // Select the newly created item
+          if (response.data) {
+            setSelectedDetail(response.data);
+          }
         }
       }
 
@@ -100,7 +112,6 @@ const Invoice = () => {
     });
     setEditingId(detail.id);
     setSelectedDetail(detail);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle delete button click
@@ -111,7 +122,9 @@ const Invoice = () => {
         if (response.success) {
           toast.success(response.message || "Invoice details deleted successfully!");
           if (selectedDetail?.id === id) {
-            setSelectedDetail(null);
+            // If deleted item was selected, select first available item
+            const remainingItems = invoiceDetails.filter(item => item.id !== id);
+            setSelectedDetail(remainingItems.length > 0 ? remainingItems[0] : null);
           }
           fetchInvoiceDetails();
         }
@@ -122,39 +135,23 @@ const Invoice = () => {
     }
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    } catch (error) {
-      return "N/A";
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-            Invoice Details Management
+            Invoice Management System
           </h1>
           <p className="text-gray-600">
-            Manage your company details for invoices
+            Manage company details and preview invoices
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Create/Edit Form */}
-          <div className="lg:col-span-1">
+          {/* Left Column: Company Details Management */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Create/Edit Form */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
                 {editingId ? "Edit Company Details" : "Add New Company Details"}
@@ -261,54 +258,12 @@ const Invoice = () => {
                 </div>
               </form>
             </div>
-          </div>
 
-          {/* Right Column: Preview and List */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Preview Section */}
-            {selectedDetail && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Preview
-                  </h2>
-                  <span className="text-sm text-gray-500">
-                    Selected: {selectedDetail.company_name}
-                  </span>
-                </div>
-                
-                <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {selectedDetail.company_name}
-                    </h3>
-                    {selectedDetail.gst_number && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        GST: {selectedDetail.gst_number}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="mb-3">
-                    <p className="text-gray-700 whitespace-pre-line">
-                      {selectedDetail.address}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-700">
-                      📞 {selectedDetail.phone_number}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* List Section */}
+            {/* Saved Company Details List */}
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">
-                  All Company Details
+                  Saved Company Details
                 </h2>
                 <p className="text-sm text-gray-500">
                   {invoiceDetails.length} records found
@@ -321,7 +276,7 @@ const Invoice = () => {
                   <p className="mt-2 text-gray-600">Loading...</p>
                 </div>
               ) : invoiceDetails.length > 0 ? (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-200 max-h-[500px] overflow-y-auto">
                   {invoiceDetails.map((detail) => (
                     <div 
                       key={detail.id} 
@@ -345,12 +300,9 @@ const Invoice = () => {
                             {detail.address}
                           </p>
                           
-                          <div className="flex items-center gap-4 mt-2">
+                          <div className="mt-2">
                             <span className="text-sm text-gray-500">
                               📞 {detail.phone_number}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              Created: {formatDate(detail.created_at)}
                             </span>
                           </div>
                         </div>
@@ -365,7 +317,7 @@ const Invoice = () => {
                             title="Edit"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2v11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
                           
@@ -399,6 +351,176 @@ const Invoice = () => {
               )}
             </div>
           </div>
+
+          {/* Right Column: Invoice Preview */}
+         <div className="lg:col-span-2">
+  <div className="bg-white rounded-lg shadow p-6">
+    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      Invoice Preview
+    </h2>
+    
+    <div className="border-2 border-gray-300 rounded-lg p-6">
+      {/* Invoice Header - Matching the design from image */}
+      <div>
+        {/* Top section with company name and tagline - BLUE BACKGROUND ADDED HERE */}
+        <div className="bg-blue-600 text-white rounded-t-lg p-6 -mx-6 -mt-6 mb-6">
+          <div className="flex justify-between items-start">
+            <div className="text-left">
+              <h1 className="text-4xl font-bold mb-1" style={{ fontFamily: 'serif' }}>
+                {selectedDetail?.company_name || "Chandra"}
+              </h1>
+              <p className="text-xl italic" style={{ fontFamily: 'serif' }}>
+                jewel
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold uppercase mb-2" style={{ fontFamily: 'serif' }}>
+                INVOICE
+              </div>
+              <div>
+                <div>Invoice No: <span className="font-bold">INV-1</span></div>
+                <div>Date: <span className="font-bold">22 Dec 2025</span></div>
+                <div>Due Date: <span className="font-bold">21 Jan 2026</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* BILL TO CUSTOMER and FROM sections side by side */}
+        <div className="grid grid-cols-2 gap-8 mb-6">
+          {/* FROM section */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2 uppercase" style={{ fontFamily: 'serif' }}>
+              FROM
+            </h2>
+            {selectedDetail ? (
+              <div className="text-gray-700">
+                <div className="font-bold mb-1">{selectedDetail.company_name}</div>
+                <div className="mb-1">{selectedDetail.address}</div>
+                <div className="mb-1">📞 {selectedDetail.phone_number}</div>
+                {selectedDetail.gst_number && (
+                  <div>GST: {selectedDetail.gst_number}</div>
+                )}
+              </div>
+            ) : (
+              <div className="text-gray-500 italic">
+                Select company details from the left
+              </div>
+            )}
+          </div>
+          
+          {/* BILL TO CUSTOMER section */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2 uppercase" style={{ fontFamily: 'serif' }}>
+              BILL TO CUSTOMER
+            </h2>
+            <div className="text-gray-700">
+              <div className="font-bold mb-1">9874563210</div>
+              <div>ABC@gmail.com</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* ORDER & PAYMENT INFO section */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-2 uppercase" style={{ fontFamily: 'serif' }}>
+            ORDER & PAYMENT INFO
+          </h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-gray-700">
+              <div className="mb-1">
+                <span className="font-medium">Order #: </span>
+                <span>#PUR00001</span>
+              </div>
+              <div className="mb-1">
+                <span className="font-medium">Payment ID: </span>
+                <span>pay_Rubility:M3A18AA</span>
+              </div>
+            </div>
+            <div className="text-gray-700">
+              <div className="mb-1">
+                <span className="font-medium">Invoice Date: </span>
+                <span>22 Dec 2025</span>
+              </div>
+              <div>
+                <span className="font-medium">Payment Status: </span>
+                <span className="text-green-600 font-bold">COMPLETED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Products Table - Matching the exact structure from image */}
+        <div className="mb-6">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-900 text-white">
+                  <th className="py-3 px-4 text-left font-bold" style={{ fontFamily: 'serif' }}>Description</th>
+                  <th className="py-3 px-4 text-left font-bold" style={{ fontFamily: 'serif' }}>Specifications</th>
+                  <th className="py-3 px-4 text-left font-bold" style={{ fontFamily: 'serif' }}>Category</th>
+                  <th className="py-3 px-4 text-left font-bold" style={{ fontFamily: 'serif' }}>Amount (¥)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-300">
+                  <td className="py-3 px-4 text-gray-900">Love Trench Yellow Gold Studs</td>
+                  <td className="py-3 px-4 text-gray-700">
+                    <div className="space-y-1">
+                      <div>• Metal: 18KT Rose Gold</div>
+                      <div>• Diamond: GH-SI</div>
+                      <div>• Size: N/A</div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">Earrings</td>
+                  <td className="py-3 px-4 text-gray-900">₹2,500</td>
+                </tr>
+                <tr className="border-b border-gray-300">
+                  <td className="py-3 px-4 text-gray-900">Digital Files</td>
+                  <td className="py-3 px-4 text-gray-700">
+                    STL File
+                  </td>
+                  <td className="py-3 px-4 text-gray-900"></td>
+                  <td className="py-3 px-4 text-gray-900">₹2,500</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-100">
+                  <td colSpan="3" className="py-3 px-4 text-right font-bold text-gray-900">Subtotal</td>
+                  <td className="py-3 px-4 font-bold text-gray-900">₹5,000</td>
+                </tr>
+                <tr className="bg-gray-900 text-white">
+                  <td colSpan="3" className="py-4 px-4 text-right font-bold text-xl">Total Amount</td>
+                  <td className="py-4 px-4 font-bold text-xl">₹5,000</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        
+        {/* Thank you message */}
+        <div className="text-center mt-8">
+          <p className="text-gray-700 italic" style={{ fontFamily: 'serif' }}>
+            Thank you for your business!
+          </p>
+        </div>
+      </div>
+      
+      {/* Message when no company is selected */}
+      {!selectedDetail && (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">📄</div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            Select company details to see preview
+          </h3>
+          <p className="text-gray-500">
+            Choose a company from the list on the left
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>
