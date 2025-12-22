@@ -2257,6 +2257,90 @@ const CollectionSlider = ({ items, categories = [] }) => {
 
 // ==================== MAIN COMPONENT ====================
 
+
+// Add this function to refresh a single section
+const refreshSection = async (sectionId) => {
+  try {
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/doAll`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        action: "get",
+        table: "homepage_sections",
+        where: { id: sectionId },
+      }),
+    });
+
+    const result = await response.json();
+    if (result.success && result.data?.length > 0) {
+      const row = result.data[0];
+      const sectionData = JSON.parse(row.section_data || "{}");
+      
+      if (row.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
+        // Fetch category data for this specific section
+        const categoryResponse = await fetch(`${API_URL}/doAll`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "get",
+            table: "collection_category",
+            where: {
+              section_id: sectionId,
+              is_deleted: 0,
+            },
+            order_by: { display_order: "ASC" },
+          }),
+        });
+
+        if (categoryResponse.ok) {
+          const categoryResult = await categoryResponse.json();
+          if (categoryResult.success && categoryResult.data?.length > 0) {
+            sectionData.items = categoryResult.data.map((catItem) => ({
+              id: catItem.id,
+              title: catItem.title || "",
+              image: Array.isArray(catItem.images) ? catItem.images[0] || "" : catItem.images || "",
+              selectedCategories: catItem.category_id ? [catItem.category_id] : [],
+              selectedProducts: typeof catItem.selected_products === 'string' 
+                ? JSON.parse(catItem.selected_products) 
+                : catItem.selected_products || [],
+            }));
+          }
+        }
+      }
+
+      const updatedSection = {
+        id: row.id,
+        name: row.name,
+        type: row.type,
+        enabled: row.enabled === 1,
+        order: row.order_position,
+        data: sectionData,
+      };
+
+      // Update the section in the sections array
+      setSections(prevSections => 
+        prevSections.map(s => s.id === sectionId ? updatedSection : s)
+      );
+
+      // Update selectedSection if it's currently being edited
+      if (selectedSection && selectedSection.id === sectionId) {
+        setSelectedSection(updatedSection);
+      }
+
+      return updatedSection;
+    }
+  } catch (error) {
+    console.error("Error refreshing section:", error);
+  }
+  return null;
+};
 const Homepage = () => {
   const [view, setView] = useState("dashboard");
   const [selectedSection, setSelectedSection] = useState(null);
@@ -2355,7 +2439,7 @@ const loadSections = async () => {
 
             // Handle category highlight sections
             if (row.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
-              // Fetch category data from collection_category table
+              // Fetch category data
               const categoryResponse = await fetch(`${API_URL}/doAll`, {
                 method: "POST",
                 headers: {
@@ -2376,7 +2460,6 @@ const loadSections = async () => {
               if (categoryResponse.ok) {
                 const categoryResult = await categoryResponse.json();
                 if (categoryResult.success && categoryResult.data?.length > 0) {
-                  // Transform DB data to match component structure - IMPORTANT: Preserve the ID
                   sectionData.items = categoryResult.data.map((catItem) => {
                     let imageUrl = "";
                     try {
@@ -2384,22 +2467,13 @@ const loadSections = async () => {
                         if (Array.isArray(catItem.images)) {
                           imageUrl = catItem.images[0] || "";
                         } else if (typeof catItem.images === "string") {
-                          // Try to parse as JSON
                           try {
                             const parsed = JSON.parse(catItem.images);
-                            if (Array.isArray(parsed)) {
-                              imageUrl = parsed[0] || "";
-                            } else if (typeof parsed === "string") {
-                              imageUrl = parsed;
-                            }
+                            imageUrl = Array.isArray(parsed)
+                              ? parsed[0] || ""
+                              : parsed || "";
                           } catch (e) {
-                            // If parsing fails, check if it's a URL
-                            if (
-                              catItem.images.startsWith("/") ||
-                              catItem.images.startsWith("http")
-                            ) {
-                              imageUrl = catItem.images;
-                            }
+                            imageUrl = catItem.images;
                           }
                         }
                       }
@@ -2410,20 +2484,17 @@ const loadSections = async () => {
                     let selectedProducts = [];
                     try {
                       if (catItem.selected_products) {
-                        if (typeof catItem.selected_products === "string") {
-                          selectedProducts = JSON.parse(
-                            catItem.selected_products
-                          );
-                        } else if (Array.isArray(catItem.selected_products)) {
-                          selectedProducts = catItem.selected_products;
-                        }
+                        selectedProducts =
+                          typeof catItem.selected_products === "string"
+                            ? JSON.parse(catItem.selected_products)
+                            : catItem.selected_products;
                       }
                     } catch (e) {
                       console.error("Error parsing selected_products:", e);
                     }
 
                     return {
-                      id: catItem.id, // CRITICAL: Preserve the database ID
+                      id: catItem.id,
                       title: catItem.title || "",
                       image: imageUrl,
                       selectedCategories: catItem.category_id
@@ -2432,21 +2503,13 @@ const loadSections = async () => {
                       selectedProducts: selectedProducts,
                     };
                   });
-                } else {
-                  // If no data in DB, check if section_data has items
-                  if (!sectionData.items || sectionData.items.length === 0) {
-                    sectionData.items = [
-                      {
-                        id: Date.now(),
-                        title: "",
-                        image: "",
-                        selectedCategories: [],
-                        selectedProducts: [],
-                      },
-                    ];
-                  }
                 }
               }
+            }
+
+            // Ensure items array exists for all section types
+            if (!sectionData.items) {
+              sectionData.items = getDefaultDataForType(row.type).items || [];
             }
 
             return {
@@ -2465,7 +2528,7 @@ const loadSections = async () => {
               type: row.type,
               enabled: row.enabled === 1,
               order: row.order_position,
-              data: { items: [] },
+              data: { items: getDefaultDataForType(row.type).items || [] },
             };
           }
         })
@@ -2604,7 +2667,7 @@ const saveCategoryData = async (sectionId, categoryData) => {
   try {
     const token = getAuthToken();
 
-    // First, get existing records to update instead of insert
+    // Get existing records
     const existingResponse = await fetch(`${API_URL}/doAll`, {
       method: "POST",
       headers: {
@@ -2635,7 +2698,6 @@ const saveCategoryData = async (sectionId, categoryData) => {
           const category = categories.find((cat) => cat.id === categoryId);
 
           if (category) {
-            // Check if this item already exists (by comparing title and category_id)
             const existingItem = existingItems.find(
               (existing) =>
                 existing.id === item.id ||
@@ -2703,7 +2765,7 @@ const saveCategoryData = async (sectionId, categoryData) => {
         }
       }
 
-      // Soft delete any items that are no longer in the current data
+      // Soft delete removed items
       const currentItemIds = categoryData.items
         .filter((item) => item.selectedCategories?.length > 0)
         .map((item) => item.id);
@@ -2725,6 +2787,7 @@ const saveCategoryData = async (sectionId, categoryData) => {
         }
       }
     }
+    return true;
   } catch (error) {
     console.error("Error saving category data:", error);
     throw error;
@@ -2736,6 +2799,8 @@ const saveSection = async (sectionId, newData) => {
     const token = getAuthToken();
     const section = sections.find((s) => s.id === sectionId);
 
+    let result;
+
     if (section.type === SECTION_TYPES.CATEGORY_HIGHLIGHT) {
       const itemsWithIds =
         newData.items?.map((item, index) => ({
@@ -2743,7 +2808,7 @@ const saveSection = async (sectionId, newData) => {
           id: item.id || Date.now() + index,
         })) || [];
 
-      // First, update the homepage_sections table with basic data
+      // First, update the homepage_sections table
       const response = await fetch(`${API_URL}/doAll`, {
         method: "POST",
         headers: {
@@ -2768,32 +2833,14 @@ const saveSection = async (sectionId, newData) => {
         }),
       });
 
-      const result = await response.json();
+      result = await response.json();
 
       if (result.success) {
-        // Then save detailed data to collection_category table
+        // Then save to collection_category table
         await saveCategoryData(sectionId, {
           ...newData,
           items: itemsWithIds,
         });
-
-        // Update local state
-        setSections(
-          sections.map((s) =>
-            s.id === sectionId
-              ? {
-                  ...s,
-                  data: {
-                    ...newData,
-                    items: itemsWithIds,
-                  },
-                }
-              : s
-          )
-        );
-        alert("Section saved successfully!");
-      } else {
-        alert("Failed to save section: " + result.message);
       }
     } else {
       const response = await fetch(`${API_URL}/doAll`, {
@@ -2810,22 +2857,41 @@ const saveSection = async (sectionId, newData) => {
         }),
       });
 
-      const result = await response.json();
+      result = await response.json();
+    }
 
-      if (result.success) {
-        setSections(
-          sections.map((s) =>
-            s.id === sectionId ? { ...s, data: newData } : s
-          )
-        );
-        alert("Section saved successfully!");
-      } else {
-        alert("Failed to save section: " + result.message);
+    if (result.success) {
+      // CRITICAL FIX: Update local state immediately
+      const updatedSections = sections.map((s) => {
+        if (s.id === sectionId) {
+          return {
+            ...s,
+            data: newData,
+          };
+        }
+        return s;
+      });
+
+      setSections(updatedSections);
+
+      // Also update the selectedSection if it's currently being edited
+      if (selectedSection && selectedSection.id === sectionId) {
+        setSelectedSection({
+          ...selectedSection,
+          data: newData,
+        });
       }
+
+      alert("Section saved successfully!");
+      return true;
+    } else {
+      alert("Failed to save section: " + result.message);
+      return false;
     }
   } catch (error) {
     console.error("Error saving section:", error);
     alert("Error saving section. Please try again.");
+    return false;
   }
 };
 
@@ -3320,20 +3386,25 @@ const SectionEditor = ({ section }) => {
 
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
-              onClick={() => saveSection(section.id, formData)}
+              onClick={async () => {
+                const success = await saveSection(section.id, formData);
+                if (success) {
+                  // Optionally show a success message or navigate
+                }
+              }}
               icon={<FiSave />}
               className="flex-1"
             >
               Save Changes
             </PrimaryButton>
-            <SecondaryButton
+            {/* <SecondaryButton
               onClick={() => deleteSection(section.id)}
               variant="red"
               icon={<FiTrash2 />}
               className="flex-1"
             >
               Delete Section
-            </SecondaryButton>
+            </SecondaryButton> */}
           </div>
         </div>
       );
@@ -3469,7 +3540,7 @@ const SectionEditor = ({ section }) => {
             </SectionCard>
           ))}
 
-          <button
+          {/* <button
             onClick={addItem}
             className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
                        text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
@@ -3477,24 +3548,29 @@ const SectionEditor = ({ section }) => {
           >
             <FiPlus className="w-5 h-5" />
             <span className="font-medium">Add Feature Item</span>
-          </button>
+          </button> */}
 
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
-              onClick={() => saveSection(section.id, formData)}
+              onClick={async () => {
+                const success = await saveSection(section.id, formData);
+                if (success) {
+                  // Optionally show a success message or navigate
+                }
+              }}
               icon={<FiSave />}
               className="flex-1"
             >
               Save Changes
             </PrimaryButton>
-            <SecondaryButton
+            {/* <SecondaryButton
               onClick={() => deleteSection(section.id)}
               variant="red"
               icon={<FiTrash2 />}
               className="flex-1"
             >
               Delete Section
-            </SecondaryButton>
+            </SecondaryButton> */}
           </div>
         </div>
       );
@@ -3685,32 +3761,37 @@ const SectionEditor = ({ section }) => {
             </SectionCard>
           ))}
 
-          <button
+          {/* <button
             onClick={addItem}
             className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
                        text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
                        transition-colors flex items-center justify-center gap-3"
           >
             <FiPlus className="w-5 h-5" />
-            <span className="font-medium">Add Collection</span>
-          </button>
+            <span className="font-medium">Add Collectionmmm</span>
+          </button> */}
 
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
-              onClick={() => saveSection(section.id, formData)}
+              onClick={async () => {
+                const success = await saveSection(section.id, formData);
+                if (success) {
+                  // Optionally show a success message or navigate
+                }
+              }}
               icon={<FiSave />}
               className="flex-1"
             >
               Save Changes
             </PrimaryButton>
-            <SecondaryButton
+            {/* <SecondaryButton
               onClick={() => deleteSection(section.id)}
               variant="red"
               icon={<FiTrash2 />}
               className="flex-1"
             >
               Delete Section
-            </SecondaryButton>
+            </SecondaryButton> */}
           </div>
         </div>
       );
@@ -3879,7 +3960,12 @@ const SectionEditor = ({ section }) => {
 
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
-              onClick={() => saveSection(section.id, formData)}
+              onClick={async () => {
+                const success = await saveSection(section.id, formData);
+                if (success) {
+                  // Optionally show a success message or navigate
+                }
+              }}
               icon={<FiSave />}
               className="flex-1"
             >
@@ -3963,7 +4049,7 @@ const SectionEditor = ({ section }) => {
             </SectionCard>
           ))}
 
-          <button
+          {/* <button
             onClick={addItem}
             className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
                        text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
@@ -3971,24 +4057,29 @@ const SectionEditor = ({ section }) => {
           >
             <FiPlus className="w-5 h-5" />
             <span className="font-medium">Add Story Section</span>
-          </button>
+          </button> */}
 
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
-              onClick={() => saveSection(section.id, formData)}
+              onClick={async () => {
+                const success = await saveSection(section.id, formData);
+                if (success) {
+                  // Optionally show a success message or navigate
+                }
+              }}
               icon={<FiSave />}
               className="flex-1"
             >
               Save Changes
             </PrimaryButton>
-            <SecondaryButton
+            {/* <SecondaryButton
               onClick={() => deleteSection(section.id)}
               variant="red"
               icon={<FiTrash2 />}
               className="flex-1"
             >
               Delete Section
-            </SecondaryButton>
+            </SecondaryButton> */}
           </div>
         </div>
       );

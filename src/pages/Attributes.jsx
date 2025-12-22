@@ -434,7 +434,7 @@ const Attributes = ({ onBack }) => {
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    {attributeId && (
+                    {/* {attributeId && (
                       <button
                         onClick={() => handleDeleteAttribute(attribute.type)}
                         disabled={deletingId === attribute.type}
@@ -447,7 +447,7 @@ const Attributes = ({ onBack }) => {
                           <Trash2 className="w-4 h-4" />
                         )}
                       </button>
-                    )}
+                    )} */}
                   </div>
                 </div>
                 
