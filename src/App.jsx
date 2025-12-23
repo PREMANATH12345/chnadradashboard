@@ -146,28 +146,34 @@ function App() {
   };
 
   // Check user roles
-  const isAdmin = user?.role?.toLowerCase() === "admin";
-  const isVendor = user?.role?.toLowerCase() === "vendor";
-  const isMD = user?.role?.toLowerCase() === 'md';
+const isAdmin = user?.role?.toLowerCase() === "admin";
+const isVendor = user?.role?.toLowerCase() === "vendor";
+const isMD = user?.role?.toLowerCase() === 'md';
 
-  // Protected Route Component
-  const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false }) => {
-    if (!isAuthenticated) {
-      return <Navigate to="/login" />;
-    }
-    
-    if (requireAdmin && !isAdmin) {
-      return <Navigate to="/dashboard/products" />;
-    }
-    
-    if (requireVendor && !isVendor) {
-      return <Navigate to="/dashboard/home" />;
-    }
-    
-    return children;
-  };
+// Protected Route Component
+const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false }) => {
+  // Wait for loading to complete before redirecting
+  if (loading) {
+    return <div className="text-center p-10">Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/dashboard/products" />;
+  }
+  
+  if (requireVendor && !isVendor) {
+    return <Navigate to="/dashboard/home" />;
+  }
+  
+  return children;
+};
 
-  if (loading) return <div className="text-center p-10">Loading...</div>;
+// Remove the early return, let routes handle loading state
+// if (loading) return <div className="text-center p-10">Loading...</div>;
 
   return (
     <Router>
