@@ -67,6 +67,8 @@ const Products = () => {
 
   const fetchUserRole = () => {
     const user = JSON.parse(localStorage.getItem("user"));
+     console.log('🔍 fetchUserRole - user from localStorage:', user);
+  console.log('🔍 fetchUserRole - role being set:', user?.role);
     setUserRole(user?.role || null);
   };
 
@@ -305,6 +307,37 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
   const [viewProductDetails, setViewProductDetails] = useState(null);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [categoryData, setCategoryData] = useState(null);
+
+  useEffect(() => {
+    if (viewProductDetails?.category_id) {
+      fetchCategoryDetails(viewProductDetails.category_id);
+    }
+  }, [viewProductDetails]);
+
+  const fetchCategoryDetails = async (catId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const attributesRes = await axios.get(`${API_URL}/attributes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const attributes = {
+        metal: { id: null, options: [] },
+        diamond: { id: null, options: [] },
+      };
+
+      if (attributesRes.data.success) {
+        attributesRes.data.data.forEach((attr) => {
+          attributes[attr.type] = { id: attr.id, options: attr.options };
+        });
+      }
+
+      setCategoryData({ attributes });
+    } catch (error) {
+      console.error("Error fetching category details:", error);
+    }
+  };
 
   useEffect(() => {
     fetchPendingProducts();
@@ -602,9 +635,9 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
                               {productDetails.category || "No category"}
                             </span>
-                            <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded">
+                            {/* <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded">
                               ₹{productDetails.price?.toLocaleString() || "0"}
-                            </span>
+                            </span> */}
                           </div>
                         </div>
                       </div>
@@ -722,260 +755,426 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         </div>
       </div>
 
-      {viewProductDetails && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
-                  <FiPackage className="w-6 h-6" />
+{viewProductDetails && (
+  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="bg-white rounded-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
+            <FiPackage className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              {viewProductDetails.name}
+            </h3>
+            <p className="text-sm text-gray-600">
+              Submitted by:{" "}
+              <span className="font-medium">
+                {viewProductDetails.vendor_name || viewProductDetails.vendor_username || "Unknown"}
+              </span>
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setViewProductDetails(null)}
+          className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
+          disabled={approving || rejecting}
+        >
+          <FiX className="w-6 h-6 text-gray-600" />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="overflow-y-auto flex-1 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Images & Basic Info */}
+          <div>
+            {/* Images */}
+            {viewProductDetails.product_details?.images?.length > 0 ? (
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <FiImage className="w-5 h-5 text-blue-600" />
+                  Product Images
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {viewProductDetails.product_details.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={`${BASE_URL}${img}`}
+                      alt={`Product ${idx + 1}`}
+                      className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
+                <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No images uploaded</p>
+              </div>
+            )}
+
+            {/* Basic Information */}
+            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6">
+              <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <FiInfo className="w-5 h-5 text-blue-600" />
+                Basic Information
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Product Name</p>
+                  <p className="font-medium text-gray-900">{viewProductDetails.name}</p>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {viewProductDetails.name}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Submitted by:{" "}
-                    <span className="font-medium">
-                      {viewProductDetails.vendor_name || viewProductDetails.vendor_username || "Unknown"}
-                    </span>
+                  <p className="text-sm text-gray-500">Slug</p>
+                  <p className="font-medium text-gray-900">{viewProductDetails.slug}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Category</p>
+                  <p className="font-medium text-gray-900">
+                    {viewProductDetails.product_details.category || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Submitted On</p>
+                  <p className="font-medium text-gray-900">
+                    {new Date(viewProductDetails.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setViewProductDetails(null)}
-                className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
-                disabled={approving || rejecting}
-              >
-                <FiX className="w-6 h-6 text-gray-600" />
-              </button>
             </div>
 
-            <div className="overflow-y-auto max-h-[70vh] p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  {viewProductDetails.product_details?.images?.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="grid grid-cols-3 gap-3 mb-4">
-                        {viewProductDetails.product_details.images
-                          .slice(0, 3)
-                          .map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={`${BASE_URL}${img}`}
-                              alt={`Product ${idx + 1}`}
-                              className="w-full h-40 object-cover rounded-lg"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
-                          ))}
-                      </div>
-                      <p className="text-sm text-gray-500 text-center">
-                        {viewProductDetails.product_details.images.length}{" "}
-                        images
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
-                      <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">No images uploaded</p>
-                    </div>
-                  )}
+            {/* Description */}
+            {viewProductDetails.product_details.description && (
+              <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6">
+                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiFileText className="w-5 h-5 text-gray-600" />
+                  Description
+                </h4>
+                <p className="text-gray-700">{viewProductDetails.product_details.description}</p>
+              </div>
+            )}
+          </div>
 
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <FiInfo className="w-5 h-5 text-blue-600" />
-                      Basic Information
-                    </h4>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-500">Product Name</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.name}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Slug</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.slug}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Category ID</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.category_id}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Submitted On</p>
-                        <p className="font-medium text-gray-900">
-                          {new Date(
-                            viewProductDetails.created_at
-                          ).toLocaleString()}
-                        </p>
-                      </div>
+          {/* Right Column - Pricing & Variants */}
+          <div className="space-y-6">
+            {/* Variant Configuration Display */}
+            <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
+              <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
+                <FiSettings className="w-5 h-5 text-emerald-600" />
+                Variant Configuration
+              </h4>
+              
+              {/* Show variant type */}
+              <div className="space-y-3">
+                {viewProductDetails.product_details.hasMetalChoice && (
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <span>🔩</span>
+                      Metal Options
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+{viewProductDetails.product_details.selectedMetalOptions?.map((optId) => {
+  const metalOption = categoryData?.attributes?.metal?.options?.find(o => o.id === optId);
+  return (
+    <span key={optId} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+      {metalOption?.option_name || `Metal ID: ${optId}`}
+    </span>
+  );
+})}
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-6">
-                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
-                    <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                      <FiDollarSign className="w-5 h-5 text-emerald-600" />
-                      Pricing Details
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Price</p>
-                        <p className="text-2xl font-bold text-emerald-700">
-                          ₹
-                          {viewProductDetails.product_details.price?.toLocaleString() ||
-                            "0"}
-                        </p>
-                      </div>
-                      {viewProductDetails.product_details.originalPrice && (
-                        <div>
-                          <p className="text-sm text-gray-600">
-                            Original Price
-                          </p>
-                          <p className="text-lg font-medium text-gray-700 line-through">
-                            ₹
-                            {viewProductDetails.product_details.originalPrice.toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                      {viewProductDetails.product_details.discount > 0 && (
-                        <div className="col-span-2">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-100 to-pink-100 rounded-full">
-                            <span className="font-bold text-red-700">
-                              {viewProductDetails.product_details.discount}% OFF
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                {viewProductDetails.product_details.hasDiamondChoice && (
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <span>💎</span>
+                      Diamond Options
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+{viewProductDetails.product_details.selectedDiamondOptions?.map((optId) => {
+  const diamondOption = categoryData?.attributes?.diamond?.options?.find(o => o.id === optId);
+  return (
+    <span key={optId} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+      {diamondOption?.option_name || `Diamond ID: ${optId}`}
+    </span>
+  );
+})}
                     </div>
                   </div>
+                )}
 
-                  {viewProductDetails.product_details.description && (
-                    <div className="bg-white rounded-xl p-5 border border-gray-200">
-                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <FiFileText className="w-5 h-5 text-gray-600" />
-                        Description
-                      </h4>
-                      <p className="text-gray-700">
-                        {viewProductDetails.product_details.description}
-                      </p>
-                    </div>
-                  )}
-
-                  {viewProductDetails.product_details.featured?.length > 0 && (
-                    <div className="bg-white rounded-xl p-5 border border-gray-200">
-                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <FiStar className="w-5 h-5 text-amber-500" />
-                        Featured Tags
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {viewProductDetails.product_details.featured.map(
-                          (feature, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
-                            >
-                              {feature}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {viewProductDetails.product_details.gender?.length > 0 && (
-                    <div className="bg-white rounded-xl p-5 border border-gray-200">
-                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <FiUsers className="w-5 h-5 text-blue-600" />
-                        Target Audience
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {viewProductDetails.product_details.gender.map(
-                          (gender, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
-                            >
-                              {gender}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-white rounded-xl p-5 border border-gray-200">
-                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <FiSettings className="w-5 h-5 text-gray-600" />
-                      Specifications
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Style</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.product_details.style_id || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Metal/Stone</p>
-                        <p className="font-medium text-gray-900">
-                          {viewProductDetails.product_details.metal_id || "N/A"}
-                        </p>
-                      </div>
+                {/* Size Configuration */}
+                {viewProductDetails.product_details.selectedSizes && 
+                 Object.keys(viewProductDetails.product_details.selectedSizes).length > 0 && (
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <span>📏</span>
+                      Sizes Configured
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(viewProductDetails.product_details.selectedSizes)
+                        .filter(([_, isSelected]) => isSelected)
+                        .map(([sizeKey]) => (
+                          <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            {sizeKey.split('-').filter(part => part !== 'none').join(' + ')}
+                          </span>
+                        ))}
                     </div>
                   </div>
-                  
-                  {/* Action Buttons in Detail View */}
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={() => {
-                        handleApprove(viewProductDetails.id, true);
-                        setViewProductDetails(null);
-                      }}
-                      disabled={approving || rejecting}
-                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {approving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Approving...
-                        </>
-                      ) : (
-                        <>
-                          <FiCheckCircle className="w-4 h-4" />
-                          Approve Product
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedProduct(viewProductDetails.id);
-                        setViewProductDetails(null);
-                      }}
-                      disabled={approving || rejecting}
-                      className="flex-1 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      <FiX className="w-4 h-4" />
-                      Reject Product
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
+
+{/* Variant Pricing Details - FIXED VERSION */}
+{viewProductDetails.product_details.variantPricing && 
+ Object.keys(viewProductDetails.product_details.variantPricing).length > 0 && (
+  <div className="bg-white rounded-xl p-5 border border-gray-200">
+    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <span className="text-green-600 font-bold">₹</span>
+      Variant Pricing
+    </h4>
+    <div className="space-y-4 max-h-96 overflow-y-auto">
+{Object.entries(viewProductDetails.product_details.variantPricing)
+  .filter(([key, pricing]) => {
+    const [metalPart, diamondPart, sizePart] = key.split('-');
+    
+    // ✅ FIX 1: Skip metal-only variants if diamond options are selected
+    if (diamondPart === 'none' && 
+        viewProductDetails.product_details.hasDiamondChoice && 
+        viewProductDetails.product_details.selectedDiamondOptions?.length > 0) {
+      console.log(`⏭️ Hiding metal-only variant: ${key}`);
+      return false;
+    }
+    
+    // ✅ FIX 2: Skip if metal not in selected options
+    if (metalPart !== 'none' && 
+        viewProductDetails.product_details.hasMetalChoice &&
+        !viewProductDetails.product_details.selectedMetalOptions?.includes(parseInt(metalPart))) {
+      console.log(`⏭️ Hiding unselected metal variant: ${key}`);
+      return false;
+    }
+    
+    // ✅ FIX 3: Skip if diamond not in selected options
+    if (diamondPart !== 'none' && 
+        viewProductDetails.product_details.hasDiamondChoice &&
+        !viewProductDetails.product_details.selectedDiamondOptions?.includes(parseInt(diamondPart))) {
+      console.log(`⏭️ Hiding unselected diamond variant: ${key}`);
+      return false;
+    }
+    
+    // ✅ FIX 4: When both metal+diamond are selected, skip incomplete combos
+    if (viewProductDetails.product_details.hasMetalChoice && 
+        viewProductDetails.product_details.hasDiamondChoice &&
+        sizePart === 'none') {
+      // Must have both metal AND diamond
+      if (metalPart === 'none' || diamondPart === 'none') {
+        console.log(`⏭️ Hiding incomplete combo: ${key}`);
+        return false;
+      }
+    }
+    
+    // ✅ FIX 5: Skip if size not in selected sizes
+    if (sizePart !== 'none' && 
+        viewProductDetails.product_details.selectedSizes &&
+        !viewProductDetails.product_details.selectedSizes[key]) {
+      console.log(`⏭️ Hiding unselected size variant: ${key}`);
+      return false;
+    }
+    
+    console.log(`✅ Showing variant: ${key}`);
+    return true;
+  })
+  .map(([key, pricing]) => {
+  const [metal, diamond, size] = key.split('-');
+  
+  // Get actual names
+  const metalName = metal !== 'none' 
+    ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(metal))?.option_name || metal
+    : null;
+  const diamondName = diamond !== 'none' 
+    ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(diamond))?.option_name || diamond
+    : null;
+  const sizeName = size !== 'none' 
+    ? categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(size))?.option_name || size
+    : null;
+  
+  return (
+    <div key={key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+      {/* Variant Header */}
+      <div className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+        {metalName && <span className="text-emerald-600">Metal: {metalName}</span>}
+        {diamondName && <span className="text-purple-600 ml-2">Diamond: {diamondName}</span>}
+        {sizeName && <span className="text-blue-600 ml-2">Size: {sizeName}</span>}
+        {metal === 'none' && diamond === 'none' && size === 'none' && (
+          <span className="text-gray-600">Base Product</span>
+        )}
+      </div>
+
+      {/* File Types & Prices */}
+      {pricing.files && pricing.files.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-600 uppercase">Available Options:</p>
+          {pricing.files.map((file, idx) => (
+            <div key={idx} className="flex items-center justify-between bg-white rounded p-2 border border-gray-200">
+              <div className="flex items-center gap-2">
+                {file.file_type === 'stl_file' && <span className="text-lg">📄</span>}
+                {file.file_type === 'cam_product' && <span className="text-lg">⚙️</span>}
+                {file.file_type === 'rubber_mold' && <span className="text-lg">🔧</span>}
+                {file.file_type === 'casting_model' && <span className="text-lg">🏭</span>}
+                {file.file_type === 'finished_product' && <span className="text-lg">✨</span>}
+                <span className="text-sm font-medium text-gray-700">
+                  {file.file_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              </div>
+              <div className="text-right">
+                {file.price !== null && file.price !== undefined ? (
+                  <span className="text-sm font-bold text-emerald-700">
+                    ₹{Number(file.price).toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-500 italic">Enquiry</span>
+                )}
+              </div>
+            </div>
+          ))}
+          
+          {/* Show uploaded files */}
+          {pricing.files.some(f => f.file_name) && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Uploaded Files:</p>
+              {pricing.files
+                .filter(f => f.file_name)
+                .map((file, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded mb-1">
+                    <FiFileText className="w-3 h-3" />
+                    <span className="font-medium truncate">{file.file_name}</span>
+                    {file.file_size && (
+                      <span className="text-gray-500 ml-auto">
+                        {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* End Product Pricing if exists */}
+      {(pricing.end_product_price || pricing.end_product_discount) && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <p className="text-xs font-semibold text-gray-600 uppercase mb-2">End Product:</p>
+          <div className="flex items-center gap-3">
+            {pricing.end_product_price && (
+              <span className="text-sm font-bold text-gray-800">
+                ₹{Number(pricing.end_product_price).toLocaleString()}
+              </span>
+            )}
+            {pricing.end_product_discount && (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                {pricing.end_product_discount_percentage}% OFF
+              </span>
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+})}
+    </div>
+  </div>
+)}
+
+            {/* Featured Tags */}
+            {viewProductDetails.product_details.featured?.length > 0 && (
+              <div className="bg-white rounded-xl p-5 border border-gray-200">
+                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiStar className="w-5 h-5 text-amber-500" />
+                  Featured Tags
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewProductDetails.product_details.featured.map((feature, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Target Audience */}
+            {viewProductDetails.product_details.gender?.length > 0 && (
+              <div className="bg-white rounded-xl p-5 border border-gray-200">
+                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiUsers className="w-5 h-5 text-blue-600" />
+                  Target Audience
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewProductDetails.product_details.gender.map((gender, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
+                    >
+                      {gender}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <button
+          onClick={() => {
+            handleApprove(viewProductDetails.id, true);
+            setViewProductDetails(null);
+          }}
+          disabled={approving || rejecting}
+          className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {approving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Approving...
+            </>
+          ) : (
+            <>
+              <FiCheckCircle className="w-5 h-5" />
+              Approve Product
+            </>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            setSelectedProduct(viewProductDetails.id);
+            setViewProductDetails(null);
+          }}
+          disabled={approving || rejecting}
+          className="flex-1 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <FiX className="w-5 h-5" />
+          Reject Product
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 };
@@ -1328,9 +1527,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [editProduct, setEditProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
-  const [statusFilter, setStatusFilter] = useState(
-    userRole === "vendor" ? ["pending", "approved"] : ["approved"]
-  );
+  // const [statusFilter, setStatusFilter] = useState(
+  //   userRole === "vendor" ? ["pending", "approved"] : ["approved"]
+  // );
+const [statusFilter, setStatusFilter] = useState(
+  userRole === "vendor" ? [] : ["approved"]
+);
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
@@ -1341,6 +1543,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
       fetchVendors();
     }
   }, [userRole]);
+
+
+  const token = localStorage.getItem('token');
+fetch('YOUR_API_URL/debug/user', {
+  headers: { Authorization: `Bearer ${token}` }
+}).then(r => r.json()).then(console.log);
 
   const fetchVendors = async () => {
     setVendorLoading(true);
@@ -1373,53 +1581,85 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
       return newSelection;
     });
   };
+  
+const fetchProducts = useCallback(async () => {
+  if (selectedCategoryIds.length === 0) {
+    setProducts([]);
+    return;
+  }
 
-  const fetchProducts = useCallback(async () => {
-    if (selectedCategoryIds.length === 0) {
-      setProducts([]);
-      return;
+  setLoading(true);
+  const token = localStorage.getItem("token");
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    
+    console.log('🔍 Fetching products for user:', {
+      userRole,
+      user,
+      selectedCategoryIds,
+      statusFilter,
+      selectedVendor
+    });
+
+    const payload = {
+      category_ids: selectedCategoryIds,
+    };
+
+    // For VENDORS: Pass vendor_id explicitly from localStorage
+    if (userRole === "vendor") {
+      // CRITICAL: Get vendor_id from localStorage user object
+      const vendorId = user.vendor_id || user.id;
+      payload.vendor_id = vendorId;
+      
+      console.log('🔑 Vendor mode - using vendor_id:', vendorId);
+      
+      // If statusFilter is set, use it; otherwise don't set (show all)
+      if (statusFilter && statusFilter.length > 0) {
+        payload.status = statusFilter;
+      }
     }
 
-    setLoading(true);
-    const token = localStorage.getItem("token");
-
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const payload = {
-        category_ids: selectedCategoryIds,
-        status:
-          statusFilter && statusFilter.length > 0 ? statusFilter : ["approved"],
-      };
-
-      // Add vendor filter for admin
-      if (userRole === "admin" && selectedVendor !== "all") {
-        payload.vendor_id = selectedVendor;
+    // For ADMINS: Handle status and vendor filters
+    if (userRole === "admin") {
+      // Add vendor filter if selected
+      if (selectedVendor && selectedVendor !== "all") {
+        payload.vendor_id = parseInt(selectedVendor);
+        console.log('👔 Admin viewing vendor:', selectedVendor);
       }
-
-      if (userRole === "vendor") {
-        payload.vendor_id = user.id;
+      
+      // Add status filter (defaults to 'approved' in backend if not provided)
+      if (statusFilter && statusFilter.length > 0) {
+        payload.status = statusFilter;
       }
-
-      const response = await axios.post(
-        `${API_URL}/products/by-category`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setProducts(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      alert("Error loading products");
-    } finally {
-      setLoading(false);
     }
-  }, [selectedCategoryIds, statusFilter, selectedVendor, userRole]);
+
+    console.log('📤 Sending payload:', payload);
+
+    const response = await axios.post(
+      `${API_URL}/products/by-category`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    console.log('📦 Received products:', response.data.data?.length);
+
+    if (response.data.success) {
+      setProducts(response.data.data);
+    }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    alert("Error loading products");
+  } finally {
+    setLoading(false);
+  }
+}, [selectedCategoryIds, statusFilter, selectedVendor, userRole]);
 
   useEffect(() => {
     fetchProducts();
   }, [selectedCategoryIds, statusFilter, selectedVendor, fetchProducts]);
+
+
 
   const handleDelete = async (productId) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
@@ -1441,6 +1681,34 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
       alert("Error deleting product");
     }
   };
+
+
+
+  const handleToggleVisibility = async (product) => {
+  const action = product.is_hidden ? "unhide" : "hide";
+  if (!confirm(`Are you sure you want to ${action} this product?`)) return;
+
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.post(
+      `${API_URL}/products/toggle-visibility`,
+      { 
+        product_id: product.id,
+        is_hidden: !product.is_hidden 
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      alert(response.data.message);
+      fetchProducts();
+    }
+  } catch (error) {
+    console.error("Error toggling visibility:", error);
+    alert("Error toggling product visibility");
+  }
+};
+
 
   const canEditDelete = (product) => {
     if (userRole === "admin") return true;
@@ -1503,64 +1771,80 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
       }
     });
 
-  const renderStatusFilter = () => {
-    if (userRole !== "vendor") return null;
+const renderStatusFilter = () => {
+  if (userRole !== "vendor") return null;
 
-    return (
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-          <FiFilter className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-          <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
-            Filter by Status:
-          </label>
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          {[
-            {
-              status: "pending",
-              label: "Pending",
-              icon: <FiClock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-              color: "from-amber-500 to-yellow-500",
-              bg: "from-amber-50 to-yellow-50",
-            },
-            {
-              status: "approved",
-              label: "Approved",
-              icon: <FiCheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-              color: "from-emerald-500 to-green-500",
-              bg: "from-emerald-50 to-green-50",
-            },
-            {
-              status: "rejected",
-              label: "Rejected",
-              icon: <FiX className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-              color: "from-red-500 to-pink-500",
-              bg: "from-red-50 to-pink-50",
-            },
-          ].map(({ status, label, icon, color, bg }) => (
-            <button
-              key={status}
-              onClick={() => {
-                if (statusFilter.includes(status)) {
-                  setStatusFilter(statusFilter.filter((s) => s !== status));
-                } else {
-                  setStatusFilter([...statusFilter, status]);
-                }
-              }}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${
-                statusFilter.includes(status)
-                  ? `bg-gradient-to-r ${color} text-white`
-                  : `bg-gradient-to-r ${bg} text-gray-700 border border-gray-200`
-              }`}
-            >
-              {icon}
-              {label}
-            </button>
-          ))}
-        </div>
+  return (
+    <div className="mb-4 sm:mb-6">
+      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <FiFilter className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+        <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
+          Filter by Status:
+        </label>
       </div>
-    );
-  };
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        {/* All button */}
+        <button
+          onClick={() => setStatusFilter([])}
+          className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${
+            statusFilter.length === 0
+              ? `bg-gradient-to-r from-gray-600 to-gray-700 text-white`
+              : `bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200`
+          }`}
+        >
+          <FiPackage className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          All
+        </button>
+        
+        {/* Status filter buttons */}
+        {[
+          {
+            status: "pending",
+            label: "Pending",
+            icon: <FiClock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+            color: "from-amber-500 to-yellow-500",
+            bg: "from-amber-50 to-yellow-50",
+          },
+          {
+            status: "approved",
+            label: "Approved",
+            icon: <FiCheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+            color: "from-emerald-500 to-green-500",
+            bg: "from-emerald-50 to-green-50",
+          },
+          {
+            status: "rejected",
+            label: "Rejected",
+            icon: <FiX className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+            color: "from-red-500 to-pink-500",
+            bg: "from-red-50 to-pink-50",
+          },
+        ].map(({ status, label, icon, color, bg }) => (
+          <button
+            key={status}
+            onClick={() => {
+              if (statusFilter.includes(status)) {
+                // Remove this status from filter
+                setStatusFilter(statusFilter.filter((s) => s !== status));
+              } else {
+                // Add this status to filter
+                setStatusFilter([...statusFilter, status]);
+              }
+            }}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${
+              statusFilter.includes(status)
+                ? `bg-gradient-to-r ${color} text-white`
+                : `bg-gradient-to-r ${bg} text-gray-700 border border-gray-200`
+            }`}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
   const renderVendorFilter = () => {
     if (userRole !== "admin") return null;
@@ -1800,15 +2084,16 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
               <div className="p-3 sm:p-4 md:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                   {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onEdit={setEditProduct}
-                      onDelete={handleDelete}
-                      onViewImages={setImagePopup}
-                      canEditDelete={canEditDelete(product)}
-                      userRole={userRole}
-                    />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onEdit={setEditProduct}
+                    onDelete={handleDelete}
+                    onToggleVisibility={handleToggleVisibility}
+                    onViewImages={setImagePopup}
+                    canEditDelete={canEditDelete(product)}
+                    userRole={userRole}
+                  />
                   ))}
                 </div>
               </div>
@@ -1874,6 +2159,7 @@ const ProductCard = ({
   product,
   onEdit,
   onDelete,
+  onToggleVisibility,
   onViewImages,
   canEditDelete,
   userRole,
@@ -1987,6 +2273,18 @@ const ProductCard = ({
                 Edit
               </button>
               <button
+                onClick={() => onToggleVisibility(product)}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl transition-all shadow-md sm:shadow-lg hover:shadow-xl flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  product.is_hidden 
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600' 
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
+                }`}
+                title={product.is_hidden ? "Unhide Product" : "Hide Product"}
+              >
+                <FiEye className="w-3 h-3 sm:w-4 sm:h-4" />
+                {product.is_hidden ? 'Show' : 'Hide'}
+              </button>
+              <button
                 onClick={() => onDelete(product.id)}
                 className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg sm:rounded-xl hover:from-red-600 hover:to-pink-600 transition-all shadow-md sm:shadow-lg hover:shadow-xl flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
                 title="Delete Product"
@@ -2082,7 +2380,7 @@ const ProductCard = ({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            {/* <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="p-2 sm:p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl">
                 <p className="text-xs text-gray-500 mb-1">Style</p>
                 <p className="font-medium text-gray-900 truncate text-xs sm:text-sm">
@@ -2095,7 +2393,7 @@ const ProductCard = ({
                   {productDetails.metal_id || "N/A"}
                 </p>
               </div>
-            </div>
+            </div> */}
 
             {productDetails.description && (
               <div className="p-2 sm:p-3 bg-gradient-to-r from-emerald-50/50 to-green-50/50 rounded-lg sm:rounded-xl border border-emerald-100">
@@ -3309,7 +3607,7 @@ const renderVariantConfiguration = () => (
                       disabled={!canEdit}
                     />
                     <span className="text-sm font-semibold text-gray-700">
-                      + Config with Sizes
+                      + Metal + Sizes
                     </span>
                   </label>
                 </div>
@@ -3696,7 +3994,7 @@ const renderVariantConfiguration = () => (
                         disabled={!canEdit}
                       />
                       <span className="text-sm font-semibold text-gray-700">
-                        + Config with Sizes
+                        + Metal + Diamond + Sizes
                       </span>
                     </label>
                   </div>
@@ -5251,237 +5549,234 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
-  const saveProducts = async () => {
-    if (products.length === 0) {
-      alert("Please add at least one product");
+const saveProducts = async () => {
+  if (products.length === 0) {
+    alert("Please add at least one product");
+    return;
+  }
+
+  for (const product of products) {
+    if (!product.name || !product.style_id || !product.metal_id) {
+      alert("Please fill all required fields for all products");
       return;
     }
+  }
 
+  setLoading(true);
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isVendor = userRole === "vendor";
+
+  try {
     for (const product of products) {
-      if (!product.name || !product.style_id || !product.metal_id) {
-        alert("Please fill all required fields for all products");
-        return;
-      }
-    }
+      // Upload images...
+      let uploadedImageUrls = [];
+      if (product.imageFiles.length > 0) {
+        const formData = new FormData();
+        product.imageFiles.forEach((file) => {
+          formData.append("images", file);
+        });
 
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-    const isVendor = userRole === "vendor";
-
-    try {
-      for (const product of products) {
-        let uploadedImageUrls = [];
-        if (product.imageFiles.length > 0) {
-          const formData = new FormData();
-          product.imageFiles.forEach((file) => {
-            formData.append("images", file);
-          });
-
-          const uploadRes = await axios.post(
-            `${API_URL}/upload-images`,
-            formData,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
-
-          if (
-            uploadRes.data.success &&
-            uploadRes.data.data &&
-            Array.isArray(uploadRes.data.data.images)
-          ) {
-            uploadedImageUrls = uploadRes.data.data.images.map(
-              (img) => img.url
-            );
-          }
-        }
-
-        const productDetails = {
-          slug: product.slug,
-          description: product.description || "",
-          price: parseFloat(product.price),
-          originalPrice:
-            parseFloat(product.originalPrice) || parseFloat(product.price),
-          discount: parseInt(product.discount) || 0,
-          style_id: product.style_id,
-          metal_id: product.metal_id,
-          featured: product.featured,
-          gender: product.gender,
-          images: uploadedImageUrls,
-          category:
-            categories.find((c) => c.id == selectedCategoryId)?.name || "",
-          hasMetalChoice: product.hasMetalChoice,
-          hasDiamondChoice: product.hasDiamondChoice,
-          selectedMetalOptions: product.selectedMetalOptions,
-          selectedDiamondOptions: product.selectedDiamondOptions,
-          selectedSizes: product.selectedSizes,
-          variantPricing: product.variantPricing,
-        };
-
-        const status = isVendor ? "pending" : "approved";
-        const vendorId = isVendor ? user?.vendor_id : null;
-
-        const productRes = await axios.post(
-          `${API_URL}/doAll`,
+        const uploadRes = await axios.post(
+          `${API_URL}/upload-images`,
+          formData,
           {
-            action: "insert",
-            table: "products",
-            data: {
-              category_id: selectedCategoryId,
-              name: product.name,
-              slug: product.slug,
-              product_details: JSON.stringify(productDetails),
-              vendor_id: vendorId,
-              status: status,
-              created_at: new Date()
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " "),
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
             },
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
+          }
         );
 
-        if (productRes.data.success && productRes.data.insertId) {
-          const productDbId = productRes.data.insertId;
-          const variants = [];
-
-          // ========== 1. PROCESS VARIANTS WITH SIZES ==========
-          if (
-            product.selectedSizes &&
-            typeof product.selectedSizes === "object"
-          ) {
-            for (const [key, isSelected] of Object.entries(
-              product.selectedSizes
-            )) {
-              if (!isSelected) continue;
-
-              const pricing = product.variantPricing?.[key];
-              if (!pricing) continue;
-
-              const [metalPart, diamondPart, sizePart] = key.split("-");
-
-              if (sizePart === "none") continue;
-
-              const files = Array.isArray(pricing.files) ? pricing.files : [];
-              if (files.length === 0) continue;
-
-              // ✅ FIX: Use the CURRENT uploadedPdfFiles state
-              const mappedFiles = files.map((f) => {
-                const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
-
-                // ✅ CRITICAL: Access uploadedPdfFiles from the closure
-                const uploadedFile = uploadedPdfFiles[fileKey];
-
-                return {
-                  file_type: f.file_type,
-                  price: f.price,
-                  file_path: uploadedFile?.file_path || null,
-                  file_name: uploadedFile?.file_name || null,
-                  file_size: uploadedFile?.file_size || null,
-                };
-              });
-
-              variants.push({
-                metal_option_id:
-                  metalPart === "none" ? null : parseInt(metalPart),
-                diamond_option_id:
-                  diamondPart === "none" ? null : parseInt(diamondPart),
-                size_option_id: parseInt(sizePart),
-                end_product_price:
-                  parseFloat(pricing.end_product_price) || null,
-                end_product_discount:
-                  parseFloat(pricing.end_product_discount) || null,
-                end_product_discount_percentage:
-                  parseInt(pricing.end_product_discount_percentage) || null,
-                files: mappedFiles,
-              });
-            }
-          }
-
-          // ========== 2. PROCESS VARIANTS WITHOUT SIZES ==========
-          if (
-            product.variantPricing &&
-            typeof product.variantPricing === "object"
-          ) {
-            for (const [key, pricing] of Object.entries(
-              product.variantPricing
-            )) {
-              if (key.endsWith("-none")) {
-                const [metalPart, diamondPart, sizePart] = key.split("-");
-
-                if (sizePart !== "none") continue;
-
-                const files = Array.isArray(pricing.files) ? pricing.files : [];
-                if (files.length === 0) continue;
-
-                // ✅ FIX: Use the CURRENT uploadedPdfFiles state
-                const mappedFiles = files.map((f) => {
-                  const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
-
-                  // ✅ CRITICAL: Access uploadedPdfFiles from the closure
-                  const uploadedFile = uploadedPdfFiles[fileKey];
-
-                  return {
-                    file_type: f.file_type,
-                    price: f.price,
-                    file_path: uploadedFile?.file_path || null,
-                    file_name: uploadedFile?.file_name || null,
-                    file_size: uploadedFile?.file_size || null,
-                  };
-                });
-
-                variants.push({
-                  metal_option_id:
-                    metalPart === "none" ? null : parseInt(metalPart),
-                  diamond_option_id:
-                    diamondPart === "none" ? null : parseInt(diamondPart),
-                  size_option_id: null,
-                  end_product_price:
-                    parseFloat(pricing.end_product_price) || null,
-                  end_product_discount:
-                    parseFloat(pricing.end_product_discount) || null,
-                  end_product_discount_percentage:
-                    parseInt(pricing.end_product_discount_percentage) || null,
-                  files: mappedFiles,
-                });
-              }
-            }
-          }
-
-          // Only call API if variants exist
-          if (variants.length > 0) {
-            await axios.post(
-              `${API_URL}/product-variants/pricing`,
-              { product_id: productDbId, variants },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-          }
+        if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
+          uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
         }
       }
 
-      alert(
-        isVendor
-          ? "✅ Products submitted for admin approval!"
-          : "✅ Products saved successfully!"
+      const productDetails = {
+        slug: product.slug,
+        description: product.description || "",
+        price: parseFloat(product.price),
+        originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+        discount: parseInt(product.discount) || 0,
+        style_id: product.style_id,
+        metal_id: product.metal_id,
+        featured: product.featured,
+        gender: product.gender,
+        images: uploadedImageUrls,
+        category: categories.find((c) => c.id == selectedCategoryId)?.name || "",
+        hasMetalChoice: product.hasMetalChoice,
+        hasDiamondChoice: product.hasDiamondChoice,
+        selectedMetalOptions: product.selectedMetalOptions,
+        selectedDiamondOptions: product.selectedDiamondOptions,
+        selectedSizes: product.selectedSizes,
+        variantPricing: product.variantPricing,
+      };
+
+      const status = isVendor ? "pending" : "approved";
+      const vendorId = isVendor ? user?.vendor_id : null;
+
+      const productRes = await axios.post(
+        `${API_URL}/doAll`,
+        {
+          action: "insert",
+          table: "products",
+          data: {
+            category_id: selectedCategoryId,
+            name: product.name,
+            slug: product.slug,
+            product_details: JSON.stringify(productDetails),
+            vendor_id: vendorId,
+            status: status,
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          },
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setProducts([]);
-      setActiveProductTab(0);
-      onRefresh();
-    } catch (error) {
-      console.error("Error saving products:", error);
-      alert(
-        "❌ Error saving products: " +
-          (error.response?.data?.message || error.message)
-      );
-    } finally {
-      setLoading(false);
+
+      if (productRes.data.success && productRes.data.insertId) {
+        const productDbId = productRes.data.insertId;
+        const variants = [];
+
+        // ========== 1. PROCESS VARIANTS WITH SIZES ==========
+        if (product.selectedSizes && typeof product.selectedSizes === "object") {
+          for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
+            if (!isSelected) continue;
+
+            const pricing = product.variantPricing?.[key];
+            if (!pricing) continue;
+
+            const [metalPart, diamondPart, sizePart] = key.split("-");
+
+            if (sizePart === "none") continue;
+
+            const files = Array.isArray(pricing.files) ? pricing.files : [];
+            if (files.length === 0) continue;
+
+            const mappedFiles = files.map((f) => {
+              const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
+              const uploadedFile = uploadedPdfFiles[fileKey];
+
+              return {
+                file_type: f.file_type,
+                price: f.price,
+                file_path: uploadedFile?.file_path || null,
+                file_name: uploadedFile?.file_name || null,
+                file_size: uploadedFile?.file_size || null,
+              };
+            });
+
+            variants.push({
+              metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
+              size_option_id: parseInt(sizePart),
+              end_product_price: parseFloat(pricing.end_product_price) || null,
+              end_product_discount: parseFloat(pricing.end_product_discount) || null,
+              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              files: mappedFiles,
+            });
+          }
+        }
+
+        // ========== 2. PROCESS VARIANTS WITHOUT SIZES (FIXED) ==========
+        if (product.variantPricing && typeof product.variantPricing === "object") {
+          for (const [key, pricing] of Object.entries(product.variantPricing)) {
+            if (!key.endsWith("-none")) continue; // Only process keys ending with -none
+
+            const [metalPart, diamondPart, sizePart] = key.split("-");
+
+            // Skip if this is a size-based variant (already processed above)
+            if (sizePart !== "none") continue;
+
+            // ✅ FIX: Skip metal-only variants if diamond options are selected
+            if (diamondPart === "none" && product.hasDiamondChoice && product.selectedDiamondOptions.length > 0) {
+              console.log(`⏭️ Skipping metal-only variant ${key} because diamond options are selected`);
+              continue;
+            }
+
+            // ✅ FIX: Only process this variant if it matches selected options
+            if (metalPart !== "none" && product.hasMetalChoice) {
+              if (!product.selectedMetalOptions.includes(parseInt(metalPart))) {
+                console.log(`⏭️ Skipping ${key} - metal not selected`);
+                continue;
+              }
+            }
+
+            if (diamondPart !== "none" && product.hasDiamondChoice) {
+              if (!product.selectedDiamondOptions.includes(parseInt(diamondPart))) {
+                console.log(`⏭️ Skipping ${key} - diamond not selected`);
+                continue;
+              }
+            }
+
+            // ✅ FIX: Skip if both metal and diamond are selected but this variant has only one
+            if (product.hasMetalChoice && product.hasDiamondChoice) {
+              // If both are selected, only process variants that have BOTH metal AND diamond
+              if (metalPart === "none" || diamondPart === "none") {
+                console.log(`⏭️ Skipping ${key} - incomplete metal+diamond combination`);
+                continue;
+              }
+            }
+
+            const files = Array.isArray(pricing.files) ? pricing.files : [];
+            if (files.length === 0) continue;
+
+            const mappedFiles = files.map((f) => {
+              const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+              const uploadedFile = uploadedPdfFiles[fileKey];
+
+              return {
+                file_type: f.file_type,
+                price: f.price,
+                file_path: uploadedFile?.file_path || null,
+                file_name: uploadedFile?.file_name || null,
+                file_size: uploadedFile?.file_size || null,
+              };
+            });
+
+            console.log(`✅ Adding variant: ${key}`);
+            variants.push({
+              metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
+              size_option_id: null,
+              end_product_price: parseFloat(pricing.end_product_price) || null,
+              end_product_discount: parseFloat(pricing.end_product_discount) || null,
+              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              files: mappedFiles,
+            });
+          }
+        }
+
+        // Only call API if variants exist
+        if (variants.length > 0) {
+          console.log(`📦 Saving ${variants.length} variants for product ${productDbId}`);
+          await axios.post(
+            `${API_URL}/product-variants/pricing`,
+            { product_id: productDbId, variants },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+      }
     }
-  };
+
+    alert(
+      isVendor
+        ? "✅ Products submitted for admin approval!"
+        : "✅ Products saved successfully!"
+    );
+    setProducts([]);
+    setActiveProductTab(0);
+    onRefresh();
+  } catch (error) {
+    console.error("Error saving products:", error);
+    alert(
+      "❌ Error saving products: " +
+        (error.response?.data?.message || error.message)
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   const selectedCategory = categories.find((c) => c.id == selectedCategoryId);
 
   return (
@@ -6077,24 +6372,25 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </div>
 
                 {/* Size Info */}
-                <div className="border-2 border-gray-200 rounded p-3">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={product.configureSizes || false}
-                      onChange={() => toggleConfigureSizes(product.id)}
-                      className="w-5 h-5 text-green-600"
-                    />
-                    <span className="font-bold text-gray-800">
-                      📏 Configure Sizes with Pricing
-                    </span>
-                  </label>
-                  <p className="text-xs text-gray-600 ml-7">
-                    {product.hasMetalChoice || product.hasDiamondChoice
-                      ? "✅ Size configuration is active (required for variants)"
-                      : "Check this to configure pricing for individual sizes"}
-                  </p>
-                </div>
+{/* Size Info */}
+<div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
+  <label className="flex items-center gap-2 mb-3 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={product.configureSizes || false}
+      onChange={() => toggleConfigureSizes(product.id)}
+      className="w-5 h-5 text-emerald-600"
+    />
+    <span className="font-bold text-gray-800">
+      📏 Configure Sizes with Pricing
+    </span>
+  </label>
+  <p className="text-xs text-gray-600">
+    {product.hasMetalChoice || product.hasDiamondChoice
+      ? `✅ Size configuration is active (required for variants) - You can configure ${product.hasMetalChoice && !product.hasDiamondChoice ? "Metal + Sizes" : product.hasDiamondChoice && !product.hasMetalChoice ? "Diamond + Sizes" : "Metal + Diamond + Sizes"}`
+      : "You can select sizes only, or configure with metal/diamond options"}
+  </p>
+</div>
               </div>
 
               {/* Size & Pricing Configuration */}
@@ -6342,7 +6638,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                 className="w-5 h-5 text-green-600"
                               />
                               <span className="text-sm font-semibold text-gray-700">
-                                + Config with Sizes
+                                + Metal + Sizes
                               </span>
                             </label>
                           </div>
@@ -6771,7 +7067,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                   className="w-5 h-5 text-green-600"
                                 />
                                 <span className="text-sm font-semibold text-gray-700">
-                                  + Config with Sizes
+                                  + Metal + Diamond + Sizes
                                 </span>
                               </label>
                             </div>
