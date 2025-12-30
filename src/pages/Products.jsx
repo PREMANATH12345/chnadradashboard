@@ -53,6 +53,10 @@ const Products = () => {
   const [userRole, setUserRole] = useState(null);
   const [showVendorSidebar, setShowVendorSidebar] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [bulkImportFile, setBulkImportFile] = useState(null);
+const [validationResult, setValidationResult] = useState(null);
+const [importLoading, setImportLoading] = useState(false);
+const [importPreview, setImportPreview] = useState(null);
 
   useEffect(() => {
     fetchUserRole();
@@ -171,6 +175,16 @@ const Products = () => {
                   disabled={categories.length === 0}
                 />
               )}
+
+              {userRole === "admin" && (
+                <StepButton
+                  step="bulk-import"
+                  currentStep={currentStep}
+                  onClick={() => setCurrentStep("bulk-import")}
+                  icon={<FiUpload className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  label="Bulk Import"
+                />
+              )}
             </div>
           </div>
 
@@ -247,6 +261,14 @@ const Products = () => {
             onBack={() => setCurrentStep("dashboard")}
             categories={categories}
             onRefresh={fetchCategories}
+            userRole={userRole}
+          />
+        )}
+
+        {currentStep === "bulk-import" && (
+          <BulkImportProducts
+            onBack={() => setCurrentStep("dashboard")}
+            categories={categories}
             userRole={userRole}
           />
         )}
@@ -2124,6 +2146,8 @@ const renderStatusFilter = () => {
 
 
 const getStlFilePrice = (product) => {
+  if (!product || !product.product_details) return 0;
+  
   const productDetails = product.product_details;
   
   // If productDetails is string, parse it
@@ -2140,17 +2164,23 @@ const getStlFilePrice = (product) => {
   if (details.variantPricing && typeof details.variantPricing === 'object') {
     // Loop through all variant pricing entries
     for (const [key, pricing] of Object.entries(details.variantPricing)) {
-      if (pricing.files && Array.isArray(pricing.files)) {
-        const stlFile = pricing.files.find(f => f.file_type === 'stl_file' && f.price !== null && f.price !== undefined);
-        if (stlFile) {
-          return stlFile.price;
+      if (pricing && pricing.files && Array.isArray(pricing.files)) {
+        const stlFile = pricing.files.find(f => 
+          f && 
+          f.file_type === 'stl_file' && 
+          f.price !== null && 
+          f.price !== undefined
+        );
+        if (stlFile && stlFile.price !== null && stlFile.price !== undefined) {
+          return Number(stlFile.price) || 0;
         }
       }
     }
   }
   
   // Fallback to productDetails.price or 0
-  return details.price;
+  const price = details.price;
+  return price !== null && price !== undefined ? Number(price) : 0;
 };
 
 
@@ -2322,7 +2352,7 @@ const ProductCard = ({
 
         <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
           <span className="text-lg sm:text-xl font-bold text-emerald-700">
-            ₹{displayPrice.toLocaleString()}
+            ₹{Number(displayPrice || 0).toLocaleString()}
           </span>
           {productDetails.originalPrice && productDetails.originalPrice > displayPrice && (
             <span className="text-sm sm:text-base text-gray-400 line-through">
@@ -7568,6 +7598,198 @@ const saveProducts = async () => {
       )}
     </div>
   );
-};    
+}; 
+
+
+
+const BulkImportProducts = ({ onBack, categories, userRole }) => {
+  const [step, setStep] = useState(1); // 1: Upload, 2: Validate, 3: Preview, 4: Create
+  const [excelFile, setExcelFile] = useState(null);
+  const [validationData, setValidationData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState([]);
+  const [previewData, setPreviewData] = useState(null);
+
+  // Step 1: Download Template
+  const downloadTemplate = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_URL}/products/bulk/download-template`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Product_Bulk_Import_Template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      alert("Error downloading template");
+    }
+  };
+
+  // Step 2: Upload Excel File
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setExcelFile(file);
+    setLoading(true);
+    setErrors([]);
+
+    try {
+      const formData = new FormData();
+      formData.append('excel_file', file);
+
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/bulk/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setValidationData(response.data.data);
+        setPreviewData(response.data.preview);
+        setStep(response.data.errors.length > 0 ? 2 : 3);
+        
+        if (response.data.errors.length > 0) {
+          setErrors(response.data.errors);
+        }
+      }
+    } catch (error) {
+      alert("Error validating file: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 3: Create Products
+  const createProducts = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/bulk/create`,
+        { validationData },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert(`✅ Success! ${response.data.created} products created.`);
+        onBack();
+      }
+    } catch (error) {
+      alert("Error creating products: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Bulk Import Products</h2>
+        <button onClick={onBack} className="px-4 py-2 border rounded-lg">
+          ← Back
+        </button>
+      </div>
+
+      {/* Step 1: Download Template */}
+      {step === 1 && (
+        <div className="bg-white p-6 rounded-xl border">
+          <h3 className="text-xl font-bold mb-4">📥 Step 1: Download Template</h3>
+          <p className="text-gray-600 mb-4">
+            Download the Excel template, fill in your product data, and upload it back.
+          </p>
+          <button
+            onClick={downloadTemplate}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Download Excel Template
+          </button>
+
+          <div className="mt-6 pt-6 border-t">
+            <h4 className="font-bold mb-2">📤 Step 2: Upload Filled Excel</h4>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+              className="block w-full text-sm"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Validation Errors */}
+      {step === 2 && errors.length > 0 && (
+        <div className="bg-red-50 p-6 rounded-xl border border-red-300">
+          <h3 className="text-xl font-bold text-red-800 mb-4">❌ Validation Errors</h3>
+          <ul className="space-y-2">
+            {errors.map((err, idx) => (
+              <li key={idx} className="text-sm text-red-700">• {err}</li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setStep(1)}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg"
+          >
+            Fix & Re-upload
+          </button>
+        </div>
+      )}
+
+      {/* Step 3: Preview */}
+      {step === 3 && previewData && (
+        <div className="bg-white p-6 rounded-xl border">
+          <h3 className="text-xl font-bold mb-4">✅ Preview</h3>
+          <p className="mb-4">
+            Found <strong>{previewData.total_products}</strong> products with{" "}
+            <strong>{previewData.total_variants}</strong> variants.
+          </p>
+          
+          <div className="max-h-96 overflow-y-auto mb-4">
+            {previewData.products.slice(0, 10).map((prod, idx) => (
+              <div key={idx} className="border-b py-2">
+                <p className="font-bold">{prod.name}</p>
+                <p className="text-sm text-gray-600">Slug: {prod.slug}</p>
+                <p className="text-sm text-gray-600">Variants: {prod.variant_count}</p>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={createProducts}
+            disabled={loading}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "✅ Create All Products"}
+          </button>
+        </div>
+      )}
+
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Processing...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default Products;
