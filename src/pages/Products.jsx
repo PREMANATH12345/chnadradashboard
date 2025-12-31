@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
@@ -71,8 +70,6 @@ const [importPreview, setImportPreview] = useState(null);
 
   const fetchUserRole = () => {
     const user = JSON.parse(localStorage.getItem("user"));
-     console.log('🔍 fetchUserRole - user from localStorage:', user);
-  console.log('🔍 fetchUserRole - role being set:', user?.role);
     setUserRole(user?.role || null);
   };
 
@@ -974,7 +971,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     if (diamondPart === 'none' && 
         viewProductDetails.product_details.hasDiamondChoice && 
         viewProductDetails.product_details.selectedDiamondOptions?.length > 0) {
-      console.log(`⏭️ Hiding metal-only variant: ${key}`);
       return false;
     }
     
@@ -982,7 +978,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     if (metalPart !== 'none' && 
         viewProductDetails.product_details.hasMetalChoice &&
         !viewProductDetails.product_details.selectedMetalOptions?.includes(parseInt(metalPart))) {
-      console.log(`⏭️ Hiding unselected metal variant: ${key}`);
       return false;
     }
     
@@ -990,7 +985,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     if (diamondPart !== 'none' && 
         viewProductDetails.product_details.hasDiamondChoice &&
         !viewProductDetails.product_details.selectedDiamondOptions?.includes(parseInt(diamondPart))) {
-      console.log(`⏭️ Hiding unselected diamond variant: ${key}`);
       return false;
     }
     
@@ -1000,7 +994,6 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         sizePart === 'none') {
       // Must have both metal AND diamond
       if (metalPart === 'none' || diamondPart === 'none') {
-        console.log(`⏭️ Hiding incomplete combo: ${key}`);
         return false;
       }
     }
@@ -1009,11 +1002,9 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     if (sizePart !== 'none' && 
         viewProductDetails.product_details.selectedSizes &&
         !viewProductDetails.product_details.selectedSizes[key]) {
-      console.log(`⏭️ Hiding unselected size variant: ${key}`);
       return false;
     }
     
-    console.log(`✅ Showing variant: ${key}`);
     return true;
   })
   .map(([key, pricing]) => {
@@ -1558,6 +1549,8 @@ const [statusFilter, setStatusFilter] = useState(
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
+    const [showTestImages, setShowTestImages] = useState(false);
+
 
   // Fetch vendors when component mounts (for admin only)
   useEffect(() => {
@@ -1615,14 +1608,6 @@ const fetchProducts = useCallback(async () => {
 
   try {
     const user = JSON.parse(localStorage.getItem("user"));
-    
-    console.log('🔍 Fetching products for user:', {
-      userRole,
-      user,
-      selectedCategoryIds,
-      statusFilter,
-      selectedVendor
-    });
 
     const payload = {
       category_ids: selectedCategoryIds,
@@ -1634,7 +1619,6 @@ const fetchProducts = useCallback(async () => {
       const vendorId = user.vendor_id || user.id;
       payload.vendor_id = vendorId;
       
-      console.log('🔑 Vendor mode - using vendor_id:', vendorId);
       
       // If statusFilter is set, use it; otherwise don't set (show all)
       if (statusFilter && statusFilter.length > 0) {
@@ -1647,7 +1631,6 @@ const fetchProducts = useCallback(async () => {
       // Add vendor filter if selected
       if (selectedVendor && selectedVendor !== "all") {
         payload.vendor_id = parseInt(selectedVendor);
-        console.log('👔 Admin viewing vendor:', selectedVendor);
       }
       
       // Add status filter (defaults to 'approved' in backend if not provided)
@@ -1656,7 +1639,6 @@ const fetchProducts = useCallback(async () => {
       }
     }
 
-    console.log('📤 Sending payload:', payload);
 
     const response = await axios.post(
       `${API_URL}/products/by-category`,
@@ -1664,7 +1646,6 @@ const fetchProducts = useCallback(async () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    console.log('📦 Received products:', response.data.data?.length);
 
     if (response.data.success) {
       setProducts(response.data.data);
@@ -1925,26 +1906,51 @@ const renderStatusFilter = () => {
     );
   };
 
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            onClick={onBack}
-            className="p-2 sm:p-3 hover:bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl transition-colors border border-gray-200"
-            title="Back to Dashboard"
-          >
-            <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-              {userRole === "admin" ? "View All Products" : "My Products"}
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600">
-              Browse and manage your product catalog
-            </p>
-          </div>
+ return (
+  <div className="space-y-4 sm:space-y-6">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <button
+          onClick={onBack}
+          className="p-2 sm:p-3 hover:bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl transition-colors border border-gray-200"
+          title="Back to Dashboard"
+        >
+          <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+        </button>
+        <div>
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+            {userRole === "admin" ? "View All Products" : "My Products"}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-600">
+            Browse and manage your product catalog
+          </p>
         </div>
+      </div>
+
+
+      
+         {/* Add Test Image Button */}
+      <div className="flex gap-2">
+        {userRole === "vendor" && (
+          <button
+            onClick={onAddProduct}
+            className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base w-full sm:w-auto mt-2 sm:mt-0"
+          >
+            <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Add Product</span>
+          </button>
+        )}
+        
+        {/* Test Images Button */}
+        <button
+          onClick={() => setShowTestImages(!showTestImages)}
+          className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-blue-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+        >
+          <FiImage className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span>Test Images</span>
+        </button>
+      </div>
+    
         {userRole === "vendor" && (
           <button
             onClick={onAddProduct}
@@ -2047,6 +2053,23 @@ const renderStatusFilter = () => {
                 </div>
               </div>
             )}
+
+
+                {showTestImages && (
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold">AWS Image Test</h3>
+          <button
+            onClick={() => setShowTestImages(false)}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+          >
+            Close Test
+          </button>
+        </div>
+        <TestImageDisplay />
+      </div>
+    )}
+
           </div>
 
           <div className="flex-1">
@@ -5618,8 +5641,14 @@ const saveProducts = async () => {
           }
         );
 
+        console.log('=== FRONTEND RECEIVED FROM AWS ===');
+console.log('Upload response:', uploadRes.data);
+console.log('Image URLs returned:', uploadRes.data.data?.images?.map(img => img.url));
+
+
         if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
           uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
+            console.log('Will store these URLs in database:', uploadedImageUrls);
         }
       }
 
@@ -5720,21 +5749,18 @@ const saveProducts = async () => {
 
             // ✅ FIX: Skip metal-only variants if diamond options are selected
             if (diamondPart === "none" && product.hasDiamondChoice && product.selectedDiamondOptions.length > 0) {
-              console.log(`⏭️ Skipping metal-only variant ${key} because diamond options are selected`);
               continue;
             }
 
             // ✅ FIX: Only process this variant if it matches selected options
             if (metalPart !== "none" && product.hasMetalChoice) {
               if (!product.selectedMetalOptions.includes(parseInt(metalPart))) {
-                console.log(`⏭️ Skipping ${key} - metal not selected`);
                 continue;
               }
             }
 
             if (diamondPart !== "none" && product.hasDiamondChoice) {
               if (!product.selectedDiamondOptions.includes(parseInt(diamondPart))) {
-                console.log(`⏭️ Skipping ${key} - diamond not selected`);
                 continue;
               }
             }
@@ -5743,7 +5769,6 @@ const saveProducts = async () => {
             if (product.hasMetalChoice && product.hasDiamondChoice) {
               // If both are selected, only process variants that have BOTH metal AND diamond
               if (metalPart === "none" || diamondPart === "none") {
-                console.log(`⏭️ Skipping ${key} - incomplete metal+diamond combination`);
                 continue;
               }
             }
@@ -5764,7 +5789,6 @@ const saveProducts = async () => {
               };
             });
 
-            console.log(`✅ Adding variant: ${key}`);
             variants.push({
               metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
               diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
@@ -5779,7 +5803,6 @@ const saveProducts = async () => {
 
         // Only call API if variants exist
         if (variants.length > 0) {
-          console.log(`📦 Saving ${variants.length} variants for product ${productDbId}`);
           await axios.post(
             `${API_URL}/product-variants/pricing`,
             { product_id: productDbId, variants },
@@ -7601,7 +7624,6 @@ const saveProducts = async () => {
 }; 
 
 
-
 const BulkImportProducts = ({ onBack, categories, userRole }) => {
   const [step, setStep] = useState(1); // 1: Upload, 2: Validate, 3: Preview, 4: Create
   const [excelFile, setExcelFile] = useState(null);
@@ -7609,6 +7631,113 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState([]);
   const [previewData, setPreviewData] = useState(null);
+  const [uploadedImages, setUploadedImages] = useState([]); 
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [imageUploading, setImageUploading] = useState(false); 
+   const [fileUploading, setFileUploading] = useState(false);
+  const [imageMapping, setImageMapping] = useState({});
+  const [fileMapping, setFileMapping] = useState({});
+  const [fileProcessing, setFileProcessing] = useState(false); 
+const [uploadProgress, setUploadProgress] = useState(0);
+const [isUploading, setIsUploading] = useState(false);
+const [imageUploadProgress, setImageUploadProgress] = useState(0);
+
+
+const handleBulkImageUpload = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  setImageUploading(true);
+  setImageUploadProgress(0);
+  
+  try {
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append('bulk_images', file);
+    });
+
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${API_URL}/products/bulk/upload-images`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setImageUploadProgress(percentCompleted);
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setUploadedImages(response.data.data.images);
+      const mapping = response.data.data.imageMapping || {};
+      setImageMapping(mapping);
+      localStorage.setItem('bulkImageMapping', JSON.stringify(mapping));
+      alert(`✅ ${response.data.data.images.length} images uploaded successfully!`);
+    }
+  } catch (error) {
+    alert("Error uploading images: " + error.message);
+  } finally {
+    setImageUploading(false);
+    setImageUploadProgress(0);
+  }
+};
+
+
+
+const handleBulkFileUpload = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  setIsUploading(true);
+  setUploadProgress(0);
+  
+  try {
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append('bulk_files', file);
+    });
+
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${API_URL}/products/bulk/upload-files`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+          console.log(`📊 Upload progress: ${percentCompleted}%`);
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setUploadedFiles(response.data.data.files);
+      
+      const mapping = response.data.data.fileMapping || {};
+      setFileMapping(mapping);
+      localStorage.setItem('bulkFileMapping', JSON.stringify(mapping));
+      
+      console.log('🗺️ File mapping saved:', mapping);
+      
+      alert(`✅ ${response.data.data.files.length} files uploaded successfully!`);
+    }
+  } catch (error) {
+    console.error('File upload error:', error);
+    alert("Error uploading files: " + (error.response?.data?.message || error.message));
+  } finally {
+    setIsUploading(false);
+    setUploadProgress(0);
+  }
+};
 
   // Step 1: Download Template
   const downloadTemplate = async () => {
@@ -7635,68 +7764,89 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
   };
 
   // Step 2: Upload Excel File
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    setExcelFile(file);
-    setLoading(true);
-    setErrors([]);
+  // Show loader when file is selected
+  setFileProcessing(true); // Start loading
+  setExcelFile(file);
+  setLoading(true);
+  setErrors([]);
 
-    try {
-      const formData = new FormData();
-      formData.append('excel_file', file);
+  try {
+    const formData = new FormData();
+    formData.append('excel_file', file);
+    
+    // ✅ Pass the image mapping to backend
+    const mapping = JSON.parse(localStorage.getItem('bulkImageMapping') || '{}');
+    const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
+    formData.append('imageMapping', JSON.stringify(mapping));
+    formData.append('fileMapping', JSON.stringify(fileMap));
 
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/products/bulk/upload`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setValidationData(response.data.data);
-        setPreviewData(response.data.preview);
-        setStep(response.data.errors.length > 0 ? 2 : 3);
-        
-        if (response.data.errors.length > 0) {
-          setErrors(response.data.errors);
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${API_URL}/products/bulk/validate`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        // Optional: Track upload progress
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${percentCompleted}%`);
+          // You could update state here to show progress bar if needed
         }
       }
-    } catch (error) {
-      alert("Error validating file: " + error.message);
-    } finally {
-      setLoading(false);
+    );
+
+    if (response.data.success) {
+      setValidationData(response.data.data);
+      setPreviewData(response.data.preview);
+      setStep(response.data.errors.length > 0 ? 2 : 3);
+      
+      if (response.data.errors.length > 0) {
+        setErrors(response.data.errors);
+      }
     }
-  };
+  } catch (error) {
+    alert("Error validating file: " + error.message);
+  } finally {
+    setFileProcessing(false); // Stop loading
+    setLoading(false);
+  }
+};
 
   // Step 3: Create Products
-  const createProducts = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/products/bulk/create`,
-        { validationData },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+const createProducts = async () => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    
+    // ✅ ADD THIS LINE - Get fileMapping from localStorage
+    const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
+    
+    const response = await axios.post(
+      `${API_URL}/products/bulk/create`,
+      { 
+        validationData,
+        fileMapping: fileMap  // ✅ ADD THIS LINE
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      if (response.data.success) {
-        alert(`✅ Success! ${response.data.created} products created.`);
-        onBack();
-      }
-    } catch (error) {
-      alert("Error creating products: " + error.message);
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      alert(`✅ Success! ${response.data.created} products created.`);
+      onBack();
     }
-  };
-
+  } catch (error) {
+    alert("Error creating products: " + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -7707,28 +7857,176 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
         </button>
       </div>
 
-      {/* Step 1: Download Template */}
+      {/* Step 1: Download Template & Upload Images */}
       {step === 1 && (
-        <div className="bg-white p-6 rounded-xl border">
-          <h3 className="text-xl font-bold mb-4">📥 Step 1: Download Template</h3>
-          <p className="text-gray-600 mb-4">
-            Download the Excel template, fill in your product data, and upload it back.
-          </p>
-          <button
-            onClick={downloadTemplate}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Download Excel Template
-          </button>
+        <div className="space-y-6">
+          {/* Download Template */}
+          <div className="bg-white p-6 rounded-xl border">
+            <h3 className="text-xl font-bold mb-4">📥 Step 1: Download Template</h3>
+            <p className="text-gray-600 mb-4">
+              Download the Excel template and fill in your product data.
+            </p>
+            <button
+              onClick={downloadTemplate}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Download Excel Template
+            </button>
+          </div>
 
-          <div className="mt-6 pt-6 border-t">
-            <h4 className="font-bold mb-2">📤 Step 2: Upload Filled Excel</h4>
+          <div className="bg-green-50 p-6 rounded-xl border border-green-300">
+            <h3 className="text-xl font-bold mb-4 text-green-800">
+              📸 Step 2: Upload All Product Images
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Upload all product images at once (you can select multiple files).
+              Then reference them in Excel using just the filename (e.g., ring1.jpg, ring2.jpg)
+            </p>
+            
             <input
               type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileUpload}
-              className="block w-full text-sm"
+              multiple
+              accept="image/*"
+              onChange={handleBulkImageUpload}
+              disabled={imageUploading}
+              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 disabled:opacity-50"
             />
+            
+            {/* Progress Bar for Image Upload */}
+            {imageUploading && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-green-700">Uploading images...</span>
+                  <span className="text-sm font-bold text-green-900">{imageUploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-green-700 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${imageUploadProgress}%` }}
+                  >
+                    <div className="h-full w-full bg-white/20 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {uploadedImages.length > 0 && !imageUploading && (
+              <div className="mt-4 p-4 bg-white rounded border">
+                <p className="font-bold mb-2">✅ {uploadedImages.length} images uploaded:</p>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {uploadedImages.map((img, idx) => (
+                    <div key={idx} className="text-sm flex justify-between">
+                      <span className="text-gray-700">{img.originalName}</span>
+                      <span className="text-green-600">✓</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ✅ File Upload Section with Progress Bar */}
+          <div className="bg-purple-50 p-6 rounded-xl border border-purple-300">
+            <h3 className="text-xl font-bold mb-4 text-purple-800">
+              📄 Step 3: Upload All Product Files (STL/PDF/ZIP)
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Upload all STL, PDF, CAM, ZIP files at once. Reference them in Excel's "stl_file_upload" column using just the filename.
+            </p>
+            
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.stl,.cam,.zip,.rar"
+              onChange={handleBulkFileUpload}
+              disabled={isUploading}
+              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:opacity-50"
+            />
+            
+            {/* Progress Bar */}
+            {isUploading && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-purple-700">Uploading files...</span>
+                  <span className="text-sm font-bold text-purple-900">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-purple-500 to-purple-700 h-3 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  >
+                    <div className="h-full w-full bg-white/20 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {uploadedFiles.length > 0 && !isUploading && (
+              <div className="mt-4 p-4 bg-white rounded border">
+                <p className="font-bold mb-2 flex items-center gap-2">
+                  <span className="text-green-600">✅</span>
+                  {uploadedFiles.length} files uploaded successfully
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {uploadedFiles.map((file, idx) => (
+                    <div key={idx} className="text-sm flex justify-between items-center py-1 border-b border-gray-100 last:border-0">
+                      <span className="text-gray-700 truncate flex-1">{file.originalName}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">
+                          {file.type.toUpperCase()}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                        <span className="text-green-600">✓</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Upload Excel */}
+          <div className="bg-white p-6 rounded-xl border">
+            <h4 className="font-bold mb-2">📤 Step 3: Upload Filled Excel</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              In the Excel file, use column "image_names" with comma-separated filenames like: ring1.jpg,ring2.jpg,ring3.jpg
+            </p>
+            
+            {/* ✅ ADD THE LOADER HERE */}
+            {fileProcessing ? (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <div>
+                    <p className="font-medium text-blue-800">Uploading and processing file...</p>
+                    <p className="text-sm text-blue-600">Please wait while we read your Excel file.</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+                className="block w-full text-sm"
+                disabled={fileProcessing}
+              />
+            )}
+            
+            {/* Optional: Show file info */}
+            {excelFile && !fileProcessing && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-800">
+                  <FiCheckCircle className="w-5 h-5" />
+                  <div>
+                    <p className="font-medium">File ready: {excelFile.name}</p>
+                    <p className="text-sm">{(excelFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -7788,6 +8086,63 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+
+// Place this after all other components but before export
+const TestImageDisplay = () => {
+  const testProduct = {
+    product_details: {
+      images: [
+        '/uploads/1767165299294_test1.jpg',
+        '/uploads/1767165299416_test2.jpg'
+      ]
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+      <h2 className="text-xl font-bold mb-4">🧪 AWS Image Display Test</h2>
+      <p className="mb-4"><strong>BASE_URL:</strong> {BASE_URL}</p>
+      
+      <div className="flex flex-wrap gap-4 mb-6">
+        {testProduct.product_details.images.map((imgPath, idx) => {
+          const fullUrl = `${BASE_URL}${imgPath}`;
+          
+          return (
+            <div key={idx} className="border-2 border-gray-700 p-4 rounded-lg bg-gray-50">
+              <p className="font-bold mb-2">Image {idx + 1}</p>
+              <p className="text-xs mb-1 break-all">
+                <span className="font-semibold">Path:</span> {imgPath}
+              </p>
+              <p className="text-xs mb-3 break-all text-blue-600">
+                <span className="font-semibold">Full URL:</span> {fullUrl}
+              </p>
+              
+              <img 
+                src={fullUrl}
+                alt={`Test ${idx + 1}`}
+                className="max-w-[200px] max-h-[200px] border border-green-500"
+                onLoad={() => console.log(`✅ Image ${idx + 1} loaded from AWS:`, fullUrl)}
+                onError={(e) => {
+                  console.error(`❌ Image ${idx + 1} failed to load:`, fullUrl);
+                  e.target.style.border = '2px solid red';
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      
+      <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+        <p className="font-bold mb-2">Test Results:</p>
+        <p className="text-sm">
+          <strong>✅ If images show above:</strong> They're loading from AWS correctly!<br/>
+          <strong>❌ If images are broken:</strong> Check your BASE_URL or S3 bucket permissions
+        </p>
+      </div>
     </div>
   );
 };
