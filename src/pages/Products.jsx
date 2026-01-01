@@ -1540,16 +1540,12 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [editProduct, setEditProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
-  // const [statusFilter, setStatusFilter] = useState(
-  //   userRole === "vendor" ? ["pending", "approved"] : ["approved"]
-  // );
-const [statusFilter, setStatusFilter] = useState(
-  userRole === "vendor" ? [] : ["approved"]
-);
+  const [statusFilter, setStatusFilter] = useState(
+    userRole === "vendor" ? [] : ["approved"]
+  );
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
-    const [showTestImages, setShowTestImages] = useState(false);
 
 
   // Fetch vendors when component mounts (for admin only)
@@ -1940,18 +1936,9 @@ const renderStatusFilter = () => {
             <span>Add Product</span>
           </button>
         )}
-        
-        {/* Test Images Button */}
-        <button
-          onClick={() => setShowTestImages(!showTestImages)}
-          className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-blue-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
-        >
-          <FiImage className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span>Test Images</span>
-        </button>
       </div>
     
-        {userRole === "vendor" && (
+        {/* {userRole === "vendor" && (
           <button
             onClick={onAddProduct}
             className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base w-full sm:w-auto mt-2 sm:mt-0"
@@ -1959,7 +1946,7 @@ const renderStatusFilter = () => {
             <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Add Product</span>
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Vendor Filter for Admin */}
@@ -2053,23 +2040,6 @@ const renderStatusFilter = () => {
                 </div>
               </div>
             )}
-
-
-                {showTestImages && (
-      <div className="mt-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold">AWS Image Test</h3>
-          <button
-            onClick={() => setShowTestImages(false)}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-          >
-            Close Test
-          </button>
-        </div>
-        <TestImageDisplay />
-      </div>
-    )}
-
           </div>
 
           <div className="flex-1">
@@ -2169,41 +2139,54 @@ const renderStatusFilter = () => {
 
 
 const getStlFilePrice = (product) => {
-  if (!product || !product.product_details) return 0;
+  if (!product) return 0;
   
-  const productDetails = product.product_details;
+  let productDetails = product.product_details;
   
-  // If productDetails is string, parse it
-  let details = productDetails;
-  if (typeof details === "string") {
+  // Parse if string
+  if (typeof productDetails === "string") {
     try {
-      details = JSON.parse(details);
+      productDetails = JSON.parse(productDetails);
     } catch (e) {
-      details = {};
+      console.error('Error parsing product_details in getStlFilePrice:', e);
+      return 0;
     }
   }
   
+  if (!productDetails) return 0;
+  
   // Check if there's variant pricing with STL file
-  if (details.variantPricing && typeof details.variantPricing === 'object') {
+  if (productDetails.variantPricing && typeof productDetails.variantPricing === 'object') {
     // Loop through all variant pricing entries
-    for (const [key, pricing] of Object.entries(details.variantPricing)) {
+    for (const [key, pricing] of Object.entries(productDetails.variantPricing)) {
       if (pricing && pricing.files && Array.isArray(pricing.files)) {
         const stlFile = pricing.files.find(f => 
           f && 
           f.file_type === 'stl_file' && 
           f.price !== null && 
-          f.price !== undefined
+          f.price !== undefined &&
+          f.price !== ''
         );
-        if (stlFile && stlFile.price !== null && stlFile.price !== undefined) {
-          return Number(stlFile.price) || 0;
+        
+        if (stlFile) {
+          const price = parseFloat(stlFile.price);
+          if (!isNaN(price) && price > 0) {
+            return price;
+          }
         }
       }
     }
   }
   
-  // Fallback to productDetails.price or 0
-  const price = details.price;
-  return price !== null && price !== undefined ? Number(price) : 0;
+  // Fallback to productDetails.price
+  if (productDetails.price !== null && productDetails.price !== undefined) {
+    const price = parseFloat(productDetails.price);
+    if (!isNaN(price)) {
+      return price;
+    }
+  }
+  
+  return 0;
 };
 
 
@@ -2353,7 +2336,7 @@ const ProductCard = ({
       <div className="p-3 sm:p-4">
         <div className="flex justify-between items-start mb-2 sm:mb-3">
           <h3 className="font-bold text-gray-900 line-clamp-2 flex-1 text-sm sm:text-base leading-tight">
-            {product.name}
+            {product.name || "Unnamed Product"}
           </h3>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -2568,27 +2551,38 @@ const EditProductPanel = ({
   categories,
   userRole,
 }) => {
- const [formData, setFormData] = useState({
-  name: product.name,
-  slug: product.slug,
-  description: product.product_details?.description || "",
-  featured: product.product_details?.featured || [],
-  gender: product.product_details?.gender || [],
-  style_id: product.product_details?.style_id || "",
-  metal_id: product.product_details?.metal_id || "",
-  category_id: product.category_id || "",
-  hasMetalChoice: product.product_details?.hasMetalChoice || false,
-  hasDiamondChoice: product.product_details?.hasDiamondChoice || false,
-  selectedMetalOptions: product.product_details?.selectedMetalOptions || [],
-  selectedDiamondOptions:
-    product.product_details?.selectedDiamondOptions || [],
-  selectedSizes: product.product_details?.selectedSizes || {},
-  variantPricing: product.product_details?.variantPricing || {},
-  metalSizeConfig: product.product_details?.metalSizeConfig || {},
-  diamondSizeConfig: product.product_details?.diamondSizeConfig || {},
-  configureSizes: product.product_details?.configureSizes || false,
-});
+const [formData, setFormData] = useState(() => {
+  // Parse product_details if it's a string
+  let productDetails = product.product_details;
+  if (typeof productDetails === 'string') {
+    try {
+      productDetails = JSON.parse(productDetails);
+    } catch (e) {
+      console.error('Error parsing product_details:', e);
+      productDetails = {};
+    }
+  }
 
+  return {
+    name: product.name,
+    slug: product.slug,
+    description: productDetails.description || "",
+    featured: productDetails.featured || [],
+    gender: productDetails.gender || [],
+    style_id: productDetails.style_id || "",
+    metal_id: productDetails.metal_id || "",
+    category_id: product.category_id || "",
+    hasMetalChoice: productDetails.hasMetalChoice || false,
+    hasDiamondChoice: productDetails.hasDiamondChoice || false,
+    selectedMetalOptions: productDetails.selectedMetalOptions || [],
+    selectedDiamondOptions: productDetails.selectedDiamondOptions || [],
+    selectedSizes: productDetails.selectedSizes || {},
+    variantPricing: productDetails.variantPricing || {},
+    metalSizeConfig: productDetails.metalSizeConfig || {},
+    diamondSizeConfig: productDetails.diamondSizeConfig || {},
+    configureSizes: productDetails.configureSizes || false,
+  };
+});
   const [categoryData, setCategoryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2770,7 +2764,7 @@ const FILE_TYPE_OPTIONS = [
     value: "cam_product",
     label: "CAM Product",
     emoji: "⚙️",
-    requiresPrice: false,
+    requiresPrice: true,
     requiresUpload: false,
   },
   {
@@ -3555,59 +3549,59 @@ const renderVariantConfiguration = () => (
                                           </div>
                                         )} */}
                                         {fileOption.requiresUpload !== false && (
-  <div className="p-3 bg-gray-100 rounded border border-gray-300">
-    <label className="block text-xs font-semibold text-gray-800 mb-2">
-      📎 Upload {fileOption.label} {isSTL && "(Optional)"}
-    </label>
-    
-    {/* Show existing file if it exists */}
-    {filePrice && pricing.files?.find(f => f.file_type === fileOption.value)?.file_name && (
-      <div className="mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-blue-600">📄</span>
-            <span className="text-xs font-medium truncate">
-              {pricing.files.find(f => f.file_type === fileOption.value)?.file_name}
-            </span>
-          </div>
-          {pricing.files.find(f => f.file_type === fileOption.value)?.file_size && (
-            <span className="text-xs text-gray-500">
-              {(pricing.files.find(f => f.file_type === fileOption.value)?.file_size / 1024 / 1024).toFixed(2)} MB
-            </span>
-          )}
-        </div>
-      </div>
-    )}
-    
-    <input
-      type="file"
-      accept=".pdf,.stl,.zip,.cam"
-      onChange={(e) => {
-        if (e.target.files[0]) {
-          handlePdfFileSelect(
-            metalId,
-            diamondId,
-            sizeId,
-            fileOption.value,
-            e.target.files[0]
-          );
-        }
-      }}
-      className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-      disabled={!canEdit}
-    />
-    
-    {/* Show uploaded file indicator */}
-    {uploadedFile && (
-      <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-        <span>✓</span>
-        <span className="font-medium">
-          {uploadedFile.file_name} (Uploaded)
-        </span>
-      </div>
-    )}
-  </div>
-)}
+                                          <div className="p-3 bg-gray-100 rounded border border-gray-300">
+                                            <label className="block text-xs font-semibold text-gray-800 mb-2">
+                                              📎 Upload {fileOption.label} {isSTL && "(Optional)"}
+                                            </label>
+                                            
+                                            {/* Show existing file if it exists */}
+                                            {filePrice && pricing.files?.find(f => f.file_type === fileOption.value)?.file_name && (
+                                              <div className="mb-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-blue-600">📄</span>
+                                                    <span className="text-xs font-medium truncate">
+                                                      {pricing.files.find(f => f.file_type === fileOption.value)?.file_name}
+                                                    </span>
+                                                  </div>
+                                                  {pricing.files.find(f => f.file_type === fileOption.value)?.file_size && (
+                                                    <span className="text-xs text-gray-500">
+                                                      {(pricing.files.find(f => f.file_type === fileOption.value)?.file_size / 1024 / 1024).toFixed(2)} MB
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            <input
+                                              type="file"
+                                              accept=".pdf,.stl,.zip,.cam"
+                                              onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                  handlePdfFileSelect(
+                                                    metalId,
+                                                    diamondId,
+                                                    sizeId,
+                                                    fileOption.value,
+                                                    e.target.files[0]
+                                                  );
+                                                }
+                                              }}
+                                              className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
+                                              disabled={!canEdit}
+                                            />
+                                            
+                                            {/* Show uploaded file indicator */}
+                                            {uploadedFile && (
+                                              <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+                                                <span>✓</span>
+                                                <span className="font-medium">
+                                                  {uploadedFile.file_name} (Uploaded)
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 
@@ -8090,61 +8084,5 @@ const createProducts = async () => {
   );
 };
 
-
-// Place this after all other components but before export
-const TestImageDisplay = () => {
-  const testProduct = {
-    product_details: {
-      images: [
-        '/uploads/1767165299294_test1.jpg',
-        '/uploads/1767165299416_test2.jpg'
-      ]
-    }
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-      <h2 className="text-xl font-bold mb-4">🧪 AWS Image Display Test</h2>
-      <p className="mb-4"><strong>BASE_URL:</strong> {BASE_URL}</p>
-      
-      <div className="flex flex-wrap gap-4 mb-6">
-        {testProduct.product_details.images.map((imgPath, idx) => {
-          const fullUrl = `${BASE_URL}${imgPath}`;
-          
-          return (
-            <div key={idx} className="border-2 border-gray-700 p-4 rounded-lg bg-gray-50">
-              <p className="font-bold mb-2">Image {idx + 1}</p>
-              <p className="text-xs mb-1 break-all">
-                <span className="font-semibold">Path:</span> {imgPath}
-              </p>
-              <p className="text-xs mb-3 break-all text-blue-600">
-                <span className="font-semibold">Full URL:</span> {fullUrl}
-              </p>
-              
-              <img 
-                src={fullUrl}
-                alt={`Test ${idx + 1}`}
-                className="max-w-[200px] max-h-[200px] border border-green-500"
-                onLoad={() => console.log(`✅ Image ${idx + 1} loaded from AWS:`, fullUrl)}
-                onError={(e) => {
-                  console.error(`❌ Image ${idx + 1} failed to load:`, fullUrl);
-                  e.target.style.border = '2px solid red';
-                }}
-              />
-            </div>
-          );
-        })}
-      </div>
-      
-      <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-        <p className="font-bold mb-2">Test Results:</p>
-        <p className="text-sm">
-          <strong>✅ If images show above:</strong> They're loading from AWS correctly!<br/>
-          <strong>❌ If images are broken:</strong> Check your BASE_URL or S3 bucket permissions
-        </p>
-      </div>
-    </div>
-  );
-};
 
 export default Products;

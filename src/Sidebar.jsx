@@ -51,12 +51,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <RectangleStackIcon className="w-4" />,
       roles: ["admin"],
     },
-    {
-      path: "feature",
-      label: "Featured Collection",
-      icon: <StarIcon className="w-4" />,
-      roles: ["admin"],
-    },
+    // {
+    //   path: "feature",
+    //   label: "Featured Collection",
+    //   icon: <StarIcon className="w-4" />,
+    //   roles: ["admin"],
+    // },
     {
       path: "target",
       label: "Target Audience",

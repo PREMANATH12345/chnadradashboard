@@ -319,13 +319,13 @@ const Attributes = ({ onBack }) => {
                 </p>
               </div>
             </div>
-            <button
+            {/* <button
               onClick={handleAddNew}
               className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Add Attribute</span>
-            </button>
+            </button> */}
           </div>
 
           {/* Search and Filter Section */}
