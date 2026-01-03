@@ -48,6 +48,23 @@ const fetchCategories = async () => {
     
     const categoriesData = response.data || [];
     setCategories(categoriesData);
+
+    const categoriesWithParsedImages = categoriesData.map(cat => {
+  let images = [];
+  if (cat.image_url) {
+    try {
+      images = typeof cat.image_url === 'string' 
+        ? JSON.parse(cat.image_url) 
+        : cat.image_url;
+      images = Array.isArray(images) ? images : [images];
+    } catch (error) {
+      images = [cat.image_url];
+    }
+  }
+  return { ...cat, parsedImages: images };
+});
+
+setCategories(categoriesWithParsedImages);
     
     if (categoriesData.length > 0) {
       await fetchAllCategoryDetails(categoriesData);

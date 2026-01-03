@@ -194,7 +194,7 @@ const CategoryModal = ({
 }) => {
   const [categoryName, setCategoryName] = useState('');
   const [categorySlug, setCategorySlug] = useState('');
-  const [categoryImage, setCategoryImage] = useState(null);
+const [categoryImages, setCategoryImages] = useState([null, null]);
   const [byStyleItems, setByStyleItems] = useState(['']);
   const [byMetalItems, setByMetalItems] = useState(['']);
   const [saving, setSaving] = useState(false);
@@ -208,64 +208,32 @@ const CategoryModal = ({
     }
   }, [editingCategory, showModal]);
 
-// const fetchCategoryDetails = async () => {
-//   setLoading(true);
-//   try {
-//     setCategoryName(editingCategory.name);
-//     setCategorySlug(editingCategory.slug);
-    
-//     if (editingCategory.image_url) {
-//       setCategoryImage(editingCategory.image_url);
-//     }
 
-//     // Fetch existing style options
-//     const styleResponse = await DoAll({
-//       action: 'get',
-//       table: 'by_style',
-//       where: { 
-//         category_id: editingCategory.id,
-//         is_deleted: 0  
-//       }
-//     });
-
-//     // Fetch existing metal options
-//     const metalResponse = await DoAll({
-//       action: 'get',
-//       table: 'by_metal_and_stone',
-//       where: { 
-//         category_id: editingCategory.id,
-//         is_deleted: 0 
-//       }
-//     });
-
-//     setByStyleItems(
-//       styleResponse.data.success && styleResponse.data.data?.length > 0 
-//         ? styleResponse.data.data.map(item => item.name)
-//         : ['']
-//     );
-
-//     setByMetalItems(
-//       metalResponse.data.success && metalResponse.data.data?.length > 0
-//         ? metalResponse.data.data.map(item => item.name)
-//         : ['']
-//     );
-
-//   } catch (error) {
-//     console.error('Error fetching category details:', error);
-//     toast.error('Error loading category details');
-//   } finally {
-//     setLoading(false);
-//   }
-// };
 const fetchCategoryDetails = async () => {
   setLoading(true);
   try {
     setCategoryName(editingCategory.name || '');
     setCategorySlug(editingCategory.slug || '');
     
-    if (editingCategory.image_url) {
-      setCategoryImage(editingCategory.image_url);
-    }
+      if (editingCategory.image_url) {
+        try {
+          const parsedImages = typeof editingCategory.image_url === 'string'
+            ? JSON.parse(editingCategory.image_url)
+            : editingCategory.image_url;
+          
+          if (Array.isArray(parsedImages)) {
+            setCategoryImages([
+              parsedImages[0] || null,
+              parsedImages[1] || null
+            ]);
+          } else {
+            // Backward compatibility - if single image, use it for both
+            setCategoryImages([parsedImages, parsedImages]);
+          }
+        } catch (error) {
+          setCategoryImages([editingCategory.image_url, editingCategory.image_url]);
+        }
+      }
 
     // Check if styles and metals are already in editingCategory
     if (editingCategory.styles && editingCategory.metals) {
@@ -337,13 +305,18 @@ const fetchCategoryDetails = async () => {
     setCategorySlug(generateSlug(value));
   };
 
-  const handleImageChange = (file) => {
-    setCategoryImage(file);
-  };
 
-  const handleImageRemove = () => {
-    setCategoryImage(null);
-  };
+const handleImageChange = (index, file) => {
+  const updated = [...categoryImages];
+  updated[index] = file;
+  setCategoryImages(updated);
+};
+
+const handleImageRemove = (index) => {
+  const updated = [...categoryImages];
+  updated[index] = null;
+  setCategoryImages(updated);
+};
 
   const addStyleItem = () => setByStyleItems([...byStyleItems, '']);
   const addMetalItem = () => setByMetalItems([...byMetalItems, '']);
@@ -371,7 +344,7 @@ const fetchCategoryDetails = async () => {
   const resetForm = () => {
     setCategoryName('');
     setCategorySlug('');
-    setCategoryImage(null);
+    setCategoryImages([null, null]);
     setByStyleItems(['']);
     setByMetalItems(['']);
   };
@@ -546,17 +519,27 @@ const handleSave = async () => {
   setSaving(true);
 
   try {
-    let imageUrl = editingCategory?.image_url || null;
+  let imageUrls = editingCategory?.image_url || null;
 
-    // Upload new image if provided
-    if (categoryImage && typeof categoryImage !== 'string') {
-      try {
-        imageUrl = await uploadImage(categoryImage);
-      } catch (uploadError) {
-        console.error('Image upload error:', uploadError);
-        toast.error('Failed to upload image. Continuing without image...');
-      }
+// Upload both images
+const uploadedUrls = [];
+for (let i = 0; i < 2; i++) {
+  if (categoryImages[i] && typeof categoryImages[i] !== 'string') {
+    try {
+      const url = await uploadImage(categoryImages[i]);
+      uploadedUrls.push(url);
+    } catch (uploadError) {
+      console.error(`Image ${i + 1} upload error:`, uploadError);
+      toast.error(`Failed to upload image ${i + 1}`);
     }
+  } else if (typeof categoryImages[i] === 'string') {
+    // Keep existing URL
+    uploadedUrls.push(categoryImages[i]);
+  }
+}
+
+// Store as JSON array
+imageUrls = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null;
 
     let categoryId;
 
@@ -569,7 +552,7 @@ const handleSave = async () => {
         data: {
           name: categoryName.trim(),
           slug: categorySlug,
-          image_url: imageUrl,
+          image_url: imageUrls,
           updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
         }
       });
@@ -612,7 +595,7 @@ const handleSave = async () => {
         data: {
           name: categoryName.trim(),
           slug: categorySlug,
-          image_url: imageUrl,
+          image_url: imageUrls,
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
           updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
           is_deleted: 0
@@ -723,11 +706,72 @@ const handleSave = async () => {
                     categorySlug={categorySlug}
                   />
 
-                  <ImageUpload
-                    image={categoryImage}
-                    onImageChange={handleImageChange}
-                    onImageRemove={handleImageRemove}
-                  />
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Category Images (2 required for dropdown) *
+  </label>
+  <div className="grid grid-cols-2 gap-3">
+    {categoryImages.map((image, index) => (
+      <div key={index}>
+        <label className="block text-xs text-gray-600 mb-1">
+          Image {index + 1}
+        </label>
+        {image ? (
+          <div className="relative group">
+            <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-emerald-200">
+              <img
+                src={typeof image === 'string' ? `${BASE_URL}${image}` : URL.createObjectURL(image)}
+                alt={`Category preview ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <button
+                type="button"
+                onClick={() => handleImageRemove(index)}
+                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors hover:border-emerald-400 hover:bg-emerald-25"
+            onClick={() => document.getElementById(`image-upload-${index}`).click()}
+          >
+            <input
+              id={`image-upload-${index}`}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  if (file.size > 5 * 1024 * 1024) {
+                    toast.error('Image size should be less than 5MB');
+                    return;
+                  }
+                  if (file.type.startsWith('image/')) {
+                    handleImageChange(index, file);
+                  } else {
+                    toast.error('Please select a valid image file');
+                  }
+                }
+              }}
+              className="hidden"
+            />
+            <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+            <p className="text-xs text-gray-600">Click to upload</p>
+            <p className="text-xs text-gray-500">Max 5MB</p>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+  <p className="text-xs text-gray-500 mt-2">
+    These images will appear in the navigation dropdown when users hover over this category
+  </p>
+</div>
 
                   <ItemList
                     items={byStyleItems}

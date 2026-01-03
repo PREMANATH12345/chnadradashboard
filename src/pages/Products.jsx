@@ -2563,6 +2563,9 @@ const [formData, setFormData] = useState(() => {
     }
   }
 
+    const selectedSizes = productDetails.selectedSizes || {};
+
+
   return {
     name: product.name,
     slug: product.slug,
@@ -2576,6 +2579,7 @@ const [formData, setFormData] = useState(() => {
     hasDiamondChoice: productDetails.hasDiamondChoice || false,
     selectedMetalOptions: productDetails.selectedMetalOptions || [],
     selectedDiamondOptions: productDetails.selectedDiamondOptions || [],
+    selectedSizes: selectedSizes,
     selectedSizes: productDetails.selectedSizes || {},
     variantPricing: productDetails.variantPricing || {},
     metalSizeConfig: productDetails.metalSizeConfig || {},
@@ -2586,6 +2590,11 @@ const [formData, setFormData] = useState(() => {
   const [categoryData, setCategoryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+const [isUploading, setIsUploading] = useState(false);
+const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+const [isPdfUploading, setIsPdfUploading] = useState(false);
+const [currentUploadingFile, setCurrentUploadingFile] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUrls, setImageUrls] = useState(
     product.product_details?.images || []
@@ -2595,6 +2604,18 @@ const [formData, setFormData] = useState(() => {
   
 
     const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+
+
+    // Add this useEffect right after the formData useState
+useEffect(() => {
+  // console.log('📊 EditPanel FormData State:', {
+  //   hasMetalChoice: formData.hasMetalChoice,
+  //   hasDiamondChoice: formData.hasDiamondChoice,
+  //   selectedSizes: formData.selectedSizes,
+  //   variantPricing: formData.variantPricing,
+  //   configureSizes: formData.configureSizes
+  // });
+}, [formData.selectedSizes, formData.hasMetalChoice, formData.hasDiamondChoice]);
   
   useEffect(() => {
     fetchTargetAudienceOptions();
@@ -2616,34 +2637,6 @@ const [formData, setFormData] = useState(() => {
     }
   };
 
-
-  // Reconstruct variant pricing from backend data
-// useEffect(() => {
-//   if (product.product_details?.variantPricing) {
-//     const reconstructedPricing = {};
-    
-//     Object.entries(product.product_details.variantPricing).forEach(([key, pricing]) => {
-//       reconstructedPricing[key] = {
-//         ...pricing,
-//         files: Array.isArray(pricing.files) ? pricing.files : []
-//       };
-      
-//       // ✅ Ensure STL file exists for each variant
-//       if (reconstructedPricing[key].files.length === 0 || 
-//           !reconstructedPricing[key].files.some(f => f.file_type === 'stl_file')) {
-//         reconstructedPricing[key].files = [
-//           { file_type: 'stl_file', price: null },
-//           ...reconstructedPricing[key].files
-//         ];
-//       }
-//     });
-    
-//     setFormData(prev => ({
-//       ...prev,
-//       variantPricing: reconstructedPricing
-//     }));
-//   }
-// }, [product.id]); 
 useEffect(() => {
   if (product.product_details?.variantPricing) {
     const reconstructedPricing = {};
@@ -2696,22 +2689,51 @@ useEffect(() => {
     setUploadedPdfFiles(prev => ({ ...prev, ...existingFiles }));
   }
 }, [product.id]);
+
+
 useEffect(() => {
-  if (product.product_details?.selectedMetalOptions) {
+  
+  // Parse product_details if it's a string
+  let productDetails = product.product_details;
+  if (typeof productDetails === 'string') {
+    try {
+      productDetails = JSON.parse(productDetails);
+    } catch (e) {
+      console.error('Error parsing product_details in useEffect:', e);
+      productDetails = {};
+    }
+  }
+  
+  // ✅ FOR SIZE-ONLY PRODUCTS (No Metal/Diamond)
+  if (!productDetails?.hasMetalChoice && 
+      !productDetails?.hasDiamondChoice &&
+      productDetails?.selectedSizes) {
+    
+    
+    // Ensure configureSizes is enabled
+    setFormData(prev => ({
+      ...prev,
+      configureSizes: true,
+      selectedSizes: productDetails.selectedSizes
+    }));
+    
+    return; // Exit early for size-only products
+  }
+  
+  // Original metal/diamond logic...
+  if (productDetails?.selectedMetalOptions) {
     const newMetalSizeConfig = {};
     const newDiamondSizeConfig = {};
     
     // For Metal Only - Check if any sizes are selected for this metal
-    product.product_details.selectedMetalOptions.forEach(metalId => {
-      //  Look in selectedSizes to see if any sizes exist for this metal
-      const hasSizesConfigured = Object.keys(product.product_details.selectedSizes || {}).some(key => {
+    productDetails.selectedMetalOptions.forEach(metalId => {
+      const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
         const [metalPart, diamondPart, sizePart] = key.split('-');
         
-        // Check: metal matches, diamond is none, size is not none, AND it's selected
         return parseInt(metalPart) === metalId && 
                diamondPart === 'none' && 
                sizePart !== 'none' &&
-               product.product_details.selectedSizes[key] === true;
+               productDetails.selectedSizes[key] === true;
       });
       
       if (hasSizesConfigured) {
@@ -2720,19 +2742,18 @@ useEffect(() => {
     });
     
     // For Metal + Diamond - Check if any sizes are selected for this combination
-    if (product.product_details?.selectedDiamondOptions) {
-      product.product_details.selectedMetalOptions.forEach(metalId => {
-        product.product_details.selectedDiamondOptions.forEach(diamondId => {
+    if (productDetails?.selectedDiamondOptions) {
+      productDetails.selectedMetalOptions.forEach(metalId => {
+        productDetails.selectedDiamondOptions.forEach(diamondId => {
           const comboKey = `${metalId}-${diamondId}`;
           
-          //  Look in selectedSizes for this metal+diamond combo
-          const hasSizesConfigured = Object.keys(product.product_details.selectedSizes || {}).some(key => {
+          const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
             const [metalPart, diamondPart, sizePart] = key.split('-');
             
             return parseInt(metalPart) === metalId && 
                    parseInt(diamondPart) === diamondId && 
                    sizePart !== 'none' &&
-                   product.product_details.selectedSizes[key] === true;
+                   productDetails.selectedSizes[key] === true;
           });
           
           if (hasSizesConfigured) {
@@ -3067,6 +3088,11 @@ const toggleVariantFileType = (metalId, diamondId, sizeId, fileType) => {
 const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) => {
   if (!file) return;
   
+  // ✅ START UPLOAD STATE
+  setIsPdfUploading(true);
+  setPdfUploadProgress(0);
+  setCurrentUploadingFile(file.name);
+  
   const formDataObj = new FormData();
   formDataObj.append('file', file);
   
@@ -3077,6 +3103,13 @@ const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) =
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'
+      },
+      // ✅ TRACK PROGRESS
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        setPdfUploadProgress(percentCompleted);
       }
     });
     
@@ -3125,6 +3158,11 @@ const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) =
   } catch (error) {
     console.error('PDF upload error:', error);
     alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+  } finally {
+    // ✅ END UPLOAD STATE
+    setIsPdfUploading(false);
+    setPdfUploadProgress(0);
+    setCurrentUploadingFile("");
   }
 };
 
@@ -3138,30 +3176,42 @@ const handleSave = async () => {
       ...imageUrls.filter((url) => !url.startsWith("blob:")),
     ];
 
-    if (imageFiles.length > 0) {
-      const formDataObj = new FormData();
-      imageFiles.forEach((file) => {
-        formDataObj.append("images", file);
-      });
+if (imageFiles.length > 0) {
+  setIsUploading(true);  // ✅ START UPLOAD
+  setUploadProgress(0);   // ✅ RESET PROGRESS
+  
+  const formDataObj = new FormData();
+  imageFiles.forEach((file) => {
+    formDataObj.append("images", file);
+  });
 
-      const uploadRes = await axios.post(
-        `${API_URL}/upload-images`,
-        formDataObj,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      if (uploadRes.data.success) {
-        uploadedImageUrls = [
-          ...uploadedImageUrls,
-          ...uploadRes.data.data.images.map((img) => img.url),
-        ];
-      }
+  const uploadRes = await axios.post(
+    `${API_URL}/upload-images`,
+    formDataObj,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      // ✅ TRACK PROGRESS
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        setUploadProgress(percentCompleted);
+      },
     }
+  );
+
+  if (uploadRes.data.success) {
+    uploadedImageUrls = [
+      ...uploadedImageUrls,
+      ...uploadRes.data.data.images.map((img) => img.url),
+    ];
+  }
+  
+  setIsUploading(false);  // ✅ END UPLOAD
+}
 
     const productDetails = {
       ...product.product_details,
@@ -3370,26 +3420,35 @@ const renderVariantConfiguration = () => (
         )}
       </div>
 
-      {/* Size Info */}
-      <div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
-        <label className="flex items-center gap-2 mb-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.configureSizes || false}
-            onChange={toggleConfigureSizes}
-            className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-            disabled={!canEdit}
-          />
-          <h6 className="font-bold text-sm sm:text-base">
-            📏 Configure Sizes with Pricing
-          </h6>
-        </label>
-        <p className="text-xs text-gray-600">
-          {formData.hasMetalChoice || formData.hasDiamondChoice
-            ? "✅ Size configuration is active (required for variants)"
-            : "Check this to configure pricing for individual sizes"}
-        </p>
-      </div>
+{/* Size Info */}
+<div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
+  <label className="flex items-center gap-2 mb-2 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={formData.configureSizes || false}
+      onChange={toggleConfigureSizes}
+      className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
+      disabled={!canEdit}
+    />
+    <h6 className="font-bold text-sm sm:text-base">
+      📏 Configure Sizes with Pricing
+    </h6>
+  </label>
+  <p className="text-xs text-gray-600">
+    {formData.hasMetalChoice || formData.hasDiamondChoice
+      ? "✅ Size configuration is active (required for variants)"
+      : formData.configureSizes 
+        ? "✅ Size configuration is active" 
+        : "Check this to configure pricing for individual sizes"}
+  </p>
+  
+  {/* ✅ ADD DEBUG INFO */}
+  {!canEdit && (
+    <p className="text-xs text-amber-600 mt-2">
+      ⚠️ Cannot edit approved/rejected products
+    </p>
+  )}
+</div>
     </div>
 
     {/* Size & Pricing Configuration */}
@@ -4779,22 +4838,79 @@ const renderVariantConfiguration = () => (
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+      {/* Footer Actions */}
+      <div className="flex flex-col gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+        
+        {/* ✅ IMAGE UPLOAD PROGRESS BAR */}
+        {isUploading && (
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-emerald-700">
+                📸 Uploading images...
+              </span>
+              <span className="text-sm font-bold text-emerald-900">
+                {uploadProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              >
+                <div className="h-full w-full bg-white/30 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ PDF UPLOAD PROGRESS BAR */}
+        {isPdfUploading && (
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-purple-700">
+                📄 Uploading: {currentUploadingFile}
+              </span>
+              <span className="text-sm font-bold text-purple-900">
+                {pdfUploadProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${pdfUploadProgress}%` }}
+              >
+                <div className="h-full w-full bg-white/30 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ACTION BUTTONS */}
+        <div className="flex flex-col sm:flex-row gap-3">
           {canEdit ? (
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || isUploading || isPdfUploading}
               className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all shadow-lg hover:shadow-xl"
             >
-              {saving ? (
+              {isPdfUploading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Uploading File {pdfUploadProgress}%...</span>
+                </>
+              ) : isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Uploading Images {uploadProgress}%...</span>
+                </>
+              ) : saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   <span>Saving Changes...</span>
                 </>
               ) : (
                 <>
-                  <FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:w-6" />
+                  <FiCheckCircle className="w-5 h-5" />
                   <span>Save Changes</span>
                 </>
               )}
@@ -4806,14 +4922,17 @@ const renderVariantConfiguration = () => (
               </p>
             </div>
           )}
+          
           <button
             onClick={onClose}
-            className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-400 hover:to-gray-500 font-semibold text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2 sm:gap-3"
+            disabled={isUploading || isPdfUploading}
+            className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-400 hover:to-gray-500 disabled:opacity-50 font-semibold text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2 sm:gap-3"
           >
-            <FiX className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:w-6" />
+            <FiX className="w-5 h-5" />
             Cancel
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -4826,6 +4945,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
   const [selectedMetals, setSelectedMetals] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+const [isUploading, setIsUploading] = useState(false);
+const [currentProductUploading, setCurrentProductUploading] = useState("");
+const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+const [isPdfUploading, setIsPdfUploading] = useState(false);
+const [currentUploadingFile, setCurrentUploadingFile] = useState("");
   const [activeProductTab, setActiveProductTab] = useState(0);
   const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
   const [slugErrors, setSlugErrors] = useState({});
@@ -5146,92 +5271,90 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
-  const handlePdfFileSelect = async (
-    productId,
-    metalId,
-    diamondId,
-    sizeId,
-    fileType,
-    file
-  ) => {
-    if (!file) return;
-
-    // Create FormData for upload
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const token = localStorage.getItem("token");
-
-    try {
-      // Upload immediately
-      const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      if (response.data.success) {
-        const fileKey = `${productId}-${metalId || "none"}-${
-          diamondId || "none"
-        }-${sizeId || "none"}-${fileType}`;
-
-        // Store the uploaded file info
-        setUploadedPdfFiles((prev) => ({
-          ...prev,
-          [fileKey]: {
-            file_path: response.data.data.file_path,
-            file_name: response.data.data.file_name,
-            file_size: response.data.data.file_size,
-          },
-        }));
-
-        // Update product variant pricing with file info
-        setProducts(
-          products.map((p) => {
-            if (p.id === productId) {
-              const variantKey = `${metalId || "none"}-${diamondId || "none"}-${
-                sizeId || "none"
-              }`;
-              const current = p.variantPricing[variantKey] || {};
-              const currentFiles = current.files || [];
-
-              const updatedFiles = currentFiles.map((f) =>
-                f.file_type === fileType
-                  ? {
-                      ...f,
-                      file_path: response.data.data.file_path,
-                      file_name: response.data.data.file_name,
-                      file_size: response.data.data.file_size,
-                    }
-                  : f
-              );
-
-              return {
-                ...p,
-                variantPricing: {
-                  ...p.variantPricing,
-                  [variantKey]: {
-                    ...current,
-                    files: updatedFiles,
-                  },
-                },
-              };
-            }
-            return p;
-          })
+const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
+  if (!file) return;
+  
+  // ✅ START UPLOAD STATE
+  setIsPdfUploading(true);
+  setPdfUploadProgress(0);
+  setCurrentUploadingFile(file.name);
+  
+  const formDataObj = new FormData();
+  formDataObj.append('file', file);
+  
+  const token = localStorage.getItem('token');
+  
+  try {
+    const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      },
+      // ✅ TRACK PROGRESS
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
         );
-
-        alert("✅ File uploaded successfully!");
+        setPdfUploadProgress(percentCompleted);
       }
-    } catch (error) {
-      console.error("PDF upload error:", error);
-      alert(
-        "❌ Error uploading file: " +
-          (error.response?.data?.message || error.message)
-      );
+    });
+    
+    if (response.data.success) {
+      const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
+      
+      setUploadedPdfFiles(prev => ({
+        ...prev,
+        [fileKey]: {
+          file_path: response.data.data.file_path,
+          file_name: response.data.data.file_name,
+          file_size: response.data.data.file_size
+        }
+      }));
+      
+      // Update the product's variant pricing
+      setProducts(products.map(p => {
+        if (p.id === productId) {
+          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
+          const current = p.variantPricing[variantKey] || {};
+          const currentFiles = current.files || [];
+          
+          const updatedFiles = currentFiles.map(f => 
+            f.file_type === fileType 
+              ? { 
+                  ...f, 
+                  file_path: response.data.data.file_path,
+                  file_name: response.data.data.file_name,
+                  file_size: response.data.data.file_size
+                }
+              : f
+          );
+          
+          return {
+            ...p,
+            variantPricing: {
+              ...p.variantPricing,
+              [variantKey]: {
+                ...current,
+                files: updatedFiles
+              }
+            }
+          };
+        }
+        return p;
+      }));
+      
+      alert('✅ File uploaded successfully!');
     }
-  };
+  } catch (error) {
+    console.error('PDF upload error:', error);
+    alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+  } finally {
+    // ✅ END UPLOAD STATE
+    setIsPdfUploading(false);
+    setPdfUploadProgress(0);
+    setCurrentUploadingFile("");
+  }
+};
 
   const handleImageSelect = (productId, files) => {
     const fileArray = Array.from(files);
@@ -5618,33 +5741,39 @@ const saveProducts = async () => {
     for (const product of products) {
       // Upload images...
       let uploadedImageUrls = [];
-      if (product.imageFiles.length > 0) {
-        const formData = new FormData();
-        product.imageFiles.forEach((file) => {
-          formData.append("images", file);
-        });
+if (product.imageFiles.length > 0) {
+  setIsUploading(true);
+  setUploadProgress(0);
+  setCurrentProductUploading(product.name);
+  
+  const formData = new FormData();
+  product.imageFiles.forEach((file) => {
+    formData.append("images", file);
+  });
 
-        const uploadRes = await axios.post(
-          `${API_URL}/upload-images`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
+  const uploadRes = await axios.post(
+    `${API_URL}/upload-images`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
         );
+        setUploadProgress(percentCompleted);
+      },
+    }
+  );
 
-        console.log('=== FRONTEND RECEIVED FROM AWS ===');
-console.log('Upload response:', uploadRes.data);
-console.log('Image URLs returned:', uploadRes.data.data?.images?.map(img => img.url));
-
-
-        if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
-          uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
-            console.log('Will store these URLs in database:', uploadedImageUrls);
-        }
-      }
+  if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
+    uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
+  }
+  
+  setIsUploading(false);
+}
 
       const productDetails = {
         slug: product.slug,
@@ -7575,6 +7704,57 @@ console.log('Image URLs returned:', uploadRes.data.data?.images?.map(img => img.
         </div>
       ))}
 
+
+
+      {/* Upload Progress Indicators */}
+{(isUploading || isPdfUploading) && (
+  <div className="sticky bottom-20 bg-white p-4 rounded-xl shadow-lg border border-gray-200 mb-4">
+    {/* Image Upload Progress */}
+    {isUploading && (
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-emerald-700">
+            📸 Uploading images for: {currentProductUploading}
+          </span>
+          <span className="text-sm font-bold text-emerald-900">
+            {uploadProgress}%
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+          <div 
+            className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${uploadProgress}%` }}
+          >
+            <div className="h-full w-full bg-white/30 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* PDF Upload Progress */}
+    {isPdfUploading && (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-purple-700">
+            📄 Uploading: {currentUploadingFile}
+          </span>
+          <span className="text-sm font-bold text-purple-900">
+            {pdfUploadProgress}%
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+          <div 
+            className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${pdfUploadProgress}%` }}
+          >
+            <div className="h-full w-full bg-white/30 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
       {/* Save Button */}
       {products.length > 0 && (
         <div className="sticky bottom-4 bg-white p-4 rounded-xl shadow-lg border border-gray-200">
@@ -7708,7 +7888,6 @@ const handleBulkFileUpload = async (e) => {
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(percentCompleted);
-          console.log(`📊 Upload progress: ${percentCompleted}%`);
         }
       }
     );
@@ -7720,7 +7899,6 @@ const handleBulkFileUpload = async (e) => {
       setFileMapping(mapping);
       localStorage.setItem('bulkFileMapping', JSON.stringify(mapping));
       
-      console.log('🗺️ File mapping saved:', mapping);
       
       alert(`✅ ${response.data.data.files.length} files uploaded successfully!`);
     }
@@ -7790,7 +7968,6 @@ const handleFileUpload = async (e) => {
         // Optional: Track upload progress
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`Upload progress: ${percentCompleted}%`);
           // You could update state here to show progress bar if needed
         }
       }
