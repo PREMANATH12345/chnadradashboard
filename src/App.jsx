@@ -28,6 +28,8 @@ import Users from "./pages/Users";
 import VendorDash from "./pages/VendorDash";
 import { ssoLogin } from "./api/auth";
 import Invoice from "./pages/Invoice";
+import Enquiries from "./pages/Enquiries";
+
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
 ===================================================== */
@@ -325,6 +327,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false 
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="enquiries"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <Enquiries />
               </ProtectedRoute>
             }
           />

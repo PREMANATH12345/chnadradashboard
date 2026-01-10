@@ -76,6 +76,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       roles: ["admin"],
     },
     {
+      path: "enquiries",
+      label: "Enquiries",
+      icon: <ClipboardDocumentListIcon className="w-4" />,
+      roles: ["admin"],
+    },
+    {
       path: "products",
       label: "Products",
       icon: <CubeIcon className="w-4" />,

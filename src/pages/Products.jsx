@@ -618,155 +618,168 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                 const mainImage = productDetails.images?.[0] || null;
 
                 return (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
-                    onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
-                  >
-                    <div className="p-5">
-                      <div className="flex gap-4 mb-4">
-                        {mainImage ? (
-                          <div className="flex-shrink-0 w-24 h-24">
-                            <img
-                              src={`${BASE_URL}${mainImage}`}
-                              alt={product.name}
-                              className="w-full h-full object-cover rounded-lg"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <FiPackage className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
+<div
+  key={product.id}
+  className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md"
+>
+  <div className="p-5">
+    {/* Make only the top section clickable for viewing details */}
+    <div 
+      className="cursor-pointer mb-4"
+      onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
+    >
+      <div className="flex gap-4">
+        {mainImage ? (
+          <div className="flex-shrink-0 w-24 h-24">
+            <img
+              src={`${BASE_URL}${mainImage}`}
+              alt={product.name}
+              className="w-full h-full object-cover rounded-lg"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+              }}
+            />
+          </div>
+        ) : (
+          <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+            <FiPackage className="w-8 h-8 text-gray-400" />
+          </div>
+        )}
 
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">
-                            {product.name}
-                          </h4>
-                          <p className="text-sm text-gray-500 mb-2 truncate">
-                            {product.slug}
-                          </p>
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                              {productDetails.category || "No category"}
-                            </span>
-                            {/* <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs font-medium rounded">
-                              ₹{productDetails.price?.toLocaleString() || "0"}
-                            </span> */}
-                          </div>
-                        </div>
-                      </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">
+            {product.name}
+          </h4>
+          <p className="text-sm text-gray-500 mb-2 truncate">
+            {product.slug}
+          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+              {productDetails.category || "No category"}
+            </span>
+          </div>
+        </div>
+      </div>
 
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <FiUsers className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">
-                            Vendor:{" "}
-                            <span className="font-medium">
-                              {product.vendor_name || product.vendor_username || "Unknown"}
-                            </span>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FiClock className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-500">
-                            {new Date(product.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2">
+          <FiUsers className="w-4 h-4 text-gray-400" />
+          <span className="text-gray-600">
+            Vendor:{" "}
+            <span className="font-medium">
+              {product.vendor_name || product.vendor_username || "Unknown"}
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FiClock className="w-4 h-4 text-gray-400" />
+          <span className="text-gray-500">
+            {new Date(product.created_at).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+    </div>
 
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleApprove(product.id, true);
-                          }}
-                          disabled={approving || rejecting}
-                          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {approving && selectedProduct === product.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Approving...
-                            </>
-                          ) : (
-                            <>
-                              <FiCheckCircle className="w-4 h-4" />
-                              Approve
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProduct(product.id);
-                          }}
-                          disabled={approving || rejecting}
-                          className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <FiX className="w-4 h-4" />
-                          Reject
-                        </button>
-                      </div>
+    {/* Buttons section - not clickable for viewing details */}
+    <div className="flex gap-2">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleApprove(product.id, true);
+        }}
+        disabled={approving || rejecting}
+        className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {approving && selectedProduct === product.id ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            Approving...
+          </>
+        ) : (
+          <>
+            <FiCheckCircle className="w-4 h-4" />
+            Approve
+          </>
+        )}
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedProduct(product.id);
+        }}
+        disabled={approving || rejecting}
+        className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <FiX className="w-4 h-4" />
+        Reject
+      </button>
+    </div>
 
-                      {selectedProduct === product.id && (
-                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                          <label className="block text-sm font-medium text-red-800 mb-2">
-                            Reason for rejection:
-                          </label>
-                          <textarea
-                            value={rejectionReason}
-                            onChange={(e) => setRejectionReason(e.target.value)}
-                            placeholder="Please provide a reason for rejection..."
-                            className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm mb-3"
-                            rows="2"
-                            disabled={rejecting}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApprove(product.id, false);
-                              }}
-                              disabled={rejecting}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              {rejecting ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                  Rejecting...
-                                </>
-                              ) : (
-                                'Confirm Reject'
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedProduct(null);
-                                setRejectionReason("");
-                              }}
-                              disabled={rejecting}
-                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
+    {/* Rejection reason section - with stopPropagation */}
+    {selectedProduct === product.id && (
+      <div 
+        className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <label className="block text-sm font-medium text-red-800 mb-2">
+          Reason for rejection:
+        </label>
+        <textarea
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
+          placeholder="Please provide a reason for rejection..."
+          className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm mb-3"
+          rows="2"
+          disabled={rejecting}
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleApprove(product.id, false);
+            }}
+            disabled={rejecting}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {rejecting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Rejecting...
+              </>
+            ) : (
+              'Confirm Reject'
+            )}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedProduct(null);
+              setRejectionReason("");
+            }}
+            disabled={rejecting}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
 
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-500 text-center">
-                          <FiEye className="w-3 h-3 inline mr-1" />
-                          Click anywhere on this card to view full details
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+    {/* View details link - only this part is clickable for viewing details */}
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <p 
+        className="text-xs text-gray-500 text-center cursor-pointer hover:text-blue-600 transition-colors"
+        onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
+      >
+        <FiEye className="w-3 h-3 inline mr-1" />
+        Click here to view full details
+      </p>
+    </div>
+  </div>
+</div>
                 );
               })}
             </div>
@@ -2296,41 +2309,35 @@ const ProductCard = ({
             {productDetails.images.length} images
           </button>
         )}
-
-        {canEditDelete && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-3 sm:pb-6">
-            <div className="flex gap-1.5 sm:gap-3">
-              <button
-                onClick={() => onEdit(product)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg sm:rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all shadow-md sm:shadow-lg hover:shadow-xl flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                title="Edit Product"
-              >
-                <FiEdit className="w-3 h-3 sm:w-4 sm:h-4" />
-                Edit
-              </button>
-              <button
-                onClick={() => onToggleVisibility(product)}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl transition-all shadow-md sm:shadow-lg hover:shadow-xl flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                  product.is_hidden 
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600' 
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
-                }`}
-                title={product.is_hidden ? "Unhide Product" : "Hide Product"}
-              >
-                <FiEye className="w-3 h-3 sm:w-4 sm:h-4" />
-                {product.is_hidden ? 'Show' : 'Hide'}
-              </button>
-              <button
-                onClick={() => onDelete(product.id)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg sm:rounded-xl hover:from-red-600 hover:to-pink-600 transition-all shadow-md sm:shadow-lg hover:shadow-xl flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                title="Delete Product"
-              >
-                <FiTrash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                Delete
-              </button>
-            </div>
-          </div>
-        )}
+{canEditDelete && (
+  <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+    <button
+      onClick={() => onEdit(product)}
+      className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 transition-all shadow-md flex items-center justify-center"
+      title="Edit Product"
+    >
+      <FiEdit className="w-3.5 h-3.5" />
+    </button>
+    <button
+      onClick={() => onToggleVisibility(product)}
+      className={`p-2 rounded-lg transition-all shadow-md flex items-center justify-center ${
+        product.is_hidden 
+          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600' 
+          : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
+      }`}
+      title={product.is_hidden ? "Unhide Product" : "Hide Product"}
+    >
+      <FiEye className="w-3.5 h-3.5" />
+    </button>
+    <button
+      onClick={() => onDelete(product.id)}
+      className="p-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all shadow-md flex items-center justify-center"
+      title="Delete Product"
+    >
+      <FiTrash2 className="w-3.5 h-3.5" />
+    </button>
+  </div>
+)}
       </div>
 
       <div className="p-3 sm:p-4">
