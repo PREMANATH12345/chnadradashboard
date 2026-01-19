@@ -4953,11 +4953,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-const [isUploading, setIsUploading] = useState(false);
-const [currentProductUploading, setCurrentProductUploading] = useState("");
-const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
-const [isPdfUploading, setIsPdfUploading] = useState(false);
-const [currentUploadingFile, setCurrentUploadingFile] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentProductUploading, setCurrentProductUploading] = useState("");
+  const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+  const [isPdfUploading, setIsPdfUploading] = useState(false);
+  const [currentUploadingFile, setCurrentUploadingFile] = useState("");
   const [activeProductTab, setActiveProductTab] = useState(0);
   const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
   const [slugErrors, setSlugErrors] = useState({});
@@ -4970,6 +4970,7 @@ const [currentUploadingFile, setCurrentUploadingFile] = useState("");
       emoji: "📄",
       requiresPrice: true,
       requiresUpload: true,
+      hasLinkOption: true,
     },
     {
       value: "cam_product",
@@ -5001,7 +5002,7 @@ const [currentUploadingFile, setCurrentUploadingFile] = useState("");
     },
   ];
 
-    const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+  const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
   
   useEffect(() => {
     fetchTargetAudienceOptions();
@@ -5278,90 +5279,86 @@ const [currentUploadingFile, setCurrentUploadingFile] = useState("");
     );
   };
 
-const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
-  if (!file) return;
-  
-  // ✅ START UPLOAD STATE
-  setIsPdfUploading(true);
-  setPdfUploadProgress(0);
-  setCurrentUploadingFile(file.name);
-  
-  const formDataObj = new FormData();
-  formDataObj.append('file', file);
-  
-  const token = localStorage.getItem('token');
-  
-  try {
-    const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      },
-      // ✅ TRACK PROGRESS
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setPdfUploadProgress(percentCompleted);
-      }
-    });
+  const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
+    if (!file) return;
     
-    if (response.data.success) {
-      const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
-      
-      setUploadedPdfFiles(prev => ({
-        ...prev,
-        [fileKey]: {
-          file_path: response.data.data.file_path,
-          file_name: response.data.data.file_name,
-          file_size: response.data.data.file_size
-        }
-      }));
-      
-      // Update the product's variant pricing
-      setProducts(products.map(p => {
-        if (p.id === productId) {
-          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
-          const current = p.variantPricing[variantKey] || {};
-          const currentFiles = current.files || [];
-          
-          const updatedFiles = currentFiles.map(f => 
-            f.file_type === fileType 
-              ? { 
-                  ...f, 
-                  file_path: response.data.data.file_path,
-                  file_name: response.data.data.file_name,
-                  file_size: response.data.data.file_size
-                }
-              : f
-          );
-          
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [variantKey]: {
-                ...current,
-                files: updatedFiles
-              }
-            }
-          };
-        }
-        return p;
-      }));
-      
-      alert('✅ File uploaded successfully!');
-    }
-  } catch (error) {
-    console.error('PDF upload error:', error);
-    alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
-  } finally {
-    // ✅ END UPLOAD STATE
-    setIsPdfUploading(false);
+    setIsPdfUploading(true);
     setPdfUploadProgress(0);
-    setCurrentUploadingFile("");
-  }
-};
+    setCurrentUploadingFile(file.name);
+    
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    
+    const token = localStorage.getItem('token');
+    
+    try {
+      const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setPdfUploadProgress(percentCompleted);
+        }
+      });
+      
+      if (response.data.success) {
+        const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
+        
+        setUploadedPdfFiles(prev => ({
+          ...prev,
+          [fileKey]: {
+            file_path: response.data.data.file_path,
+            file_name: response.data.data.file_name,
+            file_size: response.data.data.file_size
+          }
+        }));
+        
+        setProducts(products.map(p => {
+          if (p.id === productId) {
+            const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
+            const current = p.variantPricing[variantKey] || {};
+            const currentFiles = current.files || [];
+            
+            const updatedFiles = currentFiles.map(f => 
+              f.file_type === fileType 
+                ? { 
+                    ...f, 
+                    file_path: response.data.data.file_path,
+                    file_name: response.data.data.file_name,
+                    file_size: response.data.data.file_size
+                  }
+                : f
+            );
+            
+            return {
+              ...p,
+              variantPricing: {
+                ...p.variantPricing,
+                [variantKey]: {
+                  ...current,
+                  files: updatedFiles
+                }
+              }
+            };
+          }
+          return p;
+        }));
+        
+        alert('✅ File uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsPdfUploading(false);
+      setPdfUploadProgress(0);
+      setCurrentUploadingFile("");
+    }
+  };
 
   const handleImageSelect = (productId, files) => {
     const fileArray = Array.from(files);
@@ -5436,64 +5433,6 @@ const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileTy
       })
     );
   };
-
-  // const handlePdfUpload = async (productId, metalId, diamondId, sizeId, fileType, file) => {
-  //   const formData = new FormData();
-  //   formData.append('file', file);
-
-  //   const token = localStorage.getItem('token');
-
-  //   try {
-  //     const response = await axios.post(`${API_URL}/upload-pdf`, formData, {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //         'Content-Type': 'multipart/form-data'
-  //       }
-  //     });
-
-  //     if (response.data.success) {
-  //       const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-${fileType}`;
-  //       setUploadedPdfFiles(prev => ({
-  //         ...prev,
-  //         [fileKey]: {
-  //           file_path: response.data.data.file_path,
-  //           file_name: response.data.data.file_name
-  //         }
-  //       }));
-
-  //       setProducts(products.map(p => {
-  //         if (p.id === productId) {
-  //           const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}`;
-  //           const current = p.variantPricing[variantKey] || {};
-  //           const currentFiles = current.files || [];
-
-  //           const updatedFiles = currentFiles.map(f =>
-  //             f.file_type === fileType
-  //               ? { ...f, file_path: response.data.data.file_path }
-  //               : f
-  //           );
-
-  //           return {
-  //             ...p,
-  //             variantPricing: {
-  //               ...p.variantPricing,
-  //               [variantKey]: {
-  //                 ...current,
-  //                 files: updatedFiles
-  //               }
-  //             }
-  //           };
-  //         }
-  //         return p;
-  //       }));
-
-  //       alert('✅ File uploaded successfully!');
-  //     }
-  //   } catch (error) {
-  //     console.error('PDF upload error:', error);
-  //     alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
-  //   }
-  // };
 
   const toggleProductMetalChoice = (productId) => {
     setProducts(
@@ -5682,6 +5621,92 @@ const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileTy
     );
   };
 
+  const updateFileDescription = (
+    productId,
+    metalId,
+    diamondId,
+    sizeId,
+    fileType,
+    description
+  ) => {
+    setProducts(
+      products.map((p) => {
+        if (p.id === productId) {
+          const key = sizeId
+            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+            : `${metalId || "none"}-${diamondId || "none"}-none`;
+
+          const current = p.variantPricing[key] || {};
+          const currentFiles = current.files || [];
+
+          const updatedFiles = currentFiles.map((f) =>
+            f.file_type === fileType
+              ? { ...f, stl_file_description: description }
+              : f
+          );
+
+          return {
+            ...p,
+            variantPricing: {
+              ...p.variantPricing,
+              [key]: {
+                ...current,
+                files: updatedFiles,
+              },
+            },
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  const updateFileLink = (
+    productId,
+    metalId,
+    diamondId,
+    sizeId,
+    fileType,
+    link
+  ) => {
+    setProducts(
+      products.map((p) => {
+        if (p.id === productId) {
+          const key = sizeId
+            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+            : `${metalId || "none"}-${diamondId || "none"}-none`;
+
+          const current = p.variantPricing[key] || {};
+          const currentFiles = current.files || [];
+
+          const updatedFiles = currentFiles.map((f) =>
+            f.file_type === fileType
+              ? { 
+                  ...f, 
+                  stl_file_link: link,
+                  file_path: link ? null : f.file_path,
+                  file_name: link ? null : f.file_name,
+                  file_size: link ? null : f.file_size
+                }
+              : f
+          );
+
+          return {
+            ...p,
+            variantPricing: {
+              ...p.variantPricing,
+              [key]: {
+                ...current,
+                files: updatedFiles,
+              },
+            },
+          };
+        }
+        return p;
+      })
+    );
+  };
+
   const toggleVariantFileType = (
     productId,
     metalId,
@@ -5726,241 +5751,390 @@ const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileTy
     );
   };
 
-const saveProducts = async () => {
-  if (products.length === 0) {
-    alert("Please add at least one product");
-    return;
-  }
-
-  for (const product of products) {
-    if (!product.name || !product.style_id || !product.metal_id) {
-      alert("Please fill all required fields for all products");
+  const saveProducts = async () => {
+    if (products.length === 0) {
+      alert("Please add at least one product");
       return;
     }
-  }
 
-  setLoading(true);
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isVendor = userRole === "vendor";
-
-  try {
     for (const product of products) {
-      // Upload images...
-      let uploadedImageUrls = [];
-if (product.imageFiles.length > 0) {
-  setIsUploading(true);
-  setUploadProgress(0);
-  setCurrentProductUploading(product.name);
-  
-  const formData = new FormData();
-  product.imageFiles.forEach((file) => {
-    formData.append("images", file);
-  });
-
-  const uploadRes = await axios.post(
-    `${API_URL}/upload-images`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setUploadProgress(percentCompleted);
-      },
-    }
-  );
-
-  if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
-    uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
-  }
-  
-  setIsUploading(false);
-}
-
-      const productDetails = {
-        slug: product.slug,
-        description: product.description || "",
-        price: parseFloat(product.price),
-        originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
-        discount: parseInt(product.discount) || 0,
-        style_id: product.style_id,
-        metal_id: product.metal_id,
-        featured: product.featured,
-        gender: product.gender,
-        images: uploadedImageUrls,
-        category: categories.find((c) => c.id == selectedCategoryId)?.name || "",
-        hasMetalChoice: product.hasMetalChoice,
-        hasDiamondChoice: product.hasDiamondChoice,
-        selectedMetalOptions: product.selectedMetalOptions,
-        selectedDiamondOptions: product.selectedDiamondOptions,
-        selectedSizes: product.selectedSizes,
-        variantPricing: product.variantPricing,
-      };
-
-      const status = isVendor ? "pending" : "approved";
-      const vendorId = isVendor ? user?.vendor_id : null;
-
-      const productRes = await axios.post(
-        `${API_URL}/doAll`,
-        {
-          action: "insert",
-          table: "products",
-          data: {
-            category_id: selectedCategoryId,
-            name: product.name,
-            slug: product.slug,
-            product_details: JSON.stringify(productDetails),
-            vendor_id: vendorId,
-            status: status,
-            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-          },
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (productRes.data.success && productRes.data.insertId) {
-        const productDbId = productRes.data.insertId;
-        const variants = [];
-
-        // ========== 1. PROCESS VARIANTS WITH SIZES ==========
-        if (product.selectedSizes && typeof product.selectedSizes === "object") {
-          for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
-            if (!isSelected) continue;
-
-            const pricing = product.variantPricing?.[key];
-            if (!pricing) continue;
-
-            const [metalPart, diamondPart, sizePart] = key.split("-");
-
-            if (sizePart === "none") continue;
-
-            const files = Array.isArray(pricing.files) ? pricing.files : [];
-            if (files.length === 0) continue;
-
-            const mappedFiles = files.map((f) => {
-              const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
-              const uploadedFile = uploadedPdfFiles[fileKey];
-
-              return {
-                file_type: f.file_type,
-                price: f.price,
-                file_path: uploadedFile?.file_path || null,
-                file_name: uploadedFile?.file_name || null,
-                file_size: uploadedFile?.file_size || null,
-              };
-            });
-
-            variants.push({
-              metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
-              diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
-              size_option_id: parseInt(sizePart),
-              end_product_price: parseFloat(pricing.end_product_price) || null,
-              end_product_discount: parseFloat(pricing.end_product_discount) || null,
-              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-              files: mappedFiles,
-            });
-          }
-        }
-
-        // ========== 2. PROCESS VARIANTS WITHOUT SIZES (FIXED) ==========
-        if (product.variantPricing && typeof product.variantPricing === "object") {
-          for (const [key, pricing] of Object.entries(product.variantPricing)) {
-            if (!key.endsWith("-none")) continue; // Only process keys ending with -none
-
-            const [metalPart, diamondPart, sizePart] = key.split("-");
-
-            // Skip if this is a size-based variant (already processed above)
-            if (sizePart !== "none") continue;
-
-            // ✅ FIX: Skip metal-only variants if diamond options are selected
-            if (diamondPart === "none" && product.hasDiamondChoice && product.selectedDiamondOptions.length > 0) {
-              continue;
-            }
-
-            // ✅ FIX: Only process this variant if it matches selected options
-            if (metalPart !== "none" && product.hasMetalChoice) {
-              if (!product.selectedMetalOptions.includes(parseInt(metalPart))) {
-                continue;
-              }
-            }
-
-            if (diamondPart !== "none" && product.hasDiamondChoice) {
-              if (!product.selectedDiamondOptions.includes(parseInt(diamondPart))) {
-                continue;
-              }
-            }
-
-            // ✅ FIX: Skip if both metal and diamond are selected but this variant has only one
-            if (product.hasMetalChoice && product.hasDiamondChoice) {
-              // If both are selected, only process variants that have BOTH metal AND diamond
-              if (metalPart === "none" || diamondPart === "none") {
-                continue;
-              }
-            }
-
-            const files = Array.isArray(pricing.files) ? pricing.files : [];
-            if (files.length === 0) continue;
-
-            const mappedFiles = files.map((f) => {
-              const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
-              const uploadedFile = uploadedPdfFiles[fileKey];
-
-              return {
-                file_type: f.file_type,
-                price: f.price,
-                file_path: uploadedFile?.file_path || null,
-                file_name: uploadedFile?.file_name || null,
-                file_size: uploadedFile?.file_size || null,
-              };
-            });
-
-            variants.push({
-              metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
-              diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
-              size_option_id: null,
-              end_product_price: parseFloat(pricing.end_product_price) || null,
-              end_product_discount: parseFloat(pricing.end_product_discount) || null,
-              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-              files: mappedFiles,
-            });
-          }
-        }
-
-        // Only call API if variants exist
-        if (variants.length > 0) {
-          await axios.post(
-            `${API_URL}/product-variants/pricing`,
-            { product_id: productDbId, variants },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        }
+      if (!product.name || !product.style_id || !product.metal_id) {
+        alert("Please fill all required fields for all products");
+        return;
       }
     }
 
-    alert(
-      isVendor
-        ? "✅ Products submitted for admin approval!"
-        : "✅ Products saved successfully!"
-    );
-    setProducts([]);
-    setActiveProductTab(0);
-    onRefresh();
-  } catch (error) {
-    console.error("Error saving products:", error);
-    alert(
-      "❌ Error saving products: " +
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    const isVendor = userRole === "vendor";
+
+    try {
+      for (const product of products) {
+        let uploadedImageUrls = [];
+        if (product.imageFiles.length > 0) {
+          setIsUploading(true);
+          setUploadProgress(0);
+          setCurrentProductUploading(product.name);
+          
+          const formData = new FormData();
+          product.imageFiles.forEach((file) => {
+            formData.append("images", file);
+          });
+
+          const uploadRes = await axios.post(
+            `${API_URL}/upload-images`,
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data",
+              },
+              onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total
+                );
+                setUploadProgress(percentCompleted);
+              },
+            }
+          );
+
+          if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
+            uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
+          }
+          
+          setIsUploading(false);
+        }
+
+        const productDetails = {
+          slug: product.slug,
+          description: product.description || "",
+          price: parseFloat(product.price),
+          originalPrice: parseFloat(product.originalPrice) || parseFloat(product.price),
+          discount: parseInt(product.discount) || 0,
+          style_id: product.style_id,
+          metal_id: product.metal_id,
+          featured: product.featured,
+          gender: product.gender,
+          images: uploadedImageUrls,
+          category: categories.find((c) => c.id == selectedCategoryId)?.name || "",
+          hasMetalChoice: product.hasMetalChoice,
+          hasDiamondChoice: product.hasDiamondChoice,
+          selectedMetalOptions: product.selectedMetalOptions,
+          selectedDiamondOptions: product.selectedDiamondOptions,
+          selectedSizes: product.selectedSizes,
+          variantPricing: product.variantPricing,
+        };
+
+        const status = isVendor ? "pending" : "approved";
+        const vendorId = isVendor ? user?.vendor_id : null;
+
+        const productRes = await axios.post(
+          `${API_URL}/doAll`,
+          {
+            action: "insert",
+            table: "products",
+            data: {
+              category_id: selectedCategoryId,
+              name: product.name,
+              slug: product.slug,
+              product_details: JSON.stringify(productDetails),
+              vendor_id: vendorId,
+              status: status,
+              created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+            },
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (productRes.data.success && productRes.data.insertId) {
+          const productDbId = productRes.data.insertId;
+          const variants = [];
+
+          if (product.selectedSizes && typeof product.selectedSizes === "object") {
+            for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
+              if (!isSelected) continue;
+
+              const pricing = product.variantPricing?.[key];
+              if (!pricing) continue;
+
+              const [metalPart, diamondPart, sizePart] = key.split("-");
+
+              if (sizePart === "none") continue;
+
+              const files = Array.isArray(pricing.files) ? pricing.files : [];
+              if (files.length === 0) continue;
+
+              const mappedFiles = files.map((f) => {
+                const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
+                const uploadedFile = uploadedPdfFiles[fileKey];
+
+                return {
+                  file_type: f.file_type,
+                  price: f.price,
+                  file_path: uploadedFile?.file_path || null,
+                  file_name: uploadedFile?.file_name || null,
+                  file_size: uploadedFile?.file_size || null,
+                  stl_file_description: f.stl_file_description || null,
+                  stl_file_link: f.stl_file_link || null,
+                };
+              });
+
+              variants.push({
+                metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
+                diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
+                size_option_id: parseInt(sizePart),
+                end_product_price: parseFloat(pricing.end_product_price) || null,
+                end_product_discount: parseFloat(pricing.end_product_discount) || null,
+                end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                files: mappedFiles,
+              });
+            }
+          }
+
+          if (product.variantPricing && typeof product.variantPricing === "object") {
+            for (const [key, pricing] of Object.entries(product.variantPricing)) {
+              if (!key.endsWith("-none")) continue;
+
+              const [metalPart, diamondPart, sizePart] = key.split("-");
+
+              if (sizePart !== "none") continue;
+
+              if (diamondPart === "none" && product.hasDiamondChoice && product.selectedDiamondOptions.length > 0) {
+                continue;
+              }
+
+              if (metalPart !== "none" && product.hasMetalChoice) {
+                if (!product.selectedMetalOptions.includes(parseInt(metalPart))) {
+                  continue;
+                }
+              }
+
+              if (diamondPart !== "none" && product.hasDiamondChoice) {
+                if (!product.selectedDiamondOptions.includes(parseInt(diamondPart))) {
+                  continue;
+                }
+              }
+
+              if (product.hasMetalChoice && product.hasDiamondChoice) {
+                if (metalPart === "none" || diamondPart === "none") {
+                  continue;
+                }
+              }
+
+              const files = Array.isArray(pricing.files) ? pricing.files : [];
+              if (files.length === 0) continue;
+
+              const mappedFiles = files.map((f) => {
+                const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+                const uploadedFile = uploadedPdfFiles[fileKey];
+
+                return {
+                  file_type: f.file_type,
+                  price: f.price,
+                  file_path: uploadedFile?.file_path || null,
+                  file_name: uploadedFile?.file_name || null,
+                  file_size: uploadedFile?.file_size || null,
+                  stl_file_description: f.stl_file_description || null,
+                  stl_file_link: f.stl_file_link || null,
+                };
+              });
+
+              variants.push({
+                metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
+                diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
+                size_option_id: null,
+                end_product_price: parseFloat(pricing.end_product_price) || null,
+                end_product_discount: parseFloat(pricing.end_product_discount) || null,
+                end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                files: mappedFiles,
+              });
+            }
+          }
+
+          if (variants.length > 0) {
+            await axios.post(
+              `${API_URL}/product-variants/pricing`,
+              { product_id: productDbId, variants },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+        }
+      }
+
+      alert(
+        isVendor
+          ? "✅ Products submitted for admin approval!"
+          : "✅ Products saved successfully!"
+      );
+      setProducts([]);
+      setActiveProductTab(0);
+      onRefresh();
+    } catch (error) {
+      console.error("Error saving products:", error);
+      alert(
+        "❌ Error saving products: " +
         (error.response?.data?.message || error.message)
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectedCategory = categories.find((c) => c.id == selectedCategoryId);
+
+  // Helper component for STL file input with link option
+  const STLFileInput = ({ 
+    productId, 
+    metalId, 
+    diamondId, 
+    sizeId, 
+    filePrice, 
+    fileDescription, 
+    fileLink,
+    existingFile,
+    onPriceChange,
+    onDescriptionChange,
+    onLinkChange,
+    onFileUpload,
+    isSTL = true 
+  }) => {
+    const [useLink, setUseLink] = useState(!!fileLink);
+    const [link, setLink] = useState(fileLink || "");
+    const [description, setDescription] = useState(fileDescription || "");
+
+    useEffect(() => {
+      setUseLink(!!fileLink);
+      setLink(fileLink || "");
+      setDescription(fileDescription || "");
+    }, [fileLink, fileDescription]);
+
+    const handleLinkChange = (value) => {
+      setLink(value);
+      setUseLink(!!value);
+      onLinkChange(value);
+    };
+
+    const handleDescriptionChange = (value) => {
+      setDescription(value);
+      onDescriptionChange(value);
+    };
+
+    return (
+      <div className="ml-6 space-y-3">
+        {isSTL && (
+          <div className="p-3 bg-green-50 rounded border border-green-200">
+            <p className="text-xs text-gray-700 mb-2 font-semibold">
+              🟩 STL File Price *
+            </p>
+            <input
+              type="number"
+              placeholder="Enter price (required)"
+              value={filePrice}
+              onChange={(e) => onPriceChange(e.target.value)}
+              className={`w-full px-3 py-2 border rounded text-sm ${
+                !filePrice ? "border-red-500" : "border-gray-300"
+              }`}
+              required
+            />
+            {!filePrice && (
+              <p className="text-xs text-red-600 mt-1">STL price is required</p>
+            )}
+          </div>
+        )}
+
+        {/* Description Input */}
+        <div className="p-3 bg-blue-50 rounded border border-blue-200">
+          <label className="block text-xs font-semibold text-gray-800 mb-2">
+            📝 File Description
+          </label>
+          <textarea
+            placeholder="Enter description for this STL file..."
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+            rows="2"
+          />
+        </div>
+
+        {/* Upload Option Toggle */}
+        <div className="p-3 bg-gray-50 rounded border border-gray-200">
+          <label className="block text-xs font-semibold text-gray-800 mb-2">
+            📎 Upload Option
+          </label>
+          <div className="flex gap-4 mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}`}
+                checked={!useLink}
+                onChange={() => setUseLink(false)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Upload File</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}`}
+                checked={useLink}
+                onChange={() => setUseLink(true)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Share Link</span>
+            </label>
+          </div>
+
+          {!useLink ? (
+            <div>
+              <input
+                type="file"
+                accept=".pdf,.stl,.zip,.cam"
+                onChange={(e) => {
+                  if (e.target.files[0]) {
+                    onFileUpload(e.target.files[0]);
+                  }
+                }}
+                className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
+              />
+              {existingFile && (
+                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600">📄</span>
+                      <span className="text-xs font-medium truncate">
+                        {existingFile.file_name}
+                      </span>
+                    </div>
+                    {existingFile.file_size && (
+                      <span className="text-xs text-gray-500">
+                        {(existingFile.file_size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <input
+                type="url"
+                placeholder="Enter Google Drive, Dropbox, or any shareable link..."
+                value={link}
+                onChange={(e) => handleLinkChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+              />
+              {link && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Link will be stored and shown to customers
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
@@ -6290,29 +6464,29 @@ if (product.imageFiles.length > 0) {
                 </div>
               </div>
 
-          {/* Gender Options - DYNAMIC */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span>👥</span>
-              Target Audience
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {targetAudienceOptions.map((option) => (
-                <label
-                  key={option.id}
-                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={product.gender.includes(option.gender)}
-                    onChange={() => toggleProductGender(product.id, option.gender)}
-                    className="w-4 h-4 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{option.gender}</span>
+              {/* Gender Options - DYNAMIC */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span>👥</span>
+                  Target Audience
                 </label>
-              ))}
-            </div>
-          </div>
+                <div className="flex flex-wrap gap-3">
+                  {targetAudienceOptions.map((option) => (
+                    <label
+                      key={option.id}
+                      className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={product.gender.includes(option.gender)}
+                        onChange={() => toggleProductGender(product.id, option.gender)}
+                        className="w-4 h-4 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700">{option.gender}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Image Upload Section */}
@@ -6555,25 +6729,24 @@ if (product.imageFiles.length > 0) {
                 </div>
 
                 {/* Size Info */}
-{/* Size Info */}
-<div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
-  <label className="flex items-center gap-2 mb-3 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={product.configureSizes || false}
-      onChange={() => toggleConfigureSizes(product.id)}
-      className="w-5 h-5 text-emerald-600"
-    />
-    <span className="font-bold text-gray-800">
-      📏 Configure Sizes with Pricing
-    </span>
-  </label>
-  <p className="text-xs text-gray-600">
-    {product.hasMetalChoice || product.hasDiamondChoice
-      ? `✅ Size configuration is active (required for variants) - You can configure ${product.hasMetalChoice && !product.hasDiamondChoice ? "Metal + Sizes" : product.hasDiamondChoice && !product.hasMetalChoice ? "Diamond + Sizes" : "Metal + Diamond + Sizes"}`
-      : "You can select sizes only, or configure with metal/diamond options"}
-  </p>
-</div>
+                <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
+                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={product.configureSizes || false}
+                      onChange={() => toggleConfigureSizes(product.id)}
+                      className="w-5 h-5 text-emerald-600"
+                    />
+                    <span className="font-bold text-gray-800">
+                      📏 Configure Sizes with Pricing
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-600">
+                    {product.hasMetalChoice || product.hasDiamondChoice
+                      ? `✅ Size configuration is active (required for variants) - You can configure ${product.hasMetalChoice && !product.hasDiamondChoice ? "Metal + Sizes" : product.hasDiamondChoice && !product.hasMetalChoice ? "Diamond + Sizes" : "Metal + Diamond + Sizes"}`
+                      : "You can select sizes only, or configure with metal/diamond options"}
+                  </p>
+                </div>
               </div>
 
               {/* Size & Pricing Configuration */}
@@ -6620,168 +6793,20 @@ if (product.imageFiles.length > 0) {
                               </label>
 
                               {isSelected && (
-                                <div className="ml-8 space-y-3">
-                                  <div>
-                                    <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                      📁 File Types & Pricing:
-                                    </label>
-                                    <div className="space-y-3">
-                                      {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                        const isFileSelected =
-                                          pricing.files?.some(
-                                            (f) =>
-                                              f.file_type === fileOption.value
-                                          ) || false;
-                                        const filePrice =
-                                          pricing.files?.find(
-                                            (f) =>
-                                              f.file_type === fileOption.value
-                                          )?.price || "";
-                                        const fileKey = `${product.id}-none-none-${sizeOpt.id}-${fileOption.value}`;
-                                        const uploadedFile =
-                                          uploadedPdfFiles[fileKey];
-                                        const isSTL =
-                                          fileOption.value === "stl_file";
-
-                                        return (
-                                          <div
-                                            key={fileOption.value}
-                                            className="border rounded p-3 bg-white"
-                                          >
-                                            <label
-                                              className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                                isSTL
-                                                  ? "opacity-50 cursor-not-allowed"
-                                                  : ""
-                                              }`}
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={isFileSelected}
-                                                onChange={() =>
-                                                  !isSTL &&
-                                                  toggleVariantFileType(
-                                                    product.id,
-                                                    null,
-                                                    null,
-                                                    sizeOpt.id,
-                                                    fileOption.value
-                                                  )
-                                                }
-                                                disabled={isSTL}
-                                                className="w-4 h-4 text-green-600"
-                                              />
-                                              <span className="text-lg">
-                                                {fileOption.emoji}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {fileOption.label}
-                                              </span>
-                                              {isSTL && (
-                                                <span className="text-xs text-green-600 ml-auto">
-                                                  (Mandatory)
-                                                </span>
-                                              )}
-                                            </label>
-
-                                            {isFileSelected && (
-                                              <div className="ml-6 space-y-3">
-                                                {fileOption.requiresPrice && (
-                                                  <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                    <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                      🟩 {fileOption.label}{" "}
-                                                      Price {isSTL && "*"}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 mb-2">
-                                                      {isSTL
-                                                        ? "This price will be displayed to customers (Required)"
-                                                        : `If the customer selects ${fileOption.label.toLowerCase()}, this price will be shown.`}
-                                                    </p>
-                                                    <input
-                                                      type="number"
-                                                      placeholder={
-                                                        isSTL
-                                                          ? "Enter price (required)"
-                                                          : "Enter price"
-                                                      }
-                                                      value={filePrice}
-                                                      onChange={(e) =>
-                                                        updateFilePrice(
-                                                          product.id,
-                                                          null,
-                                                          null,
-                                                          sizeOpt.id,
-                                                          fileOption.value,
-                                                          e.target.value
-                                                        )
-                                                      }
-                                                      className={`w-full px-3 py-2 border rounded text-sm ${
-                                                        isSTL && !filePrice
-                                                          ? "border-red-500"
-                                                          : "border-gray-300"
-                                                      }`}
-                                                      required={isSTL}
-                                                    />
-                                                    {isSTL && !filePrice && (
-                                                      <p className="text-xs text-red-600 mt-1">
-                                                        STL price is required
-                                                      </p>
-                                                    )}
-                                                  </div>
-                                                )}
-
-                                                {fileOption.requiresUpload !==
-                                                  false && (
-                                                  <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                    <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                      📎 Upload{" "}
-                                                      {fileOption.label}{" "}
-                                                      {isSTL && "(Optional)"}
-                                                    </label>
-                                                    <input
-                                                      type="file"
-                                                      accept=".pdf,.stl,.zip,.cam"
-                                                      onChange={(e) => {
-                                                        if (e.target.files[0]) {
-                                                          handlePdfFileSelect(
-                                                            product.id,
-                                                            null,
-                                                            null,
-                                                            sizeOpt.id,
-                                                            fileOption.value,
-                                                            e.target.files[0]
-                                                          );
-                                                        }
-                                                      }}
-                                                      className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
-                                                    />
-                                                    {uploadedFile && (
-                                                      <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                        <span>✓</span>
-                                                        <span className="font-medium">
-                                                          {
-                                                            uploadedFile.file_name
-                                                          }
-                                                        </span>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-
-                                                {!fileOption.requiresPrice && (
-                                                  <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                    💡 Enquiry only - no price
-                                                    needed
-                                                  </p>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
+                                <STLFileInput
+                                  productId={product.id}
+                                  metalId={null}
+                                  diamondId={null}
+                                  sizeId={sizeOpt.id}
+                                  filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
+                                  fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
+                                  fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
+                                  existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-stl_file`]}
+                                  onPriceChange={(value) => updateFilePrice(product.id, null, null, sizeOpt.id, 'stl_file', value)}
+                                  onDescriptionChange={(value) => updateFileDescription(product.id, null, null, sizeOpt.id, 'stl_file', value)}
+                                  onLinkChange={(value) => updateFileLink(product.id, null, null, sizeOpt.id, 'stl_file', value)}
+                                  onFileUpload={(file) => handlePdfFileSelect(product.id, null, null, sizeOpt.id, 'stl_file', file)}
+                                />
                               )}
                             </div>
                           );
@@ -6790,7 +6815,7 @@ if (product.imageFiles.length > 0) {
                     </div>
                   )}
 
-                  {/* Metal Only (No Diamond) - FIXED VERSION */}
+                  {/* Metal Only (No Diamond) */}
                   {product.hasMetalChoice &&
                     !product.hasDiamondChoice &&
                     product.selectedMetalOptions.map((metalId) => {
@@ -6862,194 +6887,20 @@ if (product.imageFiles.length > 0) {
                                       </label>
 
                                       {isSelected && (
-                                        <div className="ml-8 space-y-3">
-                                          <div>
-                                            <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                              📁 File Types & Pricing:
-                                            </label>
-                                            <div className="space-y-3">
-                                              {FILE_TYPE_OPTIONS.map(
-                                                (fileOption) => {
-                                                  const isFileSelected =
-                                                    pricing.files?.some(
-                                                      (f) =>
-                                                        f.file_type ===
-                                                        fileOption.value
-                                                    ) || false;
-                                                  const filePrice =
-                                                    pricing.files?.find(
-                                                      (f) =>
-                                                        f.file_type ===
-                                                        fileOption.value
-                                                    )?.price || "";
-                                                  const fileKey = `${product.id}-${metalId}-none-${sizeOpt.id}-${fileOption.value}`;
-                                                  const uploadedFile =
-                                                    uploadedPdfFiles[fileKey];
-                                                  const isSTL =
-                                                    fileOption.value ===
-                                                    "stl_file";
-
-                                                  return (
-                                                    <div
-                                                      key={fileOption.value}
-                                                      className="border rounded p-3 bg-white"
-                                                    >
-                                                      <label
-                                                        className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                                          isSTL
-                                                            ? "opacity-50 cursor-not-allowed"
-                                                            : ""
-                                                        }`}
-                                                      >
-                                                        <input
-                                                          type="checkbox"
-                                                          checked={
-                                                            isFileSelected
-                                                          }
-                                                          onChange={() =>
-                                                            !isSTL &&
-                                                            toggleVariantFileType(
-                                                              product.id,
-                                                              metalId,
-                                                              null,
-                                                              sizeOpt.id,
-                                                              fileOption.value
-                                                            )
-                                                          }
-                                                          disabled={isSTL}
-                                                          className="w-4 h-4 text-green-600"
-                                                        />
-                                                        <span className="text-lg">
-                                                          {fileOption.emoji}
-                                                        </span>
-                                                        <span className="font-medium text-gray-800">
-                                                          {fileOption.label}
-                                                        </span>
-                                                        {isSTL && (
-                                                          <span className="text-xs text-green-600 ml-auto">
-                                                            (Mandatory)
-                                                          </span>
-                                                        )}
-                                                      </label>
-
-                                                      {isFileSelected && (
-                                                        <div className="ml-6 space-y-3">
-                                                          {fileOption.requiresPrice && (
-                                                            <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                              <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                                🟩{" "}
-                                                                {
-                                                                  fileOption.label
-                                                                }{" "}
-                                                                Price{" "}
-                                                                {isSTL && "*"}
-                                                              </p>
-                                                              <p className="text-xs text-gray-500 mb-2">
-                                                                {isSTL
-                                                                  ? "This price will be displayed to customers (Required)"
-                                                                  : `If the customer selects ${fileOption.label.toLowerCase()}, this price will be shown.`}
-                                                              </p>
-                                                              <input
-                                                                type="number"
-                                                                placeholder={
-                                                                  isSTL
-                                                                    ? "Enter price (required)"
-                                                                    : "Enter price"
-                                                                }
-                                                                value={
-                                                                  filePrice
-                                                                }
-                                                                onChange={(e) =>
-                                                                  updateFilePrice(
-                                                                    product.id,
-                                                                    metalId,
-                                                                    null,
-                                                                    sizeOpt.id,
-                                                                    fileOption.value,
-                                                                    e.target
-                                                                      .value
-                                                                  )
-                                                                }
-                                                                className={`w-full px-3 py-2 border rounded text-sm ${
-                                                                  isSTL &&
-                                                                  !filePrice
-                                                                    ? "border-red-500"
-                                                                    : "border-gray-300"
-                                                                }`}
-                                                                required={isSTL}
-                                                              />
-                                                              {isSTL &&
-                                                                !filePrice && (
-                                                                  <p className="text-xs text-red-600 mt-1">
-                                                                    STL price is
-                                                                    required
-                                                                  </p>
-                                                                )}
-                                                            </div>
-                                                          )}
-
-                                                          {fileOption.requiresUpload !==
-                                                            false && (
-                                                            <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                              <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                                📎 Upload{" "}
-                                                                {
-                                                                  fileOption.label
-                                                                }{" "}
-                                                                {isSTL &&
-                                                                  "(Optional)"}
-                                                              </label>
-                                                              <input
-                                                                type="file"
-                                                                accept=".pdf,.stl,.zip,.cam"
-                                                                onChange={(
-                                                                  e
-                                                                ) => {
-                                                                  if (
-                                                                    e.target
-                                                                      .files[0]
-                                                                  ) {
-                                                                    handlePdfFileSelect(
-                                                                      product.id,
-                                                                      metalId,
-                                                                      null,
-                                                                      sizeOpt.id,
-                                                                      fileOption.value,
-                                                                      e.target
-                                                                        .files[0]
-                                                                    );
-                                                                  }
-                                                                }}
-                                                                className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                                              />
-                                                              {uploadedFile && (
-                                                                <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                                  <span>✓</span>
-                                                                  <span className="font-medium">
-                                                                    {
-                                                                      uploadedFile.file_name
-                                                                    }
-                                                                  </span>
-                                                                </div>
-                                                              )}
-                                                            </div>
-                                                          )}
-
-                                                          {!fileOption.requiresPrice && (
-                                                            <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                              💡 Enquiry only -
-                                                              no price needed
-                                                            </p>
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                }
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
+                                        <STLFileInput
+                                          productId={product.id}
+                                          metalId={metalId}
+                                          diamondId={null}
+                                          sizeId={sizeOpt.id}
+                                          filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
+                                          fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
+                                          fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
+                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-stl_file`]}
+                                          onPriceChange={(value) => updateFilePrice(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
+                                          onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
+                                          onLinkChange={(value) => updateFileLink(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
+                                          onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, 'stl_file', file)}
+                                        />
                                       )}
                                     </div>
                                   );
@@ -7057,149 +6908,20 @@ if (product.imageFiles.length > 0) {
                               )}
                             </div>
                           ) : (
-                            /* ✅ FIXED: Show files directly WITHOUT sizes */
-                            <div className="space-y-3 border-2 border-gray-200 rounded p-3 bg-white">
-                              <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                📁 File Types & Pricing:
-                              </label>
-                              <div className="space-y-3">
-                                {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                  const directKey = `${metalId}-none-none`;
-                                  const pricing =
-                                    product.variantPricing[directKey] || {};
-                                  const isFileSelected =
-                                    pricing.files?.some(
-                                      (f) => f.file_type === fileOption.value
-                                    ) || false;
-                                  const filePrice =
-                                    pricing.files?.find(
-                                      (f) => f.file_type === fileOption.value
-                                    )?.price || "";
-                                  const fileKey = `${product.id}-${metalId}-direct-${fileOption.value}`;
-                                  const uploadedFile =
-                                    uploadedPdfFiles[fileKey];
-                                  const isSTL = fileOption.value === "stl_file";
-
-                                  return (
-                                    <div
-                                      key={fileOption.value}
-                                      className="border rounded p-3 bg-gray-50"
-                                    >
-                                      {isSTL ? (
-                                        <div className="flex items-center gap-2 text-sm mb-2">
-                                          <span className="text-lg">
-                                            {fileOption.emoji}
-                                          </span>
-                                          <span className="font-medium text-gray-800">
-                                            {fileOption.label} (Mandatory)
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
-                                          <input
-                                            type="checkbox"
-                                            checked={isFileSelected}
-                                            onChange={() => {
-                                              toggleVariantFileType(
-                                                product.id,
-                                                metalId,
-                                                null,
-                                                null,
-                                                fileOption.value
-                                              );
-                                            }}
-                                            className="w-4 h-4 text-green-600"
-                                          />
-                                          <span className="text-lg">
-                                            {fileOption.emoji}
-                                          </span>
-                                          <span className="font-medium text-gray-800">
-                                            {fileOption.label}
-                                          </span>
-                                        </label>
-                                      )}
-
-                                      {(isSTL || isFileSelected) && (
-                                        <div className="ml-6 space-y-3">
-                                          {fileOption.requiresPrice && (
-                                            <div className="p-3 bg-green-50 rounded border border-green-200">
-                                              <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                🟩 {fileOption.label} Price{" "}
-                                                {isSTL && "*"}
-                                              </p>
-                                              <input
-                                                type="number"
-                                                placeholder={
-                                                  isSTL
-                                                    ? "Enter price (required)"
-                                                    : "Enter price"
-                                                }
-                                                value={filePrice}
-                                                onChange={(e) =>
-                                                  updateFilePrice(
-                                                    product.id,
-                                                    metalId,
-                                                    null,
-                                                    null,
-                                                    fileOption.value,
-                                                    e.target.value
-                                                  )
-                                                }
-                                                className={`w-full px-3 py-2 border rounded text-sm ${
-                                                  isSTL && !filePrice
-                                                    ? "border-red-500"
-                                                    : "border-gray-300"
-                                                }`}
-                                              />
-                                            </div>
-                                          )}
-
-                                          {fileOption.requiresUpload !==
-                                            false && (
-                                            <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                              <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                📎 Upload {fileOption.label}
-                                              </label>
-                                              <input
-                                                type="file"
-                                                accept=".pdf,.stl,.zip,.cam"
-                                                onChange={(e) => {
-                                                  if (e.target.files[0]) {
-                                                    handlePdfFileSelect(
-                                                      product.id,
-                                                      metalId,
-                                                      null,
-                                                      null,
-                                                      fileOption.value,
-                                                      e.target.files[0]
-                                                    );
-                                                  }
-                                                }}
-                                                className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                              />
-                                              {uploadedFile && (
-                                                <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                  <span>✓</span>
-                                                  <span className="font-medium">
-                                                    {uploadedFile.file_name}
-                                                  </span>
-                                                </div>
-                                              )}
-                                            </div>
-                                          )}
-
-                                          {!fileOption.requiresPrice && (
-                                            <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                              💡 Enquiry only - no price needed
-                                            </p>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                            <STLFileInput
+                              productId={product.id}
+                              metalId={metalId}
+                              diamondId={null}
+                              sizeId={null}
+                              filePrice={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.price || ''}
+                              fileDescription={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
+                              fileLink={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
+                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-direct-stl_file`]}
+                              onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, 'stl_file', value)}
+                              onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, 'stl_file', value)}
+                              onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, 'stl_file', value)}
+                              onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, null, 'stl_file', file)}
+                            />
                           )}
                         </div>
                       );
@@ -7292,202 +7014,20 @@ if (product.imageFiles.length > 0) {
                                         </label>
 
                                         {isSelected && (
-                                          <div className="ml-8 space-y-3">
-                                            <div>
-                                              <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                                📁 File Types & Pricing:
-                                              </label>
-                                              <div className="space-y-3">
-                                                {FILE_TYPE_OPTIONS.map(
-                                                  (fileOption) => {
-                                                    const isFileSelected =
-                                                      pricing.files?.some(
-                                                        (f) =>
-                                                          f.file_type ===
-                                                          fileOption.value
-                                                      ) || false;
-                                                    const filePrice =
-                                                      pricing.files?.find(
-                                                        (f) =>
-                                                          f.file_type ===
-                                                          fileOption.value
-                                                      )?.price || "";
-                                                    const fileKey = `${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOption.value}`;
-                                                    const uploadedFile =
-                                                      uploadedPdfFiles[fileKey];
-                                                    const isSTL =
-                                                      fileOption.value ===
-                                                      "stl_file";
-
-                                                    return (
-                                                      <div
-                                                        key={fileOption.value}
-                                                        className="border rounded p-3 bg-white"
-                                                      >
-                                                        <label
-                                                          className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                                            isSTL
-                                                              ? "opacity-50 cursor-not-allowed"
-                                                              : ""
-                                                          }`}
-                                                        >
-                                                          <input
-                                                            type="checkbox"
-                                                            checked={
-                                                              isFileSelected
-                                                            }
-                                                            onChange={() =>
-                                                              !isSTL &&
-                                                              toggleVariantFileType(
-                                                                product.id,
-                                                                metalId,
-                                                                diamondId,
-                                                                sizeOpt.id,
-                                                                fileOption.value
-                                                              )
-                                                            }
-                                                            disabled={isSTL}
-                                                            className="w-4 h-4 text-green-600"
-                                                          />
-                                                          <span className="text-lg">
-                                                            {fileOption.emoji}
-                                                          </span>
-                                                          <span className="font-medium text-gray-800">
-                                                            {fileOption.label}
-                                                          </span>
-                                                          {isSTL && (
-                                                            <span className="text-xs text-green-600 ml-auto">
-                                                              (Mandatory)
-                                                            </span>
-                                                          )}
-                                                        </label>
-
-                                                        {isFileSelected && (
-                                                          <div className="ml-6 space-y-3">
-                                                            {fileOption.requiresPrice && (
-                                                              <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                                <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                                  🟩{" "}
-                                                                  {
-                                                                    fileOption.label
-                                                                  }{" "}
-                                                                  Price{" "}
-                                                                  {isSTL && "*"}
-                                                                </p>
-                                                                <p className="text-xs text-gray-500 mb-2">
-                                                                  {isSTL
-                                                                    ? "This price will be displayed to customers (Required)"
-                                                                    : `If the customer selects ${fileOption.label.toLowerCase()}, this price will be shown.`}
-                                                                </p>
-                                                                <input
-                                                                  type="number"
-                                                                  placeholder={
-                                                                    isSTL
-                                                                      ? "Enter price (required)"
-                                                                      : "Enter price"
-                                                                  }
-                                                                  value={
-                                                                    filePrice
-                                                                  }
-                                                                  onChange={(
-                                                                    e
-                                                                  ) =>
-                                                                    updateFilePrice(
-                                                                      product.id,
-                                                                      metalId,
-                                                                      diamondId,
-                                                                      sizeOpt.id,
-                                                                      fileOption.value,
-                                                                      e.target
-                                                                        .value
-                                                                    )
-                                                                  }
-                                                                  className={`w-full px-3 py-2 border rounded text-sm ${
-                                                                    isSTL &&
-                                                                    !filePrice
-                                                                      ? "border-red-500"
-                                                                      : "border-gray-300"
-                                                                  }`}
-                                                                  required={
-                                                                    isSTL
-                                                                  }
-                                                                />
-                                                                {isSTL &&
-                                                                  !filePrice && (
-                                                                    <p className="text-xs text-red-600 mt-1">
-                                                                      STL price
-                                                                      is
-                                                                      required
-                                                                    </p>
-                                                                  )}
-                                                              </div>
-                                                            )}
-
-                                                            {fileOption.requiresUpload !==
-                                                              false && (
-                                                              <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                                <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                                  📎 Upload{" "}
-                                                                  {
-                                                                    fileOption.label
-                                                                  }{" "}
-                                                                  {isSTL &&
-                                                                    "(Optional)"}
-                                                                </label>
-                                                                <input
-                                                                  type="file"
-                                                                  accept=".pdf,.stl,.zip,.cam"
-                                                                  onChange={(
-                                                                    e
-                                                                  ) => {
-                                                                    if (
-                                                                      e.target
-                                                                        .files[0]
-                                                                    ) {
-                                                                      handlePdfFileSelect(
-                                                                        product.id,
-                                                                        metalId,
-                                                                        diamondId,
-                                                                        sizeOpt.id,
-                                                                        fileOption.value,
-                                                                        e.target
-                                                                          .files[0]
-                                                                      );
-                                                                    }
-                                                                  }}
-                                                                  className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                                                />
-                                                                {uploadedFile && (
-                                                                  <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                                    <span>
-                                                                      ✓
-                                                                    </span>
-                                                                    <span className="font-medium">
-                                                                      {
-                                                                        uploadedFile.file_name
-                                                                      }
-                                                                    </span>
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            )}
-
-                                                            {!fileOption.requiresPrice && (
-                                                              <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                                💡 Enquiry only
-                                                                - no price
-                                                                needed
-                                                              </p>
-                                                            )}
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  }
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
+                                          <STLFileInput
+                                            productId={product.id}
+                                            metalId={metalId}
+                                            diamondId={diamondId}
+                                            sizeId={sizeOpt.id}
+                                            filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
+                                            fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
+                                            fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
+                                            existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-stl_file`]}
+                                            onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
+                                            onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
+                                            onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
+                                            onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', file)}
+                                          />
                                         )}
                                       </div>
                                     );
@@ -7495,210 +7035,20 @@ if (product.imageFiles.length > 0) {
                                 )}
                               </div>
                             ) : (
-                              /* ✅ FIXED: Show files directly WITHOUT sizes */
-                              <div className="space-y-3 border-2 border-gray-200 rounded p-3 bg-white">
-                                <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                  📁 File Types & Pricing:
-                                </label>
-                                <div className="space-y-3">
-                                  {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                    const directKey = `${metalId}-${diamondId}-none`;
-                                    const pricing =
-                                      product.variantPricing[directKey] || {};
-
-                                    // ✅ CRITICAL FIX: Initialize files array if STL is mandatory
-                                    const isSTL =
-                                      fileOption.value === "stl_file";
-
-                                    // Auto-initialize STL file for metal+diamond combos
-                                    if (
-                                      isSTL &&
-                                      (!pricing.files ||
-                                        !pricing.files.some(
-                                          (f) => f.file_type === "stl_file"
-                                        ))
-                                    ) {
-                                      // Initialize the variant pricing with STL file
-                                      const updatedProduct = products.find(
-                                        (p) => p.id === product.id
-                                      );
-                                      if (
-                                        updatedProduct &&
-                                        !updatedProduct.variantPricing[
-                                          directKey
-                                        ]?.files?.some(
-                                          (f) => f.file_type === "stl_file"
-                                        )
-                                      ) {
-                                        setTimeout(() => {
-                                          setProducts(
-                                            products.map((p) => {
-                                              if (p.id === product.id) {
-                                                return {
-                                                  ...p,
-                                                  variantPricing: {
-                                                    ...p.variantPricing,
-                                                    [directKey]: {
-                                                      ...p.variantPricing[
-                                                        directKey
-                                                      ],
-                                                      files: [
-                                                        {
-                                                          file_type: "stl_file",
-                                                          price: null,
-                                                        },
-                                                      ],
-                                                    },
-                                                  },
-                                                };
-                                              }
-                                              return p;
-                                            })
-                                          );
-                                        }, 0);
-                                      }
-                                    }
-
-                                    const isFileSelected =
-                                      pricing.files?.some(
-                                        (f) => f.file_type === fileOption.value
-                                      ) ||
-                                      (isSTL &&
-                                        product.selectedMetalOptions.includes(
-                                          metalId
-                                        ) &&
-                                        product.selectedDiamondOptions.includes(
-                                          diamondId
-                                        ));
-                                    const filePrice =
-                                      pricing.files?.find(
-                                        (f) => f.file_type === fileOption.value
-                                      )?.price || "";
-                                    const fileKey = `${product.id}-${metalId}-${diamondId}-direct-${fileOption.value}`;
-                                    const uploadedFile =
-                                      uploadedPdfFiles[fileKey];
-
-                                    return (
-                                      <div
-                                        key={fileOption.value}
-                                        className="border rounded p-3 bg-gray-50"
-                                      >
-                                        {isSTL ? (
-                                          <div className="flex items-center gap-2 text-sm mb-2">
-                                            <span className="text-lg">
-                                              {fileOption.emoji}
-                                            </span>
-                                            <span className="font-medium text-gray-800">
-                                              {fileOption.label} (Mandatory)
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
-                                            <input
-                                              type="checkbox"
-                                              checked={isFileSelected}
-                                              onChange={() => {
-                                                toggleVariantFileType(
-                                                  product.id,
-                                                  metalId,
-                                                  diamondId,
-                                                  null,
-                                                  fileOption.value
-                                                );
-                                              }}
-                                              className="w-4 h-4 text-green-600"
-                                            />
-                                            <span className="text-lg">
-                                              {fileOption.emoji}
-                                            </span>
-                                            <span className="font-medium text-gray-800">
-                                              {fileOption.label}
-                                            </span>
-                                          </label>
-                                        )}
-
-                                        {(isSTL || isFileSelected) && (
-                                          <div className="ml-6 space-y-3">
-                                            {fileOption.requiresPrice && (
-                                              <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                  🟩 {fileOption.label} Price{" "}
-                                                  {isSTL && "*"}
-                                                </p>
-                                                <input
-                                                  type="number"
-                                                  placeholder={
-                                                    isSTL
-                                                      ? "Enter price (required)"
-                                                      : "Enter price"
-                                                  }
-                                                  value={filePrice}
-                                                  onChange={(e) =>
-                                                    updateFilePrice(
-                                                      product.id,
-                                                      metalId,
-                                                      diamondId,
-                                                      null,
-                                                      fileOption.value,
-                                                      e.target.value
-                                                    )
-                                                  }
-                                                  className={`w-full px-3 py-2 border rounded text-sm ${
-                                                    isSTL && !filePrice
-                                                      ? "border-red-500"
-                                                      : "border-gray-300"
-                                                  }`}
-                                                />
-                                              </div>
-                                            )}
-
-                                            {fileOption.requiresUpload !==
-                                              false && (
-                                              <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                  📎 Upload {fileOption.label}
-                                                </label>
-                                                <input
-                                                  type="file"
-                                                  accept=".pdf,.stl,.zip,.cam"
-                                                  onChange={(e) => {
-                                                    if (e.target.files[0]) {
-                                                      handlePdfFileSelect(
-                                                        product.id,
-                                                        metalId,
-                                                        diamondId,
-                                                        null,
-                                                        fileOption.value,
-                                                        e.target.files[0]
-                                                      );
-                                                    }
-                                                  }}
-                                                  className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                                />
-                                                {uploadedFile && (
-                                                  <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                    <span>✓</span>
-                                                    <span className="font-medium">
-                                                      {uploadedFile.file_name}
-                                                    </span>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-
-                                            {!fileOption.requiresPrice && (
-                                              <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                💡 Enquiry only - no price
-                                                needed
-                                              </p>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
+                              <STLFileInput
+                                productId={product.id}
+                                metalId={metalId}
+                                diamondId={diamondId}
+                                sizeId={null}
+                                filePrice={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.price || ''}
+                                fileDescription={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
+                                fileLink={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
+                                existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-stl_file`]}
+                                onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, 'stl_file', value)}
+                                onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, 'stl_file', value)}
+                                onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, 'stl_file', value)}
+                                onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, null, 'stl_file', file)}
+                              />
                             )}
                           </div>
                         );
@@ -7711,56 +7061,54 @@ if (product.imageFiles.length > 0) {
         </div>
       ))}
 
-
-
       {/* Upload Progress Indicators */}
-{(isUploading || isPdfUploading) && (
-  <div className="sticky bottom-20 bg-white p-4 rounded-xl shadow-lg border border-gray-200 mb-4">
-    {/* Image Upload Progress */}
-    {isUploading && (
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-emerald-700">
-            📸 Uploading images for: {currentProductUploading}
-          </span>
-          <span className="text-sm font-bold text-emerald-900">
-            {uploadProgress}%
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${uploadProgress}%` }}
-          >
-            <div className="h-full w-full bg-white/30 animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    )}
+      {(isUploading || isPdfUploading) && (
+        <div className="sticky bottom-20 bg-white p-4 rounded-xl shadow-lg border border-gray-200 mb-4">
+          {/* Image Upload Progress */}
+          {isUploading && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-emerald-700">
+                  📸 Uploading images for: {currentProductUploading}
+                </span>
+                <span className="text-sm font-bold text-emerald-900">
+                  {uploadProgress}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                >
+                  <div className="h-full w-full bg-white/30 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          )}
 
-    {/* PDF Upload Progress */}
-    {isPdfUploading && (
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-purple-700">
-            📄 Uploading: {currentUploadingFile}
-          </span>
-          <span className="text-sm font-bold text-purple-900">
-            {pdfUploadProgress}%
-          </span>
+          {/* PDF Upload Progress */}
+          {isPdfUploading && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-purple-700">
+                  📄 Uploading: {currentUploadingFile}
+                </span>
+                <span className="text-sm font-bold text-purple-900">
+                  {pdfUploadProgress}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${pdfUploadProgress}%` }}
+                >
+                  <div className="h-full w-full bg-white/30 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${pdfUploadProgress}%` }}
-          >
-            <div className="h-full w-full bg-white/30 animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+      )}
 
       {/* Save Button */}
       {products.length > 0 && (
@@ -7802,8 +7150,7 @@ if (product.imageFiles.length > 0) {
       )}
     </div>
   );
-}; 
-
+};
 
 const BulkImportProducts = ({ onBack, categories, userRole }) => {
   const [step, setStep] = useState(1); // 1: Upload, 2: Validate, 3: Preview, 4: Create
