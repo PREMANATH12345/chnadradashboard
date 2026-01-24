@@ -45,6 +45,215 @@ import { BsGenderAmbiguous } from "react-icons/bs";
 const API_URL = import.meta.env.VITE_API_BASE_URL_DAS
 const BASE_URL = import.meta.env.VITE_API_BASE_IMG_URL
 
+const FILE_TYPE_OPTIONS = [
+  {
+    value: "stl_file",
+    label: "STL File",
+    emoji: "📄",
+    requiresPrice: true,
+    requiresUpload: true,
+    hasLinkOption: true,
+    hasDescription: true,
+  },
+  {
+    value: "cam_product",
+    label: "CAM Product",
+    emoji: "⚙️",
+    requiresPrice: true,
+    requiresUpload: false,
+    hasDescription: true,
+  },
+  {
+    value: "rubber_mold",
+    label: "Rubber Mold",
+    emoji: "🔧",
+    requiresPrice: false,
+    requiresUpload: false,
+  },
+  {
+    value: "casting_model",
+    label: "Casting Model",
+    emoji: "🏭",
+    requiresPrice: false,
+    requiresUpload: false,
+  },
+  {
+    value: "finished_product",
+    label: "Finished Product",
+    emoji: "✨",
+    requiresPrice: false,
+    requiresUpload: false,
+  },
+];
+
+const FilePricingInput = ({
+  productId,
+  metalId,
+  diamondId,
+  sizeId,
+  fileOption,
+  pricing,
+  existingFile,
+  onPriceChange,
+  onDescriptionChange,
+  onLinkChange,
+  onFileUpload,
+  disabled = false,
+}) => {
+  const fileType = fileOption.value;
+  const isSTL = fileType === "stl_file";
+  const isCAM = fileType === "cam_product";
+
+  const filePrice = pricing?.price || "";
+  const fileDescription = isSTL
+    ? (pricing?.stl_file_description || "")
+    : (isCAM ? (pricing?.cam_product_description || "") : "");
+  const fileLink = isSTL ? (pricing?.stl_file_link || "") : "";
+
+  const [useLink, setUseLink] = useState(!!fileLink);
+  const [link, setLink] = useState(fileLink);
+  const [description, setDescription] = useState(fileDescription);
+
+  useEffect(() => {
+    setUseLink(!!fileLink);
+    setLink(fileLink);
+    setDescription(fileDescription);
+  }, [fileLink, fileDescription]);
+
+  const handleLinkChange = (value) => {
+    setLink(value);
+    setUseLink(!!value);
+    onLinkChange(value);
+  };
+
+  const handleDescriptionChange = (value) => {
+    setDescription(value);
+    onDescriptionChange(value);
+  };
+
+  return (
+    <div className="ml-6 space-y-3 mt-3 border-l-2 border-green-100 pl-4">
+      {fileOption.requiresPrice && (
+        <div className={`p-3 rounded border ${isSTL ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
+          <p className="text-xs text-gray-700 mb-2 font-semibold">
+            {fileOption.emoji} {fileOption.label} Price *
+          </p>
+          <input
+            type="number"
+            placeholder={`Enter ${fileOption.label} price`}
+            value={filePrice}
+            onChange={(e) => onPriceChange(e.target.value)}
+            disabled={disabled}
+            className={`w-full px-3 py-2 border rounded text-sm ${!filePrice && isSTL ? "border-red-500" : "border-gray-300"
+              } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            required={isSTL}
+          />
+          {!filePrice && isSTL && (
+            <p className="text-xs text-red-600 mt-1">STL price is required</p>
+          )}
+        </div>
+      )}
+
+      {(isSTL || isCAM) && (
+        <div className="p-3 bg-blue-50 rounded border border-blue-200">
+          <label className="block text-xs font-semibold text-gray-800 mb-2">
+            📝 {fileOption.label} Description
+          </label>
+          <textarea
+            placeholder={`Enter description for this ${fileOption.label}...`}
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            disabled={disabled}
+            className={`w-full px-3 py-2 border border-gray-300 rounded text-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            rows="2"
+          />
+        </div>
+      )}
+
+      {isSTL && (
+        <div className="p-3 bg-gray-50 rounded border border-gray-200">
+          <label className="block text-xs font-semibold text-gray-800 mb-2">
+            📎 Upload Option
+          </label>
+          <div className="flex gap-4 mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}-${fileType}`}
+                checked={!useLink}
+                onChange={() => !disabled && setUseLink(false)}
+                disabled={disabled}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Upload File</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}-${fileType}`}
+                checked={useLink}
+                onChange={() => !disabled && setUseLink(true)}
+                disabled={disabled}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Share Link</span>
+            </label>
+          </div>
+
+          {!useLink ? (
+            <div>
+              <input
+                type="file"
+                accept=".pdf,.stl,.zip,.cam"
+                onChange={(e) => {
+                  if (e.target.files[0]) {
+                    onFileUpload(e.target.files[0]);
+                  }
+                }}
+                disabled={disabled}
+                className={`w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              />
+              {existingFile && (
+                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {/* <span className="text-green-600">📄</span> */}
+                      <span className="text-xs font-medium truncate">
+                        {existingFile.file_name}
+                      </span>
+                    </div>
+                    {existingFile.file_size && (
+                      <span className="text-xs text-gray-500">
+                        {(existingFile.file_size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <input
+                type="url"
+                placeholder="Enter Google Drive, Dropbox, or any shareable link..."
+                value={link}
+                onChange={(e) => handleLinkChange(e.target.value)}
+                disabled={disabled}
+                className={`w-full px-3 py-2 border border-gray-300 rounded text-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
+              />
+              {link && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Link will be stored and shown to customers
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Products = () => {
   const [currentStep, setCurrentStep] = useState("dashboard");
   const [categories, setCategories] = useState([]);
@@ -53,9 +262,9 @@ const Products = () => {
   const [showVendorSidebar, setShowVendorSidebar] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [bulkImportFile, setBulkImportFile] = useState(null);
-const [validationResult, setValidationResult] = useState(null);
-const [importLoading, setImportLoading] = useState(false);
-const [importPreview, setImportPreview] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState(null);
 
   useEffect(() => {
     fetchUserRole();
@@ -292,15 +501,14 @@ const StepButton = ({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 rounded-lg transition-all whitespace-nowrap text-xs sm:text-sm font-medium ${
-        isActive
-          ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md sm:shadow-lg"
-          : isCompleted
+      className={`flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 rounded-lg transition-all whitespace-nowrap text-xs sm:text-sm font-medium ${isActive
+        ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md sm:shadow-lg"
+        : isCompleted
           ? "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-2 border-emerald-300"
           : disabled
-          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-          : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 hover:from-gray-100 hover:to-gray-200 border border-gray-200"
-      }`}
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 hover:from-gray-100 hover:to-gray-200 border border-gray-200"
+        }`}
     >
       <div className={`p-1 rounded ${isActive ? "bg-white/20" : ""}`}>
         {icon}
@@ -381,14 +589,14 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       const response = await axios.post(
         `${API_URL}/products/by-status`,
         payload,
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-          } 
+          }
         }
       );
-    
+
       if (response.data.success) {
         setPendingProducts(response.data.data || []);
       } else {
@@ -412,11 +620,11 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
           table: "users",
           where: { user_type: "vendor", is_deleted: 0 },
         },
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-          } 
+          }
         }
       );
 
@@ -428,75 +636,75 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
     }
   };
 
- const handleApprove = async (productid, approve = true) => {
-  if (!approve && !rejectionReason.trim()) {
-    alert("Please provide a rejection reason");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Session expired. Please login again.");
+  const handleApprove = async (productid, approve = true) => {
+    if (!approve && !rejectionReason.trim()) {
+      alert("Please provide a rejection reason");
       return;
     }
 
-    if (approve) {
-      setApproving(true);
-    } else {
-      setRejecting(true);
-    }
-
-
-    const response = await axios.post(
-      `${API_URL}/products/vendor/approve`,
-      {
-        product_id: productid,  // Changed from 'id' to 'product_id'
-        action: approve ? "approve" : "reject",
-        reason: !approve ? rejectionReason : "",
-      },
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } 
-      }
-    );
-
-    if (response.data.success) {
-      alert(`Product ${approve ? "approved" : "rejected"} successfully`);
-      fetchPendingProducts();
-      setSelectedProduct(null);
-      setRejectionReason("");
-      if (onApproveProduct) onApproveProduct();
-    } else {
-      alert(response.data.message || "Operation failed");
-    }
-  } catch (error) {
-    console.error("Approval error:", error);
-    console.error("Error response:", error.response?.data);
-    
-    if (error.response) {
-      // Server responded with error
-      if (error.response.status === 401) {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
         alert("Session expired. Please login again.");
-        // Optionally redirect to login
-        // window.location.href = '/login';
-      } else if (error.response.status === 400) {
-        alert(error.response.data.message || "Invalid request");
-      } else {
-        alert("Error processing request. Please try again.");
+        return;
       }
-    } else if (error.request) {
-      alert("No response from server. Please check your connection.");
-    } else {
-      alert("Error: " + error.message);
+
+      if (approve) {
+        setApproving(true);
+      } else {
+        setRejecting(true);
+      }
+
+
+      const response = await axios.post(
+        `${API_URL}/products/vendor/approve`,
+        {
+          product_id: productid,  // Changed from 'id' to 'product_id'
+          action: approve ? "approve" : "reject",
+          reason: !approve ? rejectionReason : "",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        alert(`Product ${approve ? "approved" : "rejected"} successfully`);
+        fetchPendingProducts();
+        setSelectedProduct(null);
+        setRejectionReason("");
+        if (onApproveProduct) onApproveProduct();
+      } else {
+        alert(response.data.message || "Operation failed");
+      }
+    } catch (error) {
+      console.error("Approval error:", error);
+      console.error("Error response:", error.response?.data);
+
+      if (error.response) {
+        // Server responded with error
+        if (error.response.status === 401) {
+          alert("Session expired. Please login again.");
+          // Optionally redirect to login
+          // window.location.href = '/login';
+        } else if (error.response.status === 400) {
+          alert(error.response.data.message || "Invalid request");
+        } else {
+          alert("Error processing request. Please try again.");
+        }
+      } else if (error.request) {
+        alert("No response from server. Please check your connection.");
+      } else {
+        alert("Error: " + error.message);
+      }
+    } finally {
+      setApproving(false);
+      setRejecting(false);
     }
-  } finally {
-    setApproving(false);
-    setRejecting(false);
-  }
-};
+  };
 
   const handleViewProductDetails = (product) => {
     let productDetails = product.product_details;
@@ -618,168 +826,168 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                 const mainImage = productDetails.images?.[0] || null;
 
                 return (
-<div
-  key={product.id}
-  className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md"
->
-  <div className="p-5">
-    {/* Make only the top section clickable for viewing details */}
-    <div 
-      className="cursor-pointer mb-4"
-      onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
-    >
-      <div className="flex gap-4">
-        {mainImage ? (
-          <div className="flex-shrink-0 w-24 h-24">
-            <img
-              src={`${BASE_URL}${mainImage}`}
-              alt={product.name}
-              className="w-full h-full object-cover rounded-lg"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          </div>
-        ) : (
-          <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-            <FiPackage className="w-8 h-8 text-gray-400" />
-          </div>
-        )}
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                  >
+                    <div className="p-5">
+                      {/* Make only the top section clickable for viewing details */}
+                      <div
+                        className="cursor-pointer mb-4"
+                        onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
+                      >
+                        <div className="flex gap-4">
+                          {mainImage ? (
+                            <div className="flex-shrink-0 w-24 h-24">
+                              <img
+                                src={`${BASE_URL}${mainImage}`}
+                                alt={product.name}
+                                className="w-full h-full object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <FiPackage className="w-8 h-8 text-gray-400" />
+                            </div>
+                          )}
 
-        <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">
-            {product.name}
-          </h4>
-          <p className="text-sm text-gray-500 mb-2 truncate">
-            {product.slug}
-          </p>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-              {productDetails.category || "No category"}
-            </span>
-          </div>
-        </div>
-      </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">
+                              {product.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 mb-2 truncate">
+                              {product.slug}
+                            </p>
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                {productDetails.category || "No category"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          <FiUsers className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-600">
-            Vendor:{" "}
-            <span className="font-medium">
-              {product.vendor_name || product.vendor_username || "Unknown"}
-            </span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <FiClock className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-500">
-            {new Date(product.created_at).toLocaleDateString()}
-          </span>
-        </div>
-      </div>
-    </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <FiUsers className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-600">
+                              Vendor:{" "}
+                              <span className="font-medium">
+                                {product.vendor_name || product.vendor_username || "Unknown"}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <FiClock className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-500">
+                              {new Date(product.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-    {/* Buttons section - not clickable for viewing details */}
-    <div className="flex gap-2">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleApprove(product.id, true);
-        }}
-        disabled={approving || rejecting}
-        className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {approving && selectedProduct === product.id ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            Approving...
-          </>
-        ) : (
-          <>
-            <FiCheckCircle className="w-4 h-4" />
-            Approve
-          </>
-        )}
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedProduct(product.id);
-        }}
-        disabled={approving || rejecting}
-        className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <FiX className="w-4 h-4" />
-        Reject
-      </button>
-    </div>
+                      {/* Buttons section - not clickable for viewing details */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApprove(product.id, true);
+                          }}
+                          disabled={approving || rejecting}
+                          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {approving && selectedProduct === product.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <FiCheckCircle className="w-4 h-4" />
+                              Approve
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(product.id);
+                          }}
+                          disabled={approving || rejecting}
+                          className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FiX className="w-4 h-4" />
+                          Reject
+                        </button>
+                      </div>
 
-    {/* Rejection reason section - with stopPropagation */}
-    {selectedProduct === product.id && (
-      <div 
-        className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <label className="block text-sm font-medium text-red-800 mb-2">
-          Reason for rejection:
-        </label>
-        <textarea
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          onFocus={(e) => e.stopPropagation()}
-          placeholder="Please provide a reason for rejection..."
-          className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm mb-3"
-          rows="2"
-          disabled={rejecting}
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleApprove(product.id, false);
-            }}
-            disabled={rejecting}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {rejecting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Rejecting...
-              </>
-            ) : (
-              'Confirm Reject'
-            )}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedProduct(null);
-              setRejectionReason("");
-            }}
-            disabled={rejecting}
-            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    )}
+                      {/* Rejection reason section - with stopPropagation */}
+                      {selectedProduct === product.id && (
+                        <div
+                          className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <label className="block text-sm font-medium text-red-800 mb-2">
+                            Reason for rejection:
+                          </label>
+                          <textarea
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onFocus={(e) => e.stopPropagation()}
+                            placeholder="Please provide a reason for rejection..."
+                            className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm mb-3"
+                            rows="2"
+                            disabled={rejecting}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApprove(product.id, false);
+                              }}
+                              disabled={rejecting}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {rejecting ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  Rejecting...
+                                </>
+                              ) : (
+                                'Confirm Reject'
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProduct(null);
+                                setRejectionReason("");
+                              }}
+                              disabled={rejecting}
+                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 font-medium transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-    {/* View details link - only this part is clickable for viewing details */}
-    <div className="mt-3 pt-3 border-t border-gray-100">
-      <p 
-        className="text-xs text-gray-500 text-center cursor-pointer hover:text-blue-600 transition-colors"
-        onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
-      >
-        <FiEye className="w-3 h-3 inline mr-1" />
-        Click here to view full details
-      </p>
-    </div>
-  </div>
-</div>
+                      {/* View details link - only this part is clickable for viewing details */}
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p
+                          className="text-xs text-gray-500 text-center cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => !approving && !rejecting && handleViewProductDetails(product)}
+                        >
+                          <FiEye className="w-3 h-3 inline mr-1" />
+                          Click here to view full details
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -787,420 +995,420 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
         </div>
       </div>
 
-{viewProductDetails && (
-  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div
-      className="bg-white rounded-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
-            <FiPackage className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">
-              {viewProductDetails.name}
-            </h3>
-            <p className="text-sm text-gray-600">
-              Submitted by:{" "}
-              <span className="font-medium">
-                {viewProductDetails.vendor_name || viewProductDetails.vendor_username || "Unknown"}
-              </span>
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setViewProductDetails(null)}
-          className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
-          disabled={approving || rejecting}
-        >
-          <FiX className="w-6 h-6 text-gray-600" />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="overflow-y-auto flex-1 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Images & Basic Info */}
-          <div>
-            {/* Images */}
-            {viewProductDetails.product_details?.images?.length > 0 ? (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <FiImage className="w-5 h-5 text-blue-600" />
-                  Product Images
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  {viewProductDetails.product_details.images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={`${BASE_URL}${img}`}
-                      alt={`Product ${idx + 1}`}
-                      className="w-full h-40 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
-                <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No images uploaded</p>
-              </div>
-            )}
-
-            {/* Basic Information */}
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6">
-              <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <FiInfo className="w-5 h-5 text-blue-600" />
-                Basic Information
-              </h4>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Product Name</p>
-                  <p className="font-medium text-gray-900">{viewProductDetails.name}</p>
+      {viewProductDetails && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-white rounded-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white">
+                  <FiPackage className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Slug</p>
-                  <p className="font-medium text-gray-900">{viewProductDetails.slug}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Category</p>
-                  <p className="font-medium text-gray-900">
-                    {viewProductDetails.product_details.category || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Submitted On</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(viewProductDetails.created_at).toLocaleString()}
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {viewProductDetails.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Submitted by:{" "}
+                    <span className="font-medium">
+                      {viewProductDetails.vendor_name || viewProductDetails.vendor_username || "Unknown"}
+                    </span>
                   </p>
                 </div>
               </div>
+              <button
+                onClick={() => setViewProductDetails(null)}
+                className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
+                disabled={approving || rejecting}
+              >
+                <FiX className="w-6 h-6 text-gray-600" />
+              </button>
             </div>
 
-            {/* Description */}
-            {viewProductDetails.product_details.description && (
-              <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6">
-                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FiFileText className="w-5 h-5 text-gray-600" />
-                  Description
-                </h4>
-                <p className="text-gray-700">{viewProductDetails.product_details.description}</p>
-              </div>
-            )}
-          </div>
+            {/* Content */}
+            <div className="overflow-y-auto flex-1 p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column - Images & Basic Info */}
+                <div>
+                  {/* Images */}
+                  {viewProductDetails.product_details?.images?.length > 0 ? (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <FiImage className="w-5 h-5 text-blue-600" />
+                        Product Images
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {viewProductDetails.product_details.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={`${BASE_URL}${img}`}
+                            alt={`Product ${idx + 1}`}
+                            className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
+                      <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500">No images uploaded</p>
+                    </div>
+                  )}
 
-          {/* Right Column - Pricing & Variants */}
-          <div className="space-y-6">
-            {/* Variant Configuration Display */}
-            <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
-              <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                <FiSettings className="w-5 h-5 text-emerald-600" />
-                Variant Configuration
-              </h4>
-              
-              {/* Show variant type */}
-              <div className="space-y-3">
-                {viewProductDetails.product_details.hasMetalChoice && (
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                      <span>🔩</span>
-                      Metal Options
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-{viewProductDetails.product_details.selectedMetalOptions?.map((optId) => {
-  const metalOption = categoryData?.attributes?.metal?.options?.find(o => o.id === optId);
-  return (
-    <span key={optId} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
-      {metalOption?.option_name || `Metal ID: ${optId}`}
-    </span>
-  );
-})}
+                  {/* Basic Information */}
+                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <FiInfo className="w-5 h-5 text-blue-600" />
+                      Basic Information
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-500">Product Name</p>
+                        <p className="font-medium text-gray-900">{viewProductDetails.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Slug</p>
+                        <p className="font-medium text-gray-900">{viewProductDetails.slug}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Category</p>
+                        <p className="font-medium text-gray-900">
+                          {viewProductDetails.product_details.category || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Submitted On</p>
+                        <p className="font-medium text-gray-900">
+                          {new Date(viewProductDetails.created_at).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {viewProductDetails.product_details.hasDiamondChoice && (
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                      <span>💎</span>
-                      Diamond Options
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-{viewProductDetails.product_details.selectedDiamondOptions?.map((optId) => {
-  const diamondOption = categoryData?.attributes?.diamond?.options?.find(o => o.id === optId);
-  return (
-    <span key={optId} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-      {diamondOption?.option_name || `Diamond ID: ${optId}`}
-    </span>
-  );
-})}
+                  {/* Description */}
+                  {viewProductDetails.product_details.description && (
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6">
+                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <FiFileText className="w-5 h-5 text-gray-600" />
+                        Description
+                      </h4>
+                      <p className="text-gray-700">{viewProductDetails.product_details.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column - Pricing & Variants */}
+                <div className="space-y-6">
+                  {/* Variant Configuration Display */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
+                    <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
+                      <FiSettings className="w-5 h-5 text-emerald-600" />
+                      Variant Configuration
+                    </h4>
+
+                    {/* Show variant type */}
+                    <div className="space-y-3">
+                      {viewProductDetails.product_details.hasMetalChoice && (
+                        <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                          <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <span>🔩</span>
+                            Metal Options
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {viewProductDetails.product_details.selectedMetalOptions?.map((optId) => {
+                              const metalOption = categoryData?.attributes?.metal?.options?.find(o => o.id === optId);
+                              return (
+                                <span key={optId} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                                  {metalOption?.option_name || `Metal ID: ${optId}`}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {viewProductDetails.product_details.hasDiamondChoice && (
+                        <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                          <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <span>💎</span>
+                            Diamond Options
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {viewProductDetails.product_details.selectedDiamondOptions?.map((optId) => {
+                              const diamondOption = categoryData?.attributes?.diamond?.options?.find(o => o.id === optId);
+                              return (
+                                <span key={optId} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                                  {diamondOption?.option_name || `Diamond ID: ${optId}`}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Size Configuration */}
+                      {viewProductDetails.product_details.selectedSizes &&
+                        Object.keys(viewProductDetails.product_details.selectedSizes).length > 0 && (
+                          <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                              <span>📏</span>
+                              Sizes Configured
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(viewProductDetails.product_details.selectedSizes)
+                                .filter(([_, isSelected]) => isSelected)
+                                .map(([sizeKey]) => (
+                                  <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                    {sizeKey.split('-').filter(part => part !== 'none').join(' + ')}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
-                )}
 
-                {/* Size Configuration */}
-                {viewProductDetails.product_details.selectedSizes && 
-                 Object.keys(viewProductDetails.product_details.selectedSizes).length > 0 && (
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                      <span>📏</span>
-                      Sizes Configured
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(viewProductDetails.product_details.selectedSizes)
-                        .filter(([_, isSelected]) => isSelected)
-                        .map(([sizeKey]) => (
-                          <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                            {sizeKey.split('-').filter(part => part !== 'none').join(' + ')}
+                  {/* Variant Pricing Details - FIXED VERSION */}
+                  {viewProductDetails.product_details.variantPricing &&
+                    Object.keys(viewProductDetails.product_details.variantPricing).length > 0 && (
+                      <div className="bg-white rounded-xl p-5 border border-gray-200">
+                        <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                          <span className="text-green-600 font-bold">₹</span>
+                          Variant Pricing
+                        </h4>
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                          {Object.entries(viewProductDetails.product_details.variantPricing)
+                            .filter(([key, pricing]) => {
+                              const [metalPart, diamondPart, sizePart] = key.split('-');
+
+                              // ✅ FIX 1: Skip metal-only variants if diamond options are selected
+                              if (diamondPart === 'none' &&
+                                viewProductDetails.product_details.hasDiamondChoice &&
+                                viewProductDetails.product_details.selectedDiamondOptions?.length > 0) {
+                                return false;
+                              }
+
+                              // ✅ FIX 2: Skip if metal not in selected options
+                              if (metalPart !== 'none' &&
+                                viewProductDetails.product_details.hasMetalChoice &&
+                                !viewProductDetails.product_details.selectedMetalOptions?.includes(parseInt(metalPart))) {
+                                return false;
+                              }
+
+                              // ✅ FIX 3: Skip if diamond not in selected options
+                              if (diamondPart !== 'none' &&
+                                viewProductDetails.product_details.hasDiamondChoice &&
+                                !viewProductDetails.product_details.selectedDiamondOptions?.includes(parseInt(diamondPart))) {
+                                return false;
+                              }
+
+                              // ✅ FIX 4: When both metal+diamond are selected, skip incomplete combos
+                              if (viewProductDetails.product_details.hasMetalChoice &&
+                                viewProductDetails.product_details.hasDiamondChoice &&
+                                sizePart === 'none') {
+                                // Must have both metal AND diamond
+                                if (metalPart === 'none' || diamondPart === 'none') {
+                                  return false;
+                                }
+                              }
+
+                              // ✅ FIX 5: Skip if size not in selected sizes
+                              if (sizePart !== 'none' &&
+                                viewProductDetails.product_details.selectedSizes &&
+                                !viewProductDetails.product_details.selectedSizes[key]) {
+                                return false;
+                              }
+
+                              return true;
+                            })
+                            .map(([key, pricing]) => {
+                              const [metal, diamond, size] = key.split('-');
+
+                              // Get actual names
+                              const metalName = metal !== 'none'
+                                ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(metal))?.option_name || metal
+                                : null;
+                              const diamondName = diamond !== 'none'
+                                ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(diamond))?.option_name || diamond
+                                : null;
+                              const sizeName = size !== 'none'
+                                ? categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(size))?.option_name || size
+                                : null;
+
+                              return (
+                                <div key={key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                  {/* Variant Header */}
+                                  <div className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                                    {metalName && <span className="text-emerald-600">Metal: {metalName}</span>}
+                                    {diamondName && <span className="text-purple-600 ml-2">Diamond: {diamondName}</span>}
+                                    {sizeName && <span className="text-blue-600 ml-2">Size: {sizeName}</span>}
+                                    {metal === 'none' && diamond === 'none' && size === 'none' && (
+                                      <span className="text-gray-600">Base Product</span>
+                                    )}
+                                  </div>
+
+                                  {/* File Types & Prices */}
+                                  {pricing.files && pricing.files.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-xs font-semibold text-gray-600 uppercase">Available Options:</p>
+                                      {pricing.files.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between bg-white rounded p-2 border border-gray-200">
+                                          <div className="flex items-center gap-2">
+                                            {file.file_type === 'stl_file' && <span className="text-lg">📄</span>}
+                                            {file.file_type === 'cam_product' && <span className="text-lg">⚙️</span>}
+                                            {file.file_type === 'rubber_mold' && <span className="text-lg">🔧</span>}
+                                            {file.file_type === 'casting_model' && <span className="text-lg">🏭</span>}
+                                            {file.file_type === 'finished_product' && <span className="text-lg">✨</span>}
+                                            <span className="text-sm font-medium text-gray-700">
+                                              {file.file_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </span>
+                                          </div>
+                                          <div className="text-right">
+                                            {file.price !== null && file.price !== undefined ? (
+                                              <span className="text-sm font-bold text-emerald-700">
+                                                ₹{Number(file.price).toLocaleString()}
+                                              </span>
+                                            ) : (
+                                              <span className="text-xs text-gray-500 italic">Enquiry</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+
+                                      {/* Show uploaded files */}
+                                      {pricing.files.some(f => f.file_name) && (
+                                        <div className="mt-3 pt-3 border-t border-gray-200">
+                                          <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Uploaded Files:</p>
+                                          {pricing.files
+                                            .filter(f => f.file_name)
+                                            .map((file, idx) => (
+                                              <div key={idx} className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded mb-1">
+                                                <FiFileText className="w-3 h-3" />
+                                                <span className="font-medium truncate">{file.file_name}</span>
+                                                {file.file_size && (
+                                                  <span className="text-gray-500 ml-auto">
+                                                    {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                                                  </span>
+                                                )}
+                                              </div>
+                                            ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* End Product Pricing if exists */}
+                                  {(pricing.end_product_price || pricing.end_product_discount) && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                      <p className="text-xs font-semibold text-gray-600 uppercase mb-2">End Product:</p>
+                                      <div className="flex items-center gap-3">
+                                        {pricing.end_product_price && (
+                                          <span className="text-sm font-bold text-gray-800">
+                                            ₹{Number(pricing.end_product_price).toLocaleString()}
+                                          </span>
+                                        )}
+                                        {pricing.end_product_discount && (
+                                          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                                            {pricing.end_product_discount_percentage}% OFF
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Featured Tags */}
+                  {viewProductDetails.product_details.featured?.length > 0 && (
+                    <div className="bg-white rounded-xl p-5 border border-gray-200">
+                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <FiStar className="w-5 h-5 text-amber-500" />
+                        Featured Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {viewProductDetails.product_details.featured.map((feature, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
+                          >
+                            {feature}
                           </span>
                         ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {/* Target Audience */}
+                  {viewProductDetails.product_details.gender?.length > 0 && (
+                    <div className="bg-white rounded-xl p-5 border border-gray-200">
+                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <FiUsers className="w-5 h-5 text-blue-600" />
+                        Target Audience
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {viewProductDetails.product_details.gender.map((gender, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
+                          >
+                            {gender}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-{/* Variant Pricing Details - FIXED VERSION */}
-{viewProductDetails.product_details.variantPricing && 
- Object.keys(viewProductDetails.product_details.variantPricing).length > 0 && (
-  <div className="bg-white rounded-xl p-5 border border-gray-200">
-    <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-      <span className="text-green-600 font-bold">₹</span>
-      Variant Pricing
-    </h4>
-    <div className="space-y-4 max-h-96 overflow-y-auto">
-{Object.entries(viewProductDetails.product_details.variantPricing)
-  .filter(([key, pricing]) => {
-    const [metalPart, diamondPart, sizePart] = key.split('-');
-    
-    // ✅ FIX 1: Skip metal-only variants if diamond options are selected
-    if (diamondPart === 'none' && 
-        viewProductDetails.product_details.hasDiamondChoice && 
-        viewProductDetails.product_details.selectedDiamondOptions?.length > 0) {
-      return false;
-    }
-    
-    // ✅ FIX 2: Skip if metal not in selected options
-    if (metalPart !== 'none' && 
-        viewProductDetails.product_details.hasMetalChoice &&
-        !viewProductDetails.product_details.selectedMetalOptions?.includes(parseInt(metalPart))) {
-      return false;
-    }
-    
-    // ✅ FIX 3: Skip if diamond not in selected options
-    if (diamondPart !== 'none' && 
-        viewProductDetails.product_details.hasDiamondChoice &&
-        !viewProductDetails.product_details.selectedDiamondOptions?.includes(parseInt(diamondPart))) {
-      return false;
-    }
-    
-    // ✅ FIX 4: When both metal+diamond are selected, skip incomplete combos
-    if (viewProductDetails.product_details.hasMetalChoice && 
-        viewProductDetails.product_details.hasDiamondChoice &&
-        sizePart === 'none') {
-      // Must have both metal AND diamond
-      if (metalPart === 'none' || diamondPart === 'none') {
-        return false;
-      }
-    }
-    
-    // ✅ FIX 5: Skip if size not in selected sizes
-    if (sizePart !== 'none' && 
-        viewProductDetails.product_details.selectedSizes &&
-        !viewProductDetails.product_details.selectedSizes[key]) {
-      return false;
-    }
-    
-    return true;
-  })
-  .map(([key, pricing]) => {
-  const [metal, diamond, size] = key.split('-');
-  
-  // Get actual names
-  const metalName = metal !== 'none' 
-    ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(metal))?.option_name || metal
-    : null;
-  const diamondName = diamond !== 'none' 
-    ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(diamond))?.option_name || diamond
-    : null;
-  const sizeName = size !== 'none' 
-    ? categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(size))?.option_name || size
-    : null;
-  
-  return (
-    <div key={key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      {/* Variant Header */}
-      <div className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
-        {metalName && <span className="text-emerald-600">Metal: {metalName}</span>}
-        {diamondName && <span className="text-purple-600 ml-2">Diamond: {diamondName}</span>}
-        {sizeName && <span className="text-blue-600 ml-2">Size: {sizeName}</span>}
-        {metal === 'none' && diamond === 'none' && size === 'none' && (
-          <span className="text-gray-600">Base Product</span>
-        )}
-      </div>
-
-      {/* File Types & Prices */}
-      {pricing.files && pricing.files.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-600 uppercase">Available Options:</p>
-          {pricing.files.map((file, idx) => (
-            <div key={idx} className="flex items-center justify-between bg-white rounded p-2 border border-gray-200">
-              <div className="flex items-center gap-2">
-                {file.file_type === 'stl_file' && <span className="text-lg">📄</span>}
-                {file.file_type === 'cam_product' && <span className="text-lg">⚙️</span>}
-                {file.file_type === 'rubber_mold' && <span className="text-lg">🔧</span>}
-                {file.file_type === 'casting_model' && <span className="text-lg">🏭</span>}
-                {file.file_type === 'finished_product' && <span className="text-lg">✨</span>}
-                <span className="text-sm font-medium text-gray-700">
-                  {file.file_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              </div>
-              <div className="text-right">
-                {file.price !== null && file.price !== undefined ? (
-                  <span className="text-sm font-bold text-emerald-700">
-                    ₹{Number(file.price).toLocaleString()}
-                  </span>
+            {/* Action Buttons */}
+            <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  handleApprove(viewProductDetails.id, true);
+                  setViewProductDetails(null);
+                }}
+                disabled={approving || rejecting}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {approving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Approving...
+                  </>
                 ) : (
-                  <span className="text-xs text-gray-500 italic">Enquiry</span>
+                  <>
+                    <FiCheckCircle className="w-5 h-5" />
+                    Approve Product
+                  </>
                 )}
-              </div>
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedProduct(viewProductDetails.id);
+                  setViewProductDetails(null);
+                }}
+                disabled={approving || rejecting}
+                className="flex-1 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <FiX className="w-5 h-5" />
+                Reject Product
+              </button>
             </div>
-          ))}
-          
-          {/* Show uploaded files */}
-          {pricing.files.some(f => f.file_name) && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Uploaded Files:</p>
-              {pricing.files
-                .filter(f => f.file_name)
-                .map((file, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded mb-1">
-                    <FiFileText className="w-3 h-3" />
-                    <span className="font-medium truncate">{file.file_name}</span>
-                    {file.file_size && (
-                      <span className="text-gray-500 ml-auto">
-                        {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                      </span>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* End Product Pricing if exists */}
-      {(pricing.end_product_price || pricing.end_product_discount) && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <p className="text-xs font-semibold text-gray-600 uppercase mb-2">End Product:</p>
-          <div className="flex items-center gap-3">
-            {pricing.end_product_price && (
-              <span className="text-sm font-bold text-gray-800">
-                ₹{Number(pricing.end_product_price).toLocaleString()}
-              </span>
-            )}
-            {pricing.end_product_discount && (
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
-                {pricing.end_product_discount_percentage}% OFF
-              </span>
-            )}
           </div>
         </div>
       )}
-    </div>
-  );
-})}
-    </div>
-  </div>
-)}
-
-            {/* Featured Tags */}
-            {viewProductDetails.product_details.featured?.length > 0 && (
-              <div className="bg-white rounded-xl p-5 border border-gray-200">
-                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FiStar className="w-5 h-5 text-amber-500" />
-                  Featured Tags
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewProductDetails.product_details.featured.map((feature, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Target Audience */}
-            {viewProductDetails.product_details.gender?.length > 0 && (
-              <div className="bg-white rounded-xl p-5 border border-gray-200">
-                <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FiUsers className="w-5 h-5 text-blue-600" />
-                  Target Audience
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewProductDetails.product_details.gender.map((gender, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
-                    >
-                      {gender}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
-        <button
-          onClick={() => {
-            handleApprove(viewProductDetails.id, true);
-            setViewProductDetails(null);
-          }}
-          disabled={approving || rejecting}
-          className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {approving ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Approving...
-            </>
-          ) : (
-            <>
-              <FiCheckCircle className="w-5 h-5" />
-              Approve Product
-            </>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            setSelectedProduct(viewProductDetails.id);
-            setViewProductDetails(null);
-          }}
-          disabled={approving || rejecting}
-          className="flex-1 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          <FiX className="w-5 h-5" />
-          Reject Product
-        </button>
-      </div>
-    </div>
-  </div>
-)}
     </>
   );
 };
@@ -1257,14 +1465,14 @@ const ProductsDashboard = ({
 
         const filteredProducts = isVendor
           ? products.filter(
-              (p) => p.vendor_id === user?.id && p.status === "approved"
-            )
+            (p) => p.vendor_id === user?.id && p.status === "approved"
+          )
           : products.filter((p) => p.status === "approved");
 
         const pending = isVendor
           ? products.filter(
-              (p) => p.vendor_id === user?.id && p.status === "pending"
-            ).length
+            (p) => p.vendor_id === user?.id && p.status === "pending"
+          ).length
           : products.filter((p) => p.status === "pending").length;
 
         setStats({
@@ -1457,9 +1665,8 @@ const MinimalStatCard = ({
   return (
     <div
       onClick={clickable ? onClick : undefined}
-      className={`${bg} p-3 sm:p-4 rounded-lg sm:rounded-xl border ${border} ${
-        clickable ? `cursor-pointer ${hover} transition-colors` : ""
-      }`}
+      className={`${bg} p-3 sm:p-4 rounded-lg sm:rounded-xl border ${border} ${clickable ? `cursor-pointer ${hover} transition-colors` : ""
+        }`}
     >
       <div className="flex items-center justify-between">
         <div>
@@ -1570,9 +1777,9 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
 
   const token = localStorage.getItem('token');
-fetch('YOUR_API_URL/debug/user', {
-  headers: { Authorization: `Bearer ${token}` }
-}).then(r => r.json()).then(console.log);
+  fetch('YOUR_API_URL/debug/user', {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(r => r.json()).then(console.log);
 
   const fetchVendors = async () => {
     setVendorLoading(true);
@@ -1605,67 +1812,67 @@ fetch('YOUR_API_URL/debug/user', {
       return newSelection;
     });
   };
-  
-const fetchProducts = useCallback(async () => {
-  if (selectedCategoryIds.length === 0) {
-    setProducts([]);
-    return;
-  }
 
-  setLoading(true);
-  const token = localStorage.getItem("token");
-
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    const payload = {
-      category_ids: selectedCategoryIds,
-    };
-
-    // For VENDORS: Pass vendor_id explicitly from localStorage
-    if (userRole === "vendor") {
-      // CRITICAL: Get vendor_id from localStorage user object
-      const vendorId = user.vendor_id || user.id;
-      payload.vendor_id = vendorId;
-      
-      
-      // If statusFilter is set, use it; otherwise don't set (show all)
-      if (statusFilter && statusFilter.length > 0) {
-        payload.status = statusFilter;
-      }
+  const fetchProducts = useCallback(async () => {
+    if (selectedCategoryIds.length === 0) {
+      setProducts([]);
+      return;
     }
 
-    // For ADMINS: Handle status and vendor filters
-    if (userRole === "admin") {
-      // Add vendor filter if selected
-      if (selectedVendor && selectedVendor !== "all") {
-        payload.vendor_id = parseInt(selectedVendor);
+    setLoading(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      const payload = {
+        category_ids: selectedCategoryIds,
+      };
+
+      // For VENDORS: Pass vendor_id explicitly from localStorage
+      if (userRole === "vendor") {
+        // CRITICAL: Get vendor_id from localStorage user object
+        const vendorId = user.vendor_id || user.id;
+        payload.vendor_id = vendorId;
+
+
+        // If statusFilter is set, use it; otherwise don't set (show all)
+        if (statusFilter && statusFilter.length > 0) {
+          payload.status = statusFilter;
+        }
       }
-      
-      // Add status filter (defaults to 'approved' in backend if not provided)
-      if (statusFilter && statusFilter.length > 0) {
-        payload.status = statusFilter;
+
+      // For ADMINS: Handle status and vendor filters
+      if (userRole === "admin") {
+        // Add vendor filter if selected
+        if (selectedVendor && selectedVendor !== "all") {
+          payload.vendor_id = parseInt(selectedVendor);
+        }
+
+        // Add status filter (defaults to 'approved' in backend if not provided)
+        if (statusFilter && statusFilter.length > 0) {
+          payload.status = statusFilter;
+        }
       }
+
+
+      const response = await axios.post(
+        `${API_URL}/products/by-category`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+
+      if (response.data.success) {
+        setProducts(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      alert("Error loading products");
+    } finally {
+      setLoading(false);
     }
-
-
-    const response = await axios.post(
-      `${API_URL}/products/by-category`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-
-    if (response.data.success) {
-      setProducts(response.data.data);
-    }
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    alert("Error loading products");
-  } finally {
-    setLoading(false);
-  }
-}, [selectedCategoryIds, statusFilter, selectedVendor, userRole]);
+  }, [selectedCategoryIds, statusFilter, selectedVendor, userRole]);
 
   useEffect(() => {
     fetchProducts();
@@ -1697,35 +1904,34 @@ const fetchProducts = useCallback(async () => {
 
 
   const handleToggleVisibility = async (product) => {
-  const action = product.is_hidden ? "unhide" : "hide";
-  if (!confirm(`Are you sure you want to ${action} this product?`)) return;
+    const action = product.is_hidden ? "unhide" : "hide";
+    if (!confirm(`Are you sure you want to ${action} this product?`)) return;
 
-  const token = localStorage.getItem("token");
-  try {
-    const response = await axios.post(
-      `${API_URL}/products/toggle-visibility`,
-      { 
-        product_id: product.id,
-        is_hidden: !product.is_hidden 
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.post(
+        `${API_URL}/products/toggle-visibility`,
+        {
+          product_id: product.id,
+          is_hidden: !product.is_hidden
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    if (response.data.success) {
-      alert(response.data.message);
-      fetchProducts();
+      if (response.data.success) {
+        alert(response.data.message);
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+      alert("Error toggling product visibility");
     }
-  } catch (error) {
-    console.error("Error toggling visibility:", error);
-    alert("Error toggling product visibility");
-  }
-};
+  };
 
 
   const canEditDelete = (product) => {
     if (userRole === "admin") return true;
-    if (userRole === "vendor")
-       {
+    if (userRole === "vendor") {
       const user = JSON.parse(localStorage.getItem("user"));
       return product.vendor_id === user.id && product.status === "pending";
     }
@@ -1783,80 +1989,78 @@ const fetchProducts = useCallback(async () => {
       }
     });
 
-const renderStatusFilter = () => {
-  if (userRole !== "vendor") return null;
+  const renderStatusFilter = () => {
+    if (userRole !== "vendor") return null;
 
-  return (
-    <div className="mb-4 sm:mb-6">
-      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-        <FiFilter className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-        <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
-          Filter by Status:
-        </label>
-      </div>
-      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-        {/* All button */}
-        <button
-          onClick={() => setStatusFilter([])}
-          className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${
-            statusFilter.length === 0
+    return (
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+          <FiFilter className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
+            Filter by Status:
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {/* All button */}
+          <button
+            onClick={() => setStatusFilter([])}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${statusFilter.length === 0
               ? `bg-gradient-to-r from-gray-600 to-gray-700 text-white`
               : `bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200`
-          }`}
-        >
-          <FiPackage className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          All
-        </button>
-        
-        {/* Status filter buttons */}
-        {[
-          {
-            status: "pending",
-            label: "Pending",
-            icon: <FiClock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-            color: "from-amber-500 to-yellow-500",
-            bg: "from-amber-50 to-yellow-50",
-          },
-          {
-            status: "approved",
-            label: "Approved",
-            icon: <FiCheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-            color: "from-emerald-500 to-green-500",
-            bg: "from-emerald-50 to-green-50",
-          },
-          {
-            status: "rejected",
-            label: "Rejected",
-            icon: <FiX className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
-            color: "from-red-500 to-pink-500",
-            bg: "from-red-50 to-pink-50",
-          },
-        ].map(({ status, label, icon, color, bg }) => (
-          <button
-            key={status}
-            onClick={() => {
-              if (statusFilter.includes(status)) {
-                // Remove this status from filter
-                setStatusFilter(statusFilter.filter((s) => s !== status));
-              } else {
-                // Add this status to filter
-                setStatusFilter([...statusFilter, status]);
-              }
-            }}
-            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${
-              statusFilter.includes(status)
+              }`}
+          >
+            <FiPackage className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+            All
+          </button>
+
+          {/* Status filter buttons */}
+          {[
+            {
+              status: "pending",
+              label: "Pending",
+              icon: <FiClock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+              color: "from-amber-500 to-yellow-500",
+              bg: "from-amber-50 to-yellow-50",
+            },
+            {
+              status: "approved",
+              label: "Approved",
+              icon: <FiCheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+              color: "from-emerald-500 to-green-500",
+              bg: "from-emerald-50 to-green-50",
+            },
+            {
+              status: "rejected",
+              label: "Rejected",
+              icon: <FiX className="w-2.5 h-2.5 sm:w-3 sm:h-3" />,
+              color: "from-red-500 to-pink-500",
+              bg: "from-red-50 to-pink-50",
+            },
+          ].map(({ status, label, icon, color, bg }) => (
+            <button
+              key={status}
+              onClick={() => {
+                if (statusFilter.includes(status)) {
+                  // Remove this status from filter
+                  setStatusFilter(statusFilter.filter((s) => s !== status));
+                } else {
+                  // Add this status to filter
+                  setStatusFilter([...statusFilter, status]);
+                }
+              }}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${statusFilter.includes(status)
                 ? `bg-gradient-to-r ${color} text-white`
                 : `bg-gradient-to-r ${bg} text-gray-700 border border-gray-200`
-            }`}
-          >
-            {icon}
-            {label}
-          </button>
-        ))}
+                }`}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const renderVendorFilter = () => {
     if (userRole !== "admin") return null;
@@ -1891,7 +2095,7 @@ const renderStatusFilter = () => {
               </div>
             )}
           </div>
-          
+
           {selectedVendor !== "all" && (
             <button
               onClick={() => setSelectedVendor("all")}
@@ -1902,7 +2106,7 @@ const renderStatusFilter = () => {
             </button>
           )}
         </div>
-        
+
         {selectedVendor !== "all" && (
           <div className="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-200">
             <p className="text-xs text-emerald-700 flex items-center gap-2">
@@ -1915,42 +2119,42 @@ const renderStatusFilter = () => {
     );
   };
 
- return (
-  <div className="space-y-4 sm:space-y-6">
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-      <div className="flex items-center gap-3 sm:gap-4">
-        <button
-          onClick={onBack}
-          className="p-2 sm:p-3 hover:bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl transition-colors border border-gray-200"
-          title="Back to Dashboard"
-        >
-          <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-            {userRole === "admin" ? "View All Products" : "My Products"}
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600">
-            Browse and manage your product catalog
-          </p>
-        </div>
-      </div>
-
-
-      
-         {/* Add Test Image Button */}
-      <div className="flex gap-2">
-        {userRole === "vendor" && (
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
-            onClick={onAddProduct}
-            className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base w-full sm:w-auto mt-2 sm:mt-0"
+            onClick={onBack}
+            className="p-2 sm:p-3 hover:bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg sm:rounded-xl transition-colors border border-gray-200"
+            title="Back to Dashboard"
           >
-            <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Add Product</span>
+            <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
-        )}
-      </div>
-    
+          <div>
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              {userRole === "admin" ? "View All Products" : "My Products"}
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Browse and manage your product catalog
+            </p>
+          </div>
+        </div>
+
+
+
+        {/* Add Test Image Button */}
+        <div className="flex gap-2">
+          {userRole === "vendor" && (
+            <button
+              onClick={onAddProduct}
+              className="px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 font-semibold flex items-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all text-sm sm:text-base w-full sm:w-auto mt-2 sm:mt-0"
+            >
+              <FiPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Add Product</span>
+            </button>
+          )}
+        </div>
+
         {/* {userRole === "vendor" && (
           <button
             onClick={onAddProduct}
@@ -2094,7 +2298,7 @@ const renderStatusFilter = () => {
                   No Products Found
                 </h3>
                 <p className="text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto text-xs sm:text-sm">
-                  {selectedVendor !== "all" 
+                  {selectedVendor !== "all"
                     ? "No products found for the selected vendor with current filters."
                     : "No products match your current filters. Try selecting different categories or search terms."}
                 </p>
@@ -2112,16 +2316,16 @@ const renderStatusFilter = () => {
               <div className="p-3 sm:p-4 md:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                   {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onEdit={setEditProduct}
-                    onDelete={handleDelete}
-                    onToggleVisibility={handleToggleVisibility}
-                    onViewImages={setImagePopup}
-                    canEditDelete={canEditDelete(product)}
-                    userRole={userRole}
-                  />
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onEdit={setEditProduct}
+                      onDelete={handleDelete}
+                      onToggleVisibility={handleToggleVisibility}
+                      onViewImages={setImagePopup}
+                      canEditDelete={canEditDelete(product)}
+                      userRole={userRole}
+                    />
                   ))}
                 </div>
               </div>
@@ -2153,9 +2357,9 @@ const renderStatusFilter = () => {
 
 const getStlFilePrice = (product) => {
   if (!product) return 0;
-  
+
   let productDetails = product.product_details;
-  
+
   // Parse if string
   if (typeof productDetails === "string") {
     try {
@@ -2165,22 +2369,22 @@ const getStlFilePrice = (product) => {
       return 0;
     }
   }
-  
+
   if (!productDetails) return 0;
-  
+
   // Check if there's variant pricing with STL file
   if (productDetails.variantPricing && typeof productDetails.variantPricing === 'object') {
     // Loop through all variant pricing entries
     for (const [key, pricing] of Object.entries(productDetails.variantPricing)) {
       if (pricing && pricing.files && Array.isArray(pricing.files)) {
-        const stlFile = pricing.files.find(f => 
-          f && 
-          f.file_type === 'stl_file' && 
-          f.price !== null && 
+        const stlFile = pricing.files.find(f =>
+          f &&
+          f.file_type === 'stl_file' &&
+          f.price !== null &&
           f.price !== undefined &&
           f.price !== ''
         );
-        
+
         if (stlFile) {
           const price = parseFloat(stlFile.price);
           if (!isNaN(price) && price > 0) {
@@ -2190,7 +2394,7 @@ const getStlFilePrice = (product) => {
       }
     }
   }
-  
+
   // Fallback to productDetails.price
   if (productDetails.price !== null && productDetails.price !== undefined) {
     const price = parseFloat(productDetails.price);
@@ -2198,7 +2402,7 @@ const getStlFilePrice = (product) => {
       return price;
     }
   }
-  
+
   return 0;
 };
 
@@ -2309,35 +2513,34 @@ const ProductCard = ({
             {productDetails.images.length} images
           </button>
         )}
-{canEditDelete && (
-  <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-    <button
-      onClick={() => onEdit(product)}
-      className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 transition-all shadow-md flex items-center justify-center"
-      title="Edit Product"
-    >
-      <FiEdit className="w-3.5 h-3.5" />
-    </button>
-    <button
-      onClick={() => onToggleVisibility(product)}
-      className={`p-2 rounded-lg transition-all shadow-md flex items-center justify-center ${
-        product.is_hidden 
-          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600' 
-          : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
-      }`}
-      title={product.is_hidden ? "Unhide Product" : "Hide Product"}
-    >
-      <FiEye className="w-3.5 h-3.5" />
-    </button>
-    <button
-      onClick={() => onDelete(product.id)}
-      className="p-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all shadow-md flex items-center justify-center"
-      title="Delete Product"
-    >
-      <FiTrash2 className="w-3.5 h-3.5" />
-    </button>
-  </div>
-)}
+        {canEditDelete && (
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+            <button
+              onClick={() => onEdit(product)}
+              className="p-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 transition-all shadow-md flex items-center justify-center"
+              title="Edit Product"
+            >
+              <FiEdit className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onToggleVisibility(product)}
+              className={`p-2 rounded-lg transition-all shadow-md flex items-center justify-center ${product.is_hidden
+                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
+                }`}
+              title={product.is_hidden ? "Unhide Product" : "Hide Product"}
+            >
+              <FiEye className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onDelete(product.id)}
+              className="p-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all shadow-md flex items-center justify-center"
+              title="Delete Product"
+            >
+              <FiTrash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="p-3 sm:p-4">
@@ -2526,11 +2729,10 @@ const ImagePopup = ({ images, onClose }) => {
                   e.stopPropagation();
                   setCurrentIndex(idx);
                 }}
-                className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-lg transition-all ${
-                  idx === currentIndex
-                    ? "border-blue-500 scale-105"
-                    : "border-transparent hover:border-gray-400"
-                }`}
+                className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-lg transition-all ${idx === currentIndex
+                  ? "border-blue-500 scale-105"
+                  : "border-transparent hover:border-gray-400"
+                  }`}
               >
                 <img
                   src={`${BASE_URL}${img}`}
@@ -2558,72 +2760,72 @@ const EditProductPanel = ({
   categories,
   userRole,
 }) => {
-const [formData, setFormData] = useState(() => {
-  // Parse product_details if it's a string
-  let productDetails = product.product_details;
-  if (typeof productDetails === 'string') {
-    try {
-      productDetails = JSON.parse(productDetails);
-    } catch (e) {
-      console.error('Error parsing product_details:', e);
-      productDetails = {};
+  const [formData, setFormData] = useState(() => {
+    // Parse product_details if it's a string
+    let productDetails = product.product_details;
+    if (typeof productDetails === 'string') {
+      try {
+        productDetails = JSON.parse(productDetails);
+      } catch (e) {
+        console.error('Error parsing product_details:', e);
+        productDetails = {};
+      }
     }
-  }
 
     const selectedSizes = productDetails.selectedSizes || {};
 
 
-  return {
-    name: product.name,
-    slug: product.slug,
-    description: productDetails.description || "",
-    featured: productDetails.featured || [],
-    gender: productDetails.gender || [],
-    style_id: productDetails.style_id || "",
-    metal_id: productDetails.metal_id || "",
-    category_id: product.category_id || "",
-    hasMetalChoice: productDetails.hasMetalChoice || false,
-    hasDiamondChoice: productDetails.hasDiamondChoice || false,
-    selectedMetalOptions: productDetails.selectedMetalOptions || [],
-    selectedDiamondOptions: productDetails.selectedDiamondOptions || [],
-    selectedSizes: selectedSizes,
-    selectedSizes: productDetails.selectedSizes || {},
-    variantPricing: productDetails.variantPricing || {},
-    metalSizeConfig: productDetails.metalSizeConfig || {},
-    diamondSizeConfig: productDetails.diamondSizeConfig || {},
-    configureSizes: productDetails.configureSizes || false,
-  };
-});
+    return {
+      name: product.name,
+      slug: product.slug,
+      description: productDetails.description || "",
+      featured: productDetails.featured || [],
+      gender: productDetails.gender || [],
+      style_id: productDetails.style_id || "",
+      metal_id: productDetails.metal_id || "",
+      category_id: product.category_id || "",
+      hasMetalChoice: productDetails.hasMetalChoice || false,
+      hasDiamondChoice: productDetails.hasDiamondChoice || false,
+      selectedMetalOptions: productDetails.selectedMetalOptions || [],
+      selectedDiamondOptions: productDetails.selectedDiamondOptions || [],
+      selectedSizes: selectedSizes,
+      selectedSizes: productDetails.selectedSizes || {},
+      variantPricing: productDetails.variantPricing || {},
+      metalSizeConfig: productDetails.metalSizeConfig || {},
+      diamondSizeConfig: productDetails.diamondSizeConfig || {},
+      configureSizes: productDetails.configureSizes || false,
+    };
+  });
   const [categoryData, setCategoryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-const [isUploading, setIsUploading] = useState(false);
-const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
-const [isPdfUploading, setIsPdfUploading] = useState(false);
-const [currentUploadingFile, setCurrentUploadingFile] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+  const [isPdfUploading, setIsPdfUploading] = useState(false);
+  const [currentUploadingFile, setCurrentUploadingFile] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUrls, setImageUrls] = useState(
     product.product_details?.images || []
   );
   const [activeVariantTab, setActiveVariantTab] = useState("basic");
   const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
-  
-
-    const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
 
 
-    // Add this useEffect right after the formData useState
-useEffect(() => {
-  // console.log('📊 EditPanel FormData State:', {
-  //   hasMetalChoice: formData.hasMetalChoice,
-  //   hasDiamondChoice: formData.hasDiamondChoice,
-  //   selectedSizes: formData.selectedSizes,
-  //   variantPricing: formData.variantPricing,
-  //   configureSizes: formData.configureSizes
-  // });
-}, [formData.selectedSizes, formData.hasMetalChoice, formData.hasDiamondChoice]);
-  
+  const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+
+
+  // Add this useEffect right after the formData useState
+  useEffect(() => {
+    // console.log('📊 EditPanel FormData State:', {
+    //   hasMetalChoice: formData.hasMetalChoice,
+    //   hasDiamondChoice: formData.hasDiamondChoice,
+    //   selectedSizes: formData.selectedSizes,
+    //   variantPricing: formData.variantPricing,
+    //   configureSizes: formData.configureSizes
+    // });
+  }, [formData.selectedSizes, formData.hasMetalChoice, formData.hasDiamondChoice]);
+
   useEffect(() => {
     fetchTargetAudienceOptions();
   }, []);
@@ -2635,7 +2837,7 @@ useEffect(() => {
         `${API_URL}/target-audience/options`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.success) {
         setTargetAudienceOptions(response.data.data);
       }
@@ -2644,179 +2846,164 @@ useEffect(() => {
     }
   };
 
-useEffect(() => {
-  if (product.product_details?.variantPricing) {
-    const reconstructedPricing = {};
-    
-    Object.entries(product.product_details.variantPricing).forEach(([key, pricing]) => {
-      reconstructedPricing[key] = {
-        ...pricing,
-        files: Array.isArray(pricing.files) ? pricing.files : []
-      };
-      
-      // ✅ Ensure STL file exists for each variant
-      if (reconstructedPricing[key].files.length === 0 || 
-          !reconstructedPricing[key].files.some(f => f.file_type === 'stl_file')) {
-        reconstructedPricing[key].files = [
-          { file_type: 'stl_file', price: null },
-          ...reconstructedPricing[key].files
-        ];
+  useEffect(() => {
+    // Parse product_details if it's a string
+    let productDetails = product.product_details;
+    if (typeof productDetails === 'string') {
+      try {
+        productDetails = JSON.parse(productDetails);
+      } catch (e) {
+        console.error('Error parsing product_details in useEffect:', e);
+        productDetails = {};
       }
-    });
-    
-    setFormData(prev => ({
-      ...prev,
-      variantPricing: reconstructedPricing
-    }));
-  }
-}, [product.id]);
-
-// Add this useEffect to load existing files into uploadedPdfFiles
-useEffect(() => {
-  if (product.product_details?.variantPricing) {
-    const existingFiles = {};
-    
-    Object.entries(product.product_details.variantPricing).forEach(([key, pricing]) => {
-      const [metalPart, diamondPart, sizePart] = key.split('-');
-      
-      if (pricing.files && Array.isArray(pricing.files)) {
-        pricing.files.forEach(file => {
-          if (file.file_path && file.file_name) {
-            const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${file.file_type}`;
-            existingFiles[fileKey] = {
-              file_path: file.file_path,
-              file_name: file.file_name,
-              file_size: file.file_size || 0
-            };
-          }
-        });
-      }
-    });
-    
-    setUploadedPdfFiles(prev => ({ ...prev, ...existingFiles }));
-  }
-}, [product.id]);
-
-
-useEffect(() => {
-  
-  // Parse product_details if it's a string
-  let productDetails = product.product_details;
-  if (typeof productDetails === 'string') {
-    try {
-      productDetails = JSON.parse(productDetails);
-    } catch (e) {
-      console.error('Error parsing product_details in useEffect:', e);
-      productDetails = {};
     }
-  }
-  
-  // ✅ FOR SIZE-ONLY PRODUCTS (No Metal/Diamond)
-  if (!productDetails?.hasMetalChoice && 
+
+    if (productDetails?.variantPricing) {
+      const reconstructedPricing = {};
+
+      Object.entries(productDetails.variantPricing).forEach(([key, pricing]) => {
+        reconstructedPricing[key] = {
+          ...pricing,
+          files: Array.isArray(pricing.files) ? pricing.files : []
+        };
+
+        // ✅ Ensure STL file exists for each variant
+        if (reconstructedPricing[key].files.length === 0 ||
+          !reconstructedPricing[key].files.some(f => f.file_type === 'stl_file')) {
+          reconstructedPricing[key].files = [
+            { file_type: 'stl_file', price: null },
+            ...reconstructedPricing[key].files
+          ];
+        }
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        variantPricing: reconstructedPricing
+      }));
+    }
+  }, [product.id, product.product_details]);
+
+  // Add this useEffect to load existing files into uploadedPdfFiles
+  useEffect(() => {
+    // Parse product_details if it's a string
+    let productDetails = product.product_details;
+    if (typeof productDetails === 'string') {
+      try {
+        productDetails = JSON.parse(productDetails);
+      } catch (e) {
+        console.error('Error parsing product_details in useEffect:', e);
+        productDetails = {};
+      }
+    }
+
+    if (productDetails?.variantPricing) {
+      const existingFiles = {};
+
+      Object.entries(productDetails.variantPricing).forEach(([key, pricing]) => {
+        const [metalPart, diamondPart, sizePart] = key.split('-');
+
+        if (pricing.files && Array.isArray(pricing.files)) {
+          pricing.files.forEach(file => {
+            if (file.file_path && file.file_name) {
+              const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${file.file_type}`;
+              existingFiles[fileKey] = {
+                file_path: file.file_path,
+                file_name: file.file_name,
+                file_size: file.file_size || 0
+              };
+            }
+          });
+        }
+      });
+
+      setUploadedPdfFiles(prev => ({ ...prev, ...existingFiles }));
+    }
+  }, [product.id, product.product_details]);
+
+
+  useEffect(() => {
+
+    // Parse product_details if it's a string
+    let productDetails = product.product_details;
+    if (typeof productDetails === 'string') {
+      try {
+        productDetails = JSON.parse(productDetails);
+      } catch (e) {
+        console.error('Error parsing product_details in useEffect:', e);
+        productDetails = {};
+      }
+    }
+
+    // ✅ FOR SIZE-ONLY PRODUCTS (No Metal/Diamond)
+    if (!productDetails?.hasMetalChoice &&
       !productDetails?.hasDiamondChoice &&
       productDetails?.selectedSizes) {
-    
-    
-    // Ensure configureSizes is enabled
-    setFormData(prev => ({
-      ...prev,
-      configureSizes: true,
-      selectedSizes: productDetails.selectedSizes
-    }));
-    
-    return; // Exit early for size-only products
-  }
-  
-  // Original metal/diamond logic...
-  if (productDetails?.selectedMetalOptions) {
-    const newMetalSizeConfig = {};
-    const newDiamondSizeConfig = {};
-    
-    // For Metal Only - Check if any sizes are selected for this metal
-    productDetails.selectedMetalOptions.forEach(metalId => {
-      const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
-        const [metalPart, diamondPart, sizePart] = key.split('-');
-        
-        return parseInt(metalPart) === metalId && 
-               diamondPart === 'none' && 
-               sizePart !== 'none' &&
-               productDetails.selectedSizes[key] === true;
-      });
-      
-      if (hasSizesConfigured) {
-        newMetalSizeConfig[metalId] = true;
-      }
-    });
-    
-    // For Metal + Diamond - Check if any sizes are selected for this combination
-    if (productDetails?.selectedDiamondOptions) {
-      productDetails.selectedMetalOptions.forEach(metalId => {
-        productDetails.selectedDiamondOptions.forEach(diamondId => {
-          const comboKey = `${metalId}-${diamondId}`;
-          
-          const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
-            const [metalPart, diamondPart, sizePart] = key.split('-');
-            
-            return parseInt(metalPart) === metalId && 
-                   parseInt(diamondPart) === diamondId && 
-                   sizePart !== 'none' &&
-                   productDetails.selectedSizes[key] === true;
-          });
-          
-          if (hasSizesConfigured) {
-            newDiamondSizeConfig[comboKey] = true;
-          }
-        });
-      });
+
+
+      // Ensure configureSizes is enabled
+      setFormData(prev => ({
+        ...prev,
+        configureSizes: true,
+        selectedSizes: productDetails.selectedSizes
+      }));
+
+      return; // Exit early for size-only products
     }
-    
-    // Update state
-    setFormData(prev => ({
-      ...prev,
-      metalSizeConfig: newMetalSizeConfig,
-      diamondSizeConfig: newDiamondSizeConfig
-    }));
-  }
-}, [product.id]);
+
+    // Original metal/diamond logic...
+    if (productDetails?.selectedMetalOptions) {
+      const newMetalSizeConfig = {};
+      const newDiamondSizeConfig = {};
+
+      // For Metal Only - Check if any sizes are selected for this metal
+      productDetails.selectedMetalOptions.forEach(metalId => {
+        const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
+          const [metalPart, diamondPart, sizePart] = key.split('-');
+
+          return parseInt(metalPart) === metalId &&
+            diamondPart === 'none' &&
+            sizePart !== 'none' &&
+            productDetails.selectedSizes[key] === true;
+        });
+
+        if (hasSizesConfigured) {
+          newMetalSizeConfig[metalId] = true;
+        }
+      });
+
+      // For Metal + Diamond - Check if any sizes are selected for this combination
+      if (productDetails?.selectedDiamondOptions) {
+        productDetails.selectedMetalOptions.forEach(metalId => {
+          productDetails.selectedDiamondOptions.forEach(diamondId => {
+            const comboKey = `${metalId}-${diamondId}`;
+
+            const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
+              const [metalPart, diamondPart, sizePart] = key.split('-');
+
+              return parseInt(metalPart) === metalId &&
+                parseInt(diamondPart) === diamondId &&
+                sizePart !== 'none' &&
+                productDetails.selectedSizes[key] === true;
+            });
+
+            if (hasSizesConfigured) {
+              newDiamondSizeConfig[comboKey] = true;
+            }
+          });
+        });
+      }
+
+      // Update state
+      setFormData(prev => ({
+        ...prev,
+        metalSizeConfig: newMetalSizeConfig,
+        diamondSizeConfig: newDiamondSizeConfig
+      }));
+    }
+  }, [product.id]);
 
 
-const FILE_TYPE_OPTIONS = [
-  {
-    value: "stl_file",
-    label: "STL File",
-    emoji: "📄",
-    requiresPrice: true,
-    requiresUpload: true,
-  },
-  {
-    value: "cam_product",
-    label: "CAM Product",
-    emoji: "⚙️",
-    requiresPrice: true,
-    requiresUpload: false,
-  },
-  {
-    value: "rubber_mold",
-    label: "Rubber Mold",
-    emoji: "🔧",
-    requiresPrice: false,
-    requiresUpload: false,
-  },
-  {
-    value: "casting_model",
-    label: "Casting Model",
-    emoji: "🏭",
-    requiresPrice: false,
-    requiresUpload: false,
-  },
-  {
-    value: "finished_product",
-    label: "Finished Product",
-    emoji: "✨",
-    requiresPrice: false,
-    requiresUpload: false,
-  },
-];
 
 
   useEffect(() => {
@@ -2826,36 +3013,36 @@ const FILE_TYPE_OPTIONS = [
   }, [formData.category_id]);
 
 
-  
+
 
 
   const toggleMetalSizeConfig = (metalId) => {
-  setFormData((prev) => ({
-    ...prev,
-    metalSizeConfig: {
-      ...prev.metalSizeConfig,
-      [metalId]: !prev.metalSizeConfig[metalId],
-    },
-  }));
-};
+    setFormData((prev) => ({
+      ...prev,
+      metalSizeConfig: {
+        ...prev.metalSizeConfig,
+        [metalId]: !prev.metalSizeConfig[metalId],
+      },
+    }));
+  };
 
-const toggleDiamondSizeConfig = (metalId, diamondId) => {
-  const key = `${metalId}-${diamondId}`;
-  setFormData((prev) => ({
-    ...prev,
-    diamondSizeConfig: {
-      ...prev.diamondSizeConfig,
-      [key]: !prev.diamondSizeConfig[key],
-    },
-  }));
-};
+  const toggleDiamondSizeConfig = (metalId, diamondId) => {
+    const key = `${metalId}-${diamondId}`;
+    setFormData((prev) => ({
+      ...prev,
+      diamondSizeConfig: {
+        ...prev.diamondSizeConfig,
+        [key]: !prev.diamondSizeConfig[key],
+      },
+    }));
+  };
 
-const toggleConfigureSizes = () => {
-  setFormData((prev) => ({
-    ...prev,
-    configureSizes: !prev.configureSizes,
-  }));
-};
+  const toggleConfigureSizes = () => {
+    setFormData((prev) => ({
+      ...prev,
+      configureSizes: !prev.configureSizes,
+    }));
+  };
 
 
   const fetchCategoryDetails = async (catId) => {
@@ -2961,36 +3148,36 @@ const toggleConfigureSizes = () => {
     }));
   };
 
-const toggleMetalOption = (optionId) => {
-  setFormData((prev) => {
-    const selectedMetalOptions = prev.selectedMetalOptions.includes(optionId)
-      ? prev.selectedMetalOptions.filter((id) => id !== optionId)
-      : [...prev.selectedMetalOptions, optionId];
+  const toggleMetalOption = (optionId) => {
+    setFormData((prev) => {
+      const selectedMetalOptions = prev.selectedMetalOptions.includes(optionId)
+        ? prev.selectedMetalOptions.filter((id) => id !== optionId)
+        : [...prev.selectedMetalOptions, optionId];
 
-    const updatedFormData = { ...prev, selectedMetalOptions };
+      const updatedFormData = { ...prev, selectedMetalOptions };
 
-    if (!prev.selectedMetalOptions.includes(optionId)) {
-      const directKey = `${optionId}-none-none`;
-      const current = prev.variantPricing[directKey] || {};
-      const currentFiles = current.files || [];
+      if (!prev.selectedMetalOptions.includes(optionId)) {
+        const directKey = `${optionId}-none-none`;
+        const current = prev.variantPricing[directKey] || {};
+        const currentFiles = current.files || [];
 
-      if (!currentFiles.some((f) => f.file_type === "stl_file")) {
-        updatedFormData.variantPricing = {
-          ...prev.variantPricing,
-          [directKey]: {
-            ...current,
-            files: [
-              ...currentFiles,
-              { file_type: "stl_file", price: null },
-            ],
-          },
-        };
+        if (!currentFiles.some((f) => f.file_type === "stl_file")) {
+          updatedFormData.variantPricing = {
+            ...prev.variantPricing,
+            [directKey]: {
+              ...current,
+              files: [
+                ...currentFiles,
+                { file_type: "stl_file", price: null },
+              ],
+            },
+          };
+        }
       }
-    }
 
-    return updatedFormData;
-  });
-};
+      return updatedFormData;
+    });
+  };
 
   const toggleDiamondOption = (optionId) => {
     setFormData((prev) => ({
@@ -3001,716 +3188,624 @@ const toggleMetalOption = (optionId) => {
     }));
   };
 
-const toggleSize = (metalId, diamondId, sizeId) => {
-  const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId}`;
-  setFormData((prev) => {
-    const isSelecting = !prev.selectedSizes[key];
+  const toggleSize = (metalId, diamondId, sizeId) => {
+    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId}`;
+    setFormData((prev) => {
+      const isSelecting = !prev.selectedSizes[key];
 
-    const updated = {
-      ...prev,
-      selectedSizes: {
-        ...prev.selectedSizes,
-        [key]: isSelecting,
-      },
-    };
-
-    if (isSelecting) {
-      const current = prev.variantPricing[key] || {};
-      updated.variantPricing = {
-        ...prev.variantPricing,
-        [key]: {
-          ...current,
-          files: [{ file_type: "stl_file", price: null }],
+      const updated = {
+        ...prev,
+        selectedSizes: {
+          ...prev.selectedSizes,
+          [key]: isSelecting,
         },
       };
+
+      if (isSelecting) {
+        const current = prev.variantPricing[key] || {};
+        updated.variantPricing = {
+          ...prev.variantPricing,
+          [key]: {
+            ...current,
+            files: [{ file_type: "stl_file", price: null }],
+          },
+        };
+      }
+
+      return updated;
+    });
+  };
+
+  const updateFilePrice = (metalId, diamondId, sizeId, fileType, price) => {
+    setFormData((prev) => {
+      const key = sizeId
+        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+        : `${metalId || "none"}-${diamondId || "none"}-none`;
+
+      const current = prev.variantPricing[key] || {};
+      const currentFiles = current.files || [];
+
+      const updatedFiles = currentFiles.map((f) =>
+        f.file_type === fileType ? { ...f, price: price } : f
+      );
+
+      // If the file type doesn't exist, add it (e.g., for STL which is mandatory)
+      if (!updatedFiles.some((f) => f.file_type === fileType)) {
+        updatedFiles.push({ file_type: fileType, price: price });
+      }
+
+      return {
+        ...prev,
+        variantPricing: {
+          ...prev.variantPricing,
+          [key]: { ...current, files: updatedFiles },
+        },
+      };
+    });
+  };
+
+  const updateFileDescription = (metalId, diamondId, sizeId, fileType, description) => {
+    setFormData((prev) => {
+      const key = sizeId
+        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+        : `${metalId || "none"}-${diamondId || "none"}-none`;
+
+      const current = prev.variantPricing[key] || {};
+      const currentFiles = current.files || [];
+
+      const updatedFiles = currentFiles.map((f) => {
+        if (f.file_type === fileType) {
+          if (fileType === "stl_file") return { ...f, stl_file_description: description };
+          if (fileType === "cam_product") return { ...f, cam_product_description: description };
+        }
+        return f;
+      });
+
+      return {
+        ...prev,
+        variantPricing: {
+          ...prev.variantPricing,
+          [key]: { ...current, files: updatedFiles },
+        },
+      };
+    });
+  };
+
+  const updateFileLink = (metalId, diamondId, sizeId, fileType, link) => {
+    setFormData((prev) => {
+      const key = sizeId
+        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+        : `${metalId || "none"}-${diamondId || "none"}-none`;
+
+      const current = prev.variantPricing[key] || {};
+      const currentFiles = current.files || [];
+
+      const updatedFiles = currentFiles.map((f) =>
+        f.file_type === fileType
+          ? {
+            ...f,
+            stl_file_link: link,
+            file_path: link ? null : f.file_path, // Clear file_path if link is provided
+            file_name: link ? null : f.file_name, // Clear file_name if link is provided
+            file_size: link ? null : f.file_size // Clear file_size if link is provided
+          }
+          : f
+      );
+
+      return {
+        ...prev,
+        variantPricing: {
+          ...prev.variantPricing,
+          [key]: { ...current, files: updatedFiles },
+        },
+      };
+    });
+  };
+
+
+  const toggleVariantFileType = (metalId, diamondId, sizeId, fileType) => {
+    if (fileType === "stl_file") {
+      alert("STL File is mandatory and cannot be removed");
+      return;
     }
 
-    return updated;
-  });
-};
+    setFormData((prev) => {
+      const key = sizeId
+        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
+        : `${metalId || "none"}-${diamondId || "none"}-none`;
 
-const updateFilePrice = (metalId, diamondId, sizeId, fileType, price) => {
-  setFormData((prev) => {
-    const key = sizeId
-      ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-      : `${metalId || "none"}-${diamondId || "none"}-none`;
+      const current = prev.variantPricing[key] || {};
+      const currentFiles = current.files || [];
 
-    const current = prev.variantPricing[key] || {};
-    const currentFiles = current.files || [];
+      const fileExists = currentFiles.some((f) => f.file_type === fileType);
 
-    const updatedFiles = currentFiles.map((f) =>
-      f.file_type === fileType
-        ? { ...f, price: parseFloat(price) || null }
-        : f
-    );
+      const newFiles = fileExists
+        ? currentFiles.filter((f) => f.file_type !== fileType)
+        : [...currentFiles, { file_type: fileType, price: null }];
 
-    return {
-      ...prev,
-      variantPricing: {
-        ...prev.variantPricing,
-        [key]: {
-          ...current,
-          files: updatedFiles,
-        },
-      },
-    };
-  });
-};
-
-
-const toggleVariantFileType = (metalId, diamondId, sizeId, fileType) => {
-  if (fileType === "stl_file") {
-    alert("STL File is mandatory and cannot be removed");
-    return;
-  }
-
-  setFormData((prev) => {
-    const key = sizeId
-      ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-      : `${metalId || "none"}-${diamondId || "none"}-none`;
-
-    const current = prev.variantPricing[key] || {};
-    const currentFiles = current.files || [];
-
-    const fileExists = currentFiles.some((f) => f.file_type === fileType);
-
-    const newFiles = fileExists
-      ? currentFiles.filter((f) => f.file_type !== fileType)
-      : [...currentFiles, { file_type: fileType, price: null }];
-
-    return {
-      ...prev,
-      variantPricing: {
-        ...prev.variantPricing,
-        [key]: {
-          ...current,
-          files: newFiles,
-        },
-      },
-    };
-  });
-};
-
-
-const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) => {
-  if (!file) return;
-  
-  // ✅ START UPLOAD STATE
-  setIsPdfUploading(true);
-  setPdfUploadProgress(0);
-  setCurrentUploadingFile(file.name);
-  
-  const formDataObj = new FormData();
-  formDataObj.append('file', file);
-  
-  const token = localStorage.getItem('token');
-  
-  try {
-    const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
-      },
-      // ✅ TRACK PROGRESS
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setPdfUploadProgress(percentCompleted);
-      }
-    });
-    
-    if (response.data.success) {
-      const fileKey = `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
-      
-      setUploadedPdfFiles(prev => ({
+      return {
         ...prev,
-        [fileKey]: {
-          file_path: response.data.data.file_path,
-          file_name: response.data.data.file_name,
-          file_size: response.data.data.file_size
+        variantPricing: {
+          ...prev.variantPricing,
+          [key]: {
+            ...current,
+            files: newFiles,
+          },
+        },
+      };
+    });
+  };
+
+
+  const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) => {
+    if (!file) return;
+
+    // ✅ START UPLOAD STATE
+    setIsPdfUploading(true);
+    setPdfUploadProgress(0);
+    setCurrentUploadingFile(file.name);
+
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        // ✅ TRACK PROGRESS
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setPdfUploadProgress(percentCompleted);
         }
-      }));
-      
-      setFormData(prev => {
-        const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
-        const current = prev.variantPricing[variantKey] || {};
-        const currentFiles = current.files || [];
-        
-        const updatedFiles = currentFiles.map(f => 
-          f.file_type === fileType 
-            ? { 
-                ...f, 
+      });
+
+      if (response.data.success) {
+        const fileKey = `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
+
+        setUploadedPdfFiles(prev => ({
+          ...prev,
+          [fileKey]: {
+            file_path: response.data.data.file_path,
+            file_name: response.data.data.file_name,
+            file_size: response.data.data.file_size
+          }
+        }));
+
+        setFormData(prev => {
+          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
+          const current = prev.variantPricing[variantKey] || {};
+          const currentFiles = current.files || [];
+
+          const updatedFiles = currentFiles.map(f =>
+            f.file_type === fileType
+              ? {
+                ...f,
                 file_path: response.data.data.file_path,
                 file_name: response.data.data.file_name,
-                file_size: response.data.data.file_size
+                file_size: response.data.data.file_size,
+                link: null // Clear link if file is uploaded
               }
-            : f
-        );
-        
-        return {
-          ...prev,
-          variantPricing: {
-            ...prev.variantPricing,
-            [variantKey]: {
-              ...current,
-              files: updatedFiles
-            }
-          }
-        };
-      });
-      
-      alert('✅ File uploaded successfully!');
-    }
-  } catch (error) {
-    console.error('PDF upload error:', error);
-    alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
-  } finally {
-    // ✅ END UPLOAD STATE
-    setIsPdfUploading(false);
-    setPdfUploadProgress(0);
-    setCurrentUploadingFile("");
-  }
-};
+              : f
+          );
 
-
-const handleSave = async () => {
-  setSaving(true);
-  const token = localStorage.getItem("token");
-
-  try {
-    let uploadedImageUrls = [
-      ...imageUrls.filter((url) => !url.startsWith("blob:")),
-    ];
-
-if (imageFiles.length > 0) {
-  setIsUploading(true);  // ✅ START UPLOAD
-  setUploadProgress(0);   // ✅ RESET PROGRESS
-  
-  const formDataObj = new FormData();
-  imageFiles.forEach((file) => {
-    formDataObj.append("images", file);
-  });
-
-  const uploadRes = await axios.post(
-    `${API_URL}/upload-images`,
-    formDataObj,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-      // ✅ TRACK PROGRESS
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setUploadProgress(percentCompleted);
-      },
-    }
-  );
-
-  if (uploadRes.data.success) {
-    uploadedImageUrls = [
-      ...uploadedImageUrls,
-      ...uploadRes.data.data.images.map((img) => img.url),
-    ];
-  }
-  
-  setIsUploading(false);  // ✅ END UPLOAD
-}
-
-    const productDetails = {
-      ...product.product_details,
-      description: formData.description,
-      featured: formData.featured,
-      gender: formData.gender,
-      style_id: formData.style_id,
-      metal_id: formData.metal_id,
-      images: uploadedImageUrls,
-      category:
-        categories.find((c) => c.id == formData.category_id)?.name || "",
-      hasMetalChoice: formData.hasMetalChoice,
-      hasDiamondChoice: formData.hasDiamondChoice,
-      selectedMetalOptions: formData.selectedMetalOptions,
-      selectedDiamondOptions: formData.selectedDiamondOptions,
-      selectedSizes: formData.selectedSizes,
-      variantPricing: formData.variantPricing,
-      metalSizeConfig: formData.metalSizeConfig,
-      diamondSizeConfig: formData.diamondSizeConfig,
-      configureSizes: formData.configureSizes,
-    };
-
-    const response = await axios.post(
-      `${API_URL}/products/update`,
-      {
-        product_id: product.id,
-        category_id: formData.category_id,
-        name: formData.name,
-        slug: formData.slug,
-        product_details: productDetails,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (response.data.success) {
-      const variants = [];
-      
-      // Process variants with sizes
-      for (const [key, isSelected] of Object.entries(formData.selectedSizes)) {
-        if (!isSelected) continue;
-
-        const pricing = formData.variantPricing[key];
-        if (!pricing) continue;
-
-        const [metalPart, diamondPart, sizePart] = key.split("-");
-        
-        if (sizePart === 'none') continue;
-        
-        const files = Array.isArray(pricing.files) ? pricing.files : [];
-        if (files.length === 0) continue;
-        
-        const mappedFiles = files.map(f => {
-          const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
-          const uploadedFile = uploadedPdfFiles[fileKey];
-          
           return {
-            file_type: f.file_type,
-            price: f.price,
-            file_path: uploadedFile?.file_path || f.file_path || null,
-            file_name: uploadedFile?.file_name || f.file_name || null,
-            file_size: uploadedFile?.file_size || f.file_size || null
+            ...prev,
+            variantPricing: {
+              ...prev.variantPricing,
+              [variantKey]: {
+                ...current,
+                files: updatedFiles
+              }
+            }
           };
         });
-        
-        variants.push({
-          metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
-          diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-          size_option_id: parseInt(sizePart),
-          end_product_price: parseFloat(pricing.end_product_price) || null,
-          end_product_discount: parseFloat(pricing.end_product_discount) || null,
-          end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-          files: mappedFiles
+
+        alert('✅ File uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+    } finally {
+      // ✅ END UPLOAD STATE
+      setIsPdfUploading(false);
+      setPdfUploadProgress(0);
+      setCurrentUploadingFile("");
+    }
+  };
+
+
+  const handleSave = async () => {
+    setSaving(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      let uploadedImageUrls = [
+        ...imageUrls.filter((url) => !url.startsWith("blob:")),
+      ];
+
+      if (imageFiles.length > 0) {
+        setIsUploading(true);  // ✅ START UPLOAD
+        setUploadProgress(0);   // ✅ RESET PROGRESS
+
+        const formDataObj = new FormData();
+        imageFiles.forEach((file) => {
+          formDataObj.append("images", file);
         });
+
+        const uploadRes = await axios.post(
+          `${API_URL}/upload-images`,
+          formDataObj,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+            // ✅ TRACK PROGRESS
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percentCompleted);
+            },
+          }
+        );
+
+        if (uploadRes.data.success) {
+          uploadedImageUrls = [
+            ...uploadedImageUrls,
+            ...uploadRes.data.data.images.map((img) => img.url),
+          ];
+        }
+
+        setIsUploading(false);  // ✅ END UPLOAD
       }
 
-      // Process variants without sizes
-      for (const [key, pricing] of Object.entries(formData.variantPricing)) {
-        if (key.endsWith('-none')) {
-          const [metalPart, diamondPart, sizePart] = key.split('-');
-          
-          if (sizePart !== 'none') continue;
-          
+      const productDetails = {
+        ...product.product_details,
+        description: formData.description,
+        featured: formData.featured,
+        gender: formData.gender,
+        style_id: formData.style_id,
+        metal_id: formData.metal_id,
+        images: uploadedImageUrls,
+        category:
+          categories.find((c) => c.id == formData.category_id)?.name || "",
+        hasMetalChoice: formData.hasMetalChoice,
+        hasDiamondChoice: formData.hasDiamondChoice,
+        selectedMetalOptions: formData.selectedMetalOptions,
+        selectedDiamondOptions: formData.selectedDiamondOptions,
+        selectedSizes: formData.selectedSizes,
+        variantPricing: formData.variantPricing,
+        metalSizeConfig: formData.metalSizeConfig,
+        diamondSizeConfig: formData.diamondSizeConfig,
+        configureSizes: formData.configureSizes,
+      };
+
+      const response = await axios.post(
+        `${API_URL}/products/update`,
+        {
+          product_id: product.id,
+          category_id: formData.category_id,
+          name: formData.name,
+          slug: formData.slug,
+          product_details: productDetails,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        const variants = [];
+
+        // Process variants with sizes
+        for (const [key, isSelected] of Object.entries(formData.selectedSizes)) {
+          if (!isSelected) continue;
+
+          const pricing = formData.variantPricing[key];
+          if (!pricing) continue;
+
+          const [metalPart, diamondPart, sizePart] = key.split("-");
+
+          if (sizePart === 'none') continue;
+
           const files = Array.isArray(pricing.files) ? pricing.files : [];
           if (files.length === 0) continue;
-          
+
           const mappedFiles = files.map(f => {
-            const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+            const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
             const uploadedFile = uploadedPdfFiles[fileKey];
-            
+
             return {
               file_type: f.file_type,
               price: f.price,
               file_path: uploadedFile?.file_path || f.file_path || null,
               file_name: uploadedFile?.file_name || f.file_name || null,
-              file_size: uploadedFile?.file_size || f.file_size || null
+              file_size: uploadedFile?.file_size || f.file_size || null,
+              stl_file_description: f.stl_file_description || null,
+              cam_product_description: f.cam_product_description || null,
+              stl_file_link: f.stl_file_link || null,
             };
           });
-          
+
           variants.push({
             metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
             diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-            size_option_id: null,
+            size_option_id: parseInt(sizePart),
             end_product_price: parseFloat(pricing.end_product_price) || null,
             end_product_discount: parseFloat(pricing.end_product_discount) || null,
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
             files: mappedFiles
           });
         }
-      }
 
-      if (variants.length > 0) {
-        await axios.post(
-          `${API_URL}/product-variants/pricing`,
-          { product_id: product.id, variants },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
+        // Process variants without sizes
+        for (const [key, pricing] of Object.entries(formData.variantPricing)) {
+          if (key.endsWith('-none')) {
+            const [metalPart, diamondPart, sizePart] = key.split('-');
 
-      alert("✅ Product updated successfully");
-      onSave();
+            if (sizePart !== 'none') continue;
+
+            const files = Array.isArray(pricing.files) ? pricing.files : [];
+            if (files.length === 0) continue;
+
+            const mappedFiles = files.map(f => {
+              const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+              const uploadedFile = uploadedPdfFiles[fileKey];
+
+              return {
+                file_type: f.file_type,
+                price: f.price,
+                file_path: uploadedFile?.file_path || f.file_path || null,
+                file_name: uploadedFile?.file_name || f.file_name || null,
+                file_size: uploadedFile?.file_size || f.file_size || null,
+                stl_file_description: f.stl_file_description || null,
+                cam_product_description: f.cam_product_description || null,
+                stl_file_link: f.stl_file_link || null,
+              };
+            });
+
+            variants.push({
+              metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+              size_option_id: null,
+              end_product_price: parseFloat(pricing.end_product_price) || null,
+              end_product_discount: parseFloat(pricing.end_product_discount) || null,
+              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              files: mappedFiles
+            });
+          }
+        }
+
+        if (variants.length > 0) {
+          await axios.post(
+            `${API_URL}/product-variants/pricing`,
+            { product_id: product.id, variants },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+
+        alert("✅ Product updated successfully");
+        onSave();
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      alert("❌ Error updating product");
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error("Error updating product:", error);
-    alert("❌ Error updating product");
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
-const renderVariantConfiguration = () => (
-  <div className="mt-4 sm:mt-6 p-3 sm:p-4 md:p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-emerald-300">
-    <h5 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-blue-800 flex items-center gap-1.5 sm:gap-2">
-      ⚙️ Variant Configuration
-    </h5>
+  const renderVariantConfiguration = () => (
+    <div className="mt-4 sm:mt-6 p-3 sm:p-4 md:p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-emerald-300">
+      <h5 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-blue-800 flex items-center gap-1.5 sm:gap-2">
+        ⚙️ Variant Configuration
+      </h5>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
-      {/* Choice of Metal */}
-      <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-        <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.hasMetalChoice}
-            onChange={toggleMetalChoice}
-            className="w-4 h-4 sm:w-5 sm:h-5"
-            disabled={!canEdit}
-          />
-          <span className="font-bold text-sm sm:text-base">
-            🔩 Choice of Metal
-          </span>
-        </label>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
+        {/* Choice of Metal */}
+        <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
+          <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.hasMetalChoice}
+              onChange={toggleMetalChoice}
+              className="w-4 h-4 sm:w-5 sm:h-5"
+              disabled={!canEdit}
+            />
+            <span className="font-bold text-sm sm:text-base">
+              🔩 Choice of Metal
+            </span>
+          </label>
 
-        {formData.hasMetalChoice && (
-          <div className="space-y-1.5 sm:space-y-2">
-            {categoryData?.attributes?.metal?.options?.map((opt) => (
-              <label
-                key={opt.id}
-                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50 text-xs sm:text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.selectedMetalOptions.includes(opt.id)}
-                  onChange={() => toggleMetalOption(opt.id)}
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
-                  disabled={!canEdit}
-                />
-                <span>{opt.option_name}</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Diamond Quality */}
-      <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-        <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={formData.hasDiamondChoice}
-            onChange={toggleDiamondChoice}
-            className="w-4 h-4 sm:w-5 sm:h-5"
-            disabled={!canEdit}
-          />
-          <span className="font-bold text-sm sm:text-base">
-            💎 Diamond Quality
-          </span>
-        </label>
-
-        {formData.hasDiamondChoice && (
-          <div className="space-y-1.5 sm:space-y-2">
-            {categoryData?.attributes?.diamond?.options?.map((opt) => (
-              <label
-                key={opt.id}
-                className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-gray-50 rounded cursor-pointer hover:bg-purple-50 text-xs sm:text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={formData.selectedDiamondOptions.includes(opt.id)}
-                  onChange={() => toggleDiamondOption(opt.id)}
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
-                  disabled={!canEdit}
-                />
-                <span>{opt.option_name}</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-{/* Size Info */}
-<div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
-  <label className="flex items-center gap-2 mb-2 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={formData.configureSizes || false}
-      onChange={toggleConfigureSizes}
-      className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-      disabled={!canEdit}
-    />
-    <h6 className="font-bold text-sm sm:text-base">
-      📏 Configure Sizes with Pricing
-    </h6>
-  </label>
-  <p className="text-xs text-gray-600">
-    {formData.hasMetalChoice || formData.hasDiamondChoice
-      ? "✅ Size configuration is active (required for variants)"
-      : formData.configureSizes 
-        ? "✅ Size configuration is active" 
-        : "Check this to configure pricing for individual sizes"}
-  </p>
-  
-  {/* ✅ ADD DEBUG INFO */}
-  {!canEdit && (
-    <p className="text-xs text-amber-600 mt-2">
-      ⚠️ Cannot edit approved/rejected products
-    </p>
-  )}
-</div>
-    </div>
-
-    {/* Size & Pricing Configuration */}
-    {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
-      <div className="mt-3 sm:mt-4">
-        <h6 className="font-bold mb-2 sm:mb-3 text-sm sm:text-base">
-          📐 Configure Variants:
-        </h6>
-
-        {/* Size Only (No Metal/Diamond) */}
-        {!formData.hasMetalChoice && !formData.hasDiamondChoice && (
-          <div className="space-y-2 sm:space-y-3">
-            {categoryData?.attributes?.size?.options?.map((sizeOpt) => {
-              const key = `none-none-${sizeOpt.id}`;
-              const isSelected = formData.selectedSizes[key];
-              const pricing = formData.variantPricing[key] || {};
-
-              return (
-                <div
-                  key={sizeOpt.id}
-                  className="border-2 border-gray-200 rounded p-2 sm:p-3"
+          {formData.hasMetalChoice && (
+            <div className="space-y-1.5 sm:space-y-2">
+              {categoryData?.attributes?.metal?.options?.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50 text-xs sm:text-sm"
                 >
-                  <label className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isSelected || false}
-                      onChange={() => toggleSize(null, null, sizeOpt.id)}
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                      disabled={!canEdit}
-                    />
-                    <span className="font-bold text-sm sm:text-base">
-                      {sizeOpt.option_name}{" "}
-                      {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
-                    </span>
-                  </label>
+                  <input
+                    type="checkbox"
+                    checked={formData.selectedMetalOptions.includes(opt.id)}
+                    onChange={() => toggleMetalOption(opt.id)}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                    disabled={!canEdit}
+                  />
+                  <span>{opt.option_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
 
-                  {isSelected && (
-                    <div className="ml-6 sm:ml-8 space-y-2 sm:space-y-3">
-                      <div>
-                        <label className="block text-sm font-semibold mb-2 text-gray-800">
-                          📁 File Types & Pricing:
-                        </label>
-                        <div className="space-y-3">
-                          {FILE_TYPE_OPTIONS.map((fileOption) => {
-                            const isFileSelected = pricing.files?.some(
-                              (f) => f.file_type === fileOption.value
-                            ) || false;
-                            const filePrice = pricing.files?.find(
-                              (f) => f.file_type === fileOption.value
-                            )?.price || "";
-                            const fileKey = `${product.id}-none-none-${sizeOpt.id}-${fileOption.value}`;
-                            const uploadedFile = uploadedPdfFiles[fileKey];
-                            const isSTL = fileOption.value === "stl_file";
+        {/* Diamond Quality */}
+        <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
+          <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.hasDiamondChoice}
+              onChange={toggleDiamondChoice}
+              className="w-4 h-4 sm:w-5 sm:h-5"
+              disabled={!canEdit}
+            />
+            <span className="font-bold text-sm sm:text-base">
+              💎 Diamond Quality
+            </span>
+          </label>
 
+          {formData.hasDiamondChoice && (
+            <div className="space-y-1.5 sm:space-y-2">
+              {categoryData?.attributes?.diamond?.options?.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-gray-50 rounded cursor-pointer hover:bg-purple-50 text-xs sm:text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.selectedDiamondOptions.includes(opt.id)}
+                    onChange={() => toggleDiamondOption(opt.id)}
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                    disabled={!canEdit}
+                  />
+                  <span>{opt.option_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Size Info */}
+        <div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
+          <label className="flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.configureSizes || false}
+              onChange={toggleConfigureSizes}
+              className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
+              disabled={!canEdit}
+            />
+            <h6 className="font-bold text-sm sm:text-base">
+              📏 Configure Sizes with Pricing
+            </h6>
+          </label>
+          <p className="text-xs text-gray-600">
+            {formData.hasMetalChoice || formData.hasDiamondChoice
+              ? "✅ Size configuration is active (required for variants)"
+              : formData.configureSizes
+                ? "✅ Size configuration is active"
+                : "Check this to configure pricing for individual sizes"}
+          </p>
+          {!canEdit && (
+            <p className="text-xs text-amber-600 mt-2">
+              ⚠️ Cannot edit approved/rejected products
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Size & Pricing Configuration */}
+      {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+        <div className="mt-3 sm:mt-4">
+          <h6 className="font-bold mb-2 sm:mb-3 text-sm sm:text-base">
+            📐 Configure Variants:
+          </h6>
+
+          {/* Size Only (No Metal/Diamond) */}
+          {!formData.hasMetalChoice && !formData.hasDiamondChoice && (
+            <div className="space-y-2 sm:space-y-3">
+              {categoryData?.attributes?.size?.options?.map((sizeOpt) => {
+                const key = `none-none-${sizeOpt.id}`;
+                const isSelected = formData.selectedSizes[key];
+                const pricing = formData.variantPricing[key] || {};
+
+                return (
+                  <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-2 sm:p-3">
+                    <label className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSelected || false}
+                        onChange={() => toggleSize(null, null, sizeOpt.id)}
+                        className="w-4 h-4 sm:w-5 sm:h-5"
+                        disabled={!canEdit}
+                      />
+                      <span className="font-bold text-sm sm:text-base">
+                        {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                      </span>
+                    </label>
+
+                    {isSelected && (
+                      <div className="mt-4 space-y-4">
+                        <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                          {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                            <label
+                              key={fileOpt.value}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                ? "bg-green-100 border-green-300 text-green-800"
+                                : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                disabled={fileOpt.value === "stl_file" || !canEdit}
+                                onChange={() => toggleVariantFileType(null, null, sizeOpt.id, fileOpt.value)}
+                                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                              />
+                              <span className="text-xs font-bold whitespace-nowrap">
+                                {fileOpt.emoji} {fileOpt.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="space-y-4">
+                          {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                            const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                            if (!filePricing && fileOpt.value !== "stl_file") return null;
                             return (
-                              <div
-                                key={fileOption.value}
-                                className="border rounded p-3 bg-white"
-                              >
-                                <label
-                                  className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                    isSTL ? "opacity-50 cursor-not-allowed" : ""
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isFileSelected}
-                                    onChange={() =>
-                                      !isSTL &&
-                                      toggleVariantFileType(
-                                        null,
-                                        null,
-                                        sizeOpt.id,
-                                        fileOption.value
-                                      )
-                                    }
-                                    disabled={isSTL || !canEdit}
-                                    className="w-4 h-4 text-green-600"
-                                  />
-                                  <span className="text-lg">
-                                    {fileOption.emoji}
-                                  </span>
-                                  <span className="font-medium text-gray-800">
-                                    {fileOption.label}
-                                  </span>
-                                  {isSTL && (
-                                    <span className="text-xs text-green-600 ml-auto">
-                                      (Mandatory)
-                                    </span>
-                                  )}
-                                </label>
-
-                                {isFileSelected && (
-                                  <div className="ml-6 space-y-3">
-                                    {fileOption.requiresPrice && (
-                                      <div className="p-3 bg-green-50 rounded border border-green-200">
-                                        <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                          🟩 {fileOption.label} Price{" "}
-                                          {isSTL && "*"}
-                                        </p>
-                                        <input
-                                          type="number"
-                                          placeholder={
-                                            isSTL
-                                              ? "Enter price (required)"
-                                              : "Enter price"
-                                          }
-                                          value={filePrice}
-                                          onChange={(e) =>
-                                            updateFilePrice(
-                                              null,
-                                              null,
-                                              sizeOpt.id,
-                                              fileOption.value,
-                                              e.target.value
-                                            )
-                                          }
-                                          className={`w-full px-3 py-2 border rounded text-sm ${
-                                            isSTL && !filePrice
-                                              ? "border-red-500"
-                                              : "border-gray-300"
-                                          }`}
-                                          disabled={!canEdit}
-                                        />
-                                      </div>
-                                    )}
-
-                                    {fileOption.requiresUpload !== false && (
-                                      <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                        {/* <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                          📎 Upload {fileOption.label}{" "}
-                                          {isSTL && "(Optional)"}
-                                        </label>
-                                        <input
-                                          type="file"
-                                          accept=".pdf,.stl,.zip,.cam"
-                                          onChange={(e) => {
-                                            if (e.target.files[0]) {
-                                              handlePdfFileSelect(
-                                                null,
-                                                null,
-                                                sizeOpt.id,
-                                                fileOption.value,
-                                                e.target.files[0]
-                                              );
-                                            }
-                                          }}
-                                          className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
-                                          disabled={!canEdit}
-                                        /> */}
-                                        {/* {uploadedFile && (
-                                          <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                            <span>✓</span>
-                                            <span className="font-medium">
-                                              {uploadedFile.file_name}
-                                            </span>
-                                          </div>
-                                        )} */}
-                                        {fileOption.requiresUpload !== false && (
-                                          <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                            <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                              📎 Upload {fileOption.label} {isSTL && "(Optional)"}
-                                            </label>
-                                            
-                                            {/* Show existing file if it exists */}
-                                            {filePrice && pricing.files?.find(f => f.file_type === fileOption.value)?.file_name && (
-                                              <div className="mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-                                                <div className="flex items-center justify-between">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-blue-600">📄</span>
-                                                    <span className="text-xs font-medium truncate">
-                                                      {pricing.files.find(f => f.file_type === fileOption.value)?.file_name}
-                                                    </span>
-                                                  </div>
-                                                  {pricing.files.find(f => f.file_type === fileOption.value)?.file_size && (
-                                                    <span className="text-xs text-gray-500">
-                                                      {(pricing.files.find(f => f.file_type === fileOption.value)?.file_size / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            )}
-                                            
-                                            <input
-                                              type="file"
-                                              accept=".pdf,.stl,.zip,.cam"
-                                              onChange={(e) => {
-                                                if (e.target.files[0]) {
-                                                  handlePdfFileSelect(
-                                                    metalId,
-                                                    diamondId,
-                                                    sizeId,
-                                                    fileOption.value,
-                                                    e.target.files[0]
-                                                  );
-                                                }
-                                              }}
-                                              className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                              disabled={!canEdit}
-                                            />
-                                            
-                                            {/* Show uploaded file indicator */}
-                                            {uploadedFile && (
-                                              <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                <span>✓</span>
-                                                <span className="font-medium">
-                                                  {uploadedFile.file_name} (Uploaded)
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {!fileOption.requiresPrice && (
-                                      <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                        💡 Enquiry only - no price needed
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                              <FilePricingInput
+                                key={fileOpt.value}
+                                productId={product.id}
+                                metalId={null}
+                                diamondId={null}
+                                sizeId={sizeOpt.id}
+                                fileOption={fileOpt}
+                                pricing={filePricing || { file_type: fileOpt.value }}
+                                existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
+                                onPriceChange={(value) => updateFilePrice(null, null, sizeOpt.id, fileOpt.value, value)}
+                                onDescriptionChange={(value) => updateFileDescription(null, null, sizeOpt.id, fileOpt.value, value)}
+                                onLinkChange={(value) => updateFileLink(null, null, sizeOpt.id, fileOpt.value, value)}
+                                onFileUpload={(file) => handlePdfFileSelect(null, null, sizeOpt.id, fileOpt.value, file)}
+                                disabled={!canEdit}
+                              />
                             );
                           })}
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-        {/* Metal Only (No Diamond) */}
-        {formData.hasMetalChoice &&
-          !formData.hasDiamondChoice &&
-          formData.selectedMetalOptions.map((metalId) => {
-            const metalOpt = categoryData?.attributes?.metal?.options?.find(
-              (o) => o.id === metalId
-            );
+          {/* Metal Only (No Diamond) */}
+          {formData.hasMetalChoice && !formData.hasDiamondChoice && formData.selectedMetalOptions.map((metalId) => {
+            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
             const useSizeConfig = formData.metalSizeConfig[metalId];
 
             return (
-              <div
-                key={metalId}
-                className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50"
-              >
+              <div key={metalId} className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50">
                 <div className="flex items-center justify-between mb-3">
                   <h6 className="font-bold flex items-center gap-2 text-gray-800">
                     <span>🔩</span>
                     <span>{metalOpt?.option_name}</span>
                   </h6>
-
                   <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
                     <input
                       type="checkbox"
@@ -3727,366 +3822,146 @@ const renderVariantConfiguration = () => (
 
                 {useSizeConfig ? (
                   <div className="space-y-3">
-                    {categoryData?.attributes?.size?.options?.map(
-                      (sizeOpt) => {
-                        const key = `${metalId}-none-${sizeOpt.id}`;
-                        const isSelected = formData.selectedSizes[key];
-                        const pricing = formData.variantPricing[key] || {};
+                    {categoryData?.attributes?.size?.options?.map((sizeOpt) => {
+                      const key = `${metalId}-none-${sizeOpt.id}`;
+                      const isSelected = formData.selectedSizes[key];
+                      const pricing = formData.variantPricing[key] || {};
 
-                        return (
-                          <div
-                            key={sizeOpt.id}
-                            className="border-2 border-gray-200 rounded p-3 bg-white"
-                          >
-                            <label className="flex items-center gap-3 mb-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={isSelected || false}
-                                onChange={() =>
-                                  toggleSize(metalId, null, sizeOpt.id)
-                                }
-                                className="w-5 h-5 text-green-600"
-                                disabled={!canEdit}
-                              />
-                              <span className="font-bold text-gray-800">
-                                {sizeOpt.option_name}{" "}
-                                {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
-                              </span>
-                            </label>
+                      return (
+                        <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                          <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isSelected || false}
+                              onChange={() => toggleSize(metalId, null, sizeOpt.id)}
+                              className="w-5 h-5 text-green-600"
+                              disabled={!canEdit}
+                            />
+                            <span className="font-bold text-gray-800">
+                              {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                            </span>
+                          </label>
 
-                            {isSelected && (
-                              <div className="ml-8 space-y-3">
-                                <div>
-                                  <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                    📁 File Types & Pricing:
+                          {isSelected && (
+                            <div className="mt-4 space-y-4">
+                              <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                                <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                  <label
+                                    key={fileOpt.value}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                      ? "bg-green-100 border-green-300 text-green-800"
+                                      : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                      }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                      disabled={fileOpt.value === "stl_file" || !canEdit}
+                                      onChange={() => toggleVariantFileType(metalId, null, sizeOpt.id, fileOpt.value)}
+                                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                    />
+                                    <span className="text-xs font-bold whitespace-nowrap">
+                                      {fileOpt.emoji} {fileOpt.label}
+                                    </span>
                                   </label>
-                                  <div className="space-y-3">
-                                    {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                      const isFileSelected =
-                                        pricing.files?.some(
-                                          (f) => f.file_type === fileOption.value
-                                        ) || false;
-                                      const filePrice =
-                                        pricing.files?.find(
-                                          (f) => f.file_type === fileOption.value
-                                        )?.price || "";
-                                      const fileKey = `${product.id}-${metalId}-none-${sizeOpt.id}-${fileOption.value}`;
-                                      const uploadedFile =
-                                        uploadedPdfFiles[fileKey];
-                                      const isSTL =
-                                        fileOption.value === "stl_file";
-
-                                      return (
-                                        <div
-                                          key={fileOption.value}
-                                          className="border rounded p-3 bg-white"
-                                        >
-                                          <label
-                                            className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                              isSTL
-                                                ? "opacity-50 cursor-not-allowed"
-                                                : ""
-                                            }`}
-                                          >
-                                            <input
-                                              type="checkbox"
-                                              checked={isFileSelected}
-                                              onChange={() =>
-                                                !isSTL &&
-                                                toggleVariantFileType(
-                                                  metalId,
-                                                  null,
-                                                  sizeOpt.id,
-                                                  fileOption.value
-                                                )
-                                              }
-                                              disabled={isSTL || !canEdit}
-                                              className="w-4 h-4 text-green-600"
-                                            />
-                                            <span className="text-lg">
-                                              {fileOption.emoji}
-                                            </span>
-                                            <span className="font-medium text-gray-800">
-                                              {fileOption.label}
-                                            </span>
-                                            {isSTL && (
-                                              <span className="text-xs text-green-600 ml-auto">
-                                                (Mandatory)
-                                              </span>
-                                            )}
-                                          </label>
-
-                                          {isFileSelected && (
-                                            <div className="ml-6 space-y-3">
-                                              {fileOption.requiresPrice && (
-                                                <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                  <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                    🟩 {fileOption.label} Price{" "}
-                                                    {isSTL && "*"}
-                                                  </p>
-                                                  <input
-                                                    type="number"
-                                                    placeholder={
-                                                      isSTL
-                                                        ? "Enter price (required)"
-                                                        : "Enter price"
-                                                    }
-                                                    value={filePrice}
-                                                    onChange={(e) =>
-                                                      updateFilePrice(
-                                                        metalId,
-                                                        null,
-                                                        sizeOpt.id,
-                                                        fileOption.value,
-                                                        e.target.value
-                                                      )
-                                                    }
-                                                    className={`w-full px-3 py-2 border rounded text-sm ${
-                                                      isSTL && !filePrice
-                                                        ? "border-red-500"
-                                                        : "border-gray-300"
-                                                    }`}
-                                                    disabled={!canEdit}
-                                                  />
-                                                </div>
-                                              )}
-
-                                              {fileOption.requiresUpload !== false && (
-                                                <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                  <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                    📎 Upload{" "}
-                                                    {fileOption.label}{" "}
-                                                    {isSTL && "(Optional)"}
-                                                  </label>
-                                                  <input
-                                                    type="file"
-                                                    accept=".pdf,.stl,.zip,.cam"
-                                                    onChange={(e) => {
-                                                      if (e.target.files[0]) {
-                                                        handlePdfFileSelect(
-                                                          metalId,
-                                                          null,
-                                                          sizeOpt.id,
-                                                          fileOption.value,
-                                                          e.target.files[0]
-                                                        );
-                                                      }
-                                                    }}
-                                                    className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                                    disabled={!canEdit}
-                                                  />
-                                                  {uploadedFile && (
-                                                    <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                      <span>✓</span>
-                                                      <span className="font-medium">
-                                                        {uploadedFile.file_name}
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
-
-                                              {!fileOption.requiresPrice && (
-                                                <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                  💡 Enquiry only - no price needed
-                                                </p>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
+                                ))}
                               </div>
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
+                              <div className="space-y-4">
+                                {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                  const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                  if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                  return (
+                                    <FilePricingInput
+                                      key={fileOpt.value}
+                                      productId={product.id}
+                                      metalId={metalId}
+                                      diamondId={null}
+                                      sizeId={sizeOpt.id}
+                                      fileOption={fileOpt}
+                                      pricing={filePricing || { file_type: fileOpt.value }}
+                                      existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
+                                      onPriceChange={(value) => updateFilePrice(metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                      onDescriptionChange={(value) => updateFileDescription(metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                      onLinkChange={(value) => updateFileLink(metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                      onFileUpload={(file) => handlePdfFileSelect(metalId, null, sizeOpt.id, fileOpt.value, file)}
+                                      disabled={!canEdit}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-  <div className="space-y-3 border-2 border-gray-200 rounded p-3 bg-white">
-    <label className="block text-sm font-semibold mb-2 text-gray-800">
-      📁 File Types & Pricing:
-    </label>
-    <div className="space-y-3">
-      {FILE_TYPE_OPTIONS.map((fileOption) => {
-        const directKey = `${metalId}-none-none`;
-        const pricing = formData.variantPricing[directKey] || {};
-        const isFileSelected = pricing.files?.some(
-          (f) => f.file_type === fileOption.value
-        ) || false;
-        const filePrice = pricing.files?.find(
-          (f) => f.file_type === fileOption.value
-        )?.price || "";
-        const fileKey = `${product.id}-${metalId}-none-none-${fileOption.value}`;
-        const uploadedFile = uploadedPdfFiles[fileKey];
-        const isSTL = fileOption.value === "stl_file";
-
-        // Get existing file from variant pricing if not in uploadedPdfFiles
-        const existingFile = pricing.files?.find(f => f.file_type === fileOption.value);
-        const fileToShow = uploadedFile || existingFile;
-
-        return (
-          <div
-            key={fileOption.value}
-            className="border rounded p-3 bg-gray-50"
-          >
-            {isSTL ? (
-              <div className="flex items-center gap-2 text-sm mb-2">
-                <span className="text-lg">{fileOption.emoji}</span>
-                <span className="font-medium text-gray-800">
-                  {fileOption.label} (Mandatory)
-                </span>
-              </div>
-            ) : (
-              <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
-                <input
-                  type="checkbox"
-                  checked={isFileSelected}
-                  onChange={() => {
-                    toggleVariantFileType(
-                      metalId,
-                      null,
-                      null,
-                      fileOption.value
-                    );
-                  }}
-                  className="w-4 h-4 text-green-600"
-                  disabled={!canEdit}
-                />
-                <span className="text-lg">{fileOption.emoji}</span>
-                <span className="font-medium text-gray-800">
-                  {fileOption.label}
-                </span>
-              </label>
-            )}
-
-            {(isSTL || isFileSelected) && (
-              <div className="ml-6 space-y-3">
-                {fileOption.requiresPrice && (
-                  <div className="p-3 bg-green-50 rounded border border-green-200">
-                    <p className="text-xs text-gray-700 mb-2 font-semibold">
-                      🟩 {fileOption.label} Price {isSTL && "*"}
-                    </p>
-                    <input
-                      type="number"
-                      placeholder={
-                        isSTL
-                          ? "Enter price (required)"
-                          : "Enter price"
-                      }
-                      value={filePrice}
-                      onChange={(e) =>
-                        updateFilePrice(
-                          metalId,
-                          null,
-                          null,
-                          fileOption.value,
-                          e.target.value
-                        )
-                      }
-                      className={`w-full px-3 py-2 border rounded text-sm ${
-                        isSTL && !filePrice
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      disabled={!canEdit}
-                    />
-                  </div>
-                )}
-
-                {/* Show existing uploaded file */}
-                {fileToShow?.file_name && (
-                  <div className="p-3 bg-blue-50 rounded border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-blue-600">📄</span>
-                        <span 
-                          className="text-xs font-medium truncate"
-                          title={fileToShow.file_name}
+                  <div className="mt-4 space-y-4">
+                    <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                      <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                      {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                        <label
+                          key={fileOpt.value}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${formData.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                            ? "bg-green-100 border-green-300 text-green-800"
+                            : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                            }`}
                         >
-                          {fileToShow.file_name}
-                        </span>
-                      </div>
-                      {fileToShow.file_size && (
-                        <span className="text-xs text-gray-500">
-                          {(fileToShow.file_size / 1024 / 1024).toFixed(2)} MB
-                        </span>
-                      )}
+                          <input
+                            type="checkbox"
+                            checked={formData.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                            disabled={fileOpt.value === "stl_file" || !canEdit}
+                            onChange={() => toggleVariantFileType(metalId, null, null, fileOpt.value)}
+                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                          />
+                          <span className="text-xs font-bold whitespace-nowrap">
+                            {fileOpt.emoji} {fileOpt.label}
+                          </span>
+                        </label>
+                      ))}
                     </div>
-                    {uploadedFile && !existingFile?.file_name && (
-                      <div className="text-xs text-green-600 flex items-center gap-1">
-                        <span>✓</span>
-                        <span>Newly uploaded</span>
-                      </div>
-                    )}
+                    <div className="space-y-4">
+                      {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                        const directKey = `${metalId}-none-none`;
+                        const pricing = formData.variantPricing[directKey] || {};
+                        const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                        if (!filePricing && fileOpt.value !== "stl_file") return null;
+                        return (
+                          <FilePricingInput
+                            key={fileOpt.value}
+                            productId={product.id}
+                            metalId={metalId}
+                            diamondId={null}
+                            sizeId={null}
+                            fileOption={fileOpt}
+                            pricing={filePricing || { file_type: fileOpt.value }}
+                            existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-none-${fileOpt.value}`] || filePricing}
+                            onPriceChange={(value) => updateFilePrice(metalId, null, null, fileOpt.value, value)}
+                            onDescriptionChange={(value) => updateFileDescription(metalId, null, null, fileOpt.value, value)}
+                            onLinkChange={(value) => updateFileLink(metalId, null, null, fileOpt.value, value)}
+                            onFileUpload={(file) => handlePdfFileSelect(metalId, null, null, fileOpt.value, file)}
+                            disabled={!canEdit}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-
-                {fileOption.requiresUpload !== false && (
-                  <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                    <label className="block text-xs font-semibold text-gray-800 mb-2">
-                      📎 Upload {fileOption.label}
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.stl,.zip,.cam"
-                      onChange={(e) => {
-                        if (e.target.files[0]) {
-                          handlePdfFileSelect(
-                            metalId,
-                            null,
-                            null,
-                            fileOption.value,
-                            e.target.files[0]
-                          );
-                        }
-                      }}
-                      className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                      disabled={!canEdit}
-                    />
-                  </div>
-                )}
-
-                {!fileOption.requiresPrice && (
-                  <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                    💡 Enquiry only - no price needed
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  </div>
-)}
               </div>
             );
           })}
 
-        {/* Metal + Diamond */}
-        {formData.hasMetalChoice &&
-          formData.hasDiamondChoice &&
-          formData.selectedMetalOptions.map((metalId) => {
-            const metalOpt = categoryData?.attributes?.metal?.options?.find(
-              (o) => o.id === metalId
-            );
+          {/* Metal + Diamond */}
+          {formData.hasMetalChoice && formData.hasDiamondChoice && formData.selectedMetalOptions.map((metalId) => {
+            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
             return formData.selectedDiamondOptions.map((diamondId) => {
-              const diamondOpt =
-                categoryData?.attributes?.diamond?.options?.find(
-                  (o) => o.id === diamondId
-                );
+              const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => o.id === diamondId);
               const comboKey = `${metalId}-${diamondId}`;
               const useSizeConfig = formData.diamondSizeConfig[comboKey];
 
               return (
-                <div
-                  key={comboKey}
-                  className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50"
-                >
+                <div key={comboKey} className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50">
                   <div className="flex items-center justify-between mb-3">
                     <h6 className="font-bold flex items-center gap-2 text-gray-800">
                       <span>🔩</span>
@@ -4095,14 +3970,11 @@ const renderVariantConfiguration = () => (
                       <span>💎</span>
                       <span>{diamondOpt?.option_name}</span>
                     </h6>
-
                     <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
                       <input
                         type="checkbox"
                         checked={useSizeConfig || false}
-                        onChange={() =>
-                          toggleDiamondSizeConfig(metalId, diamondId)
-                        }
+                        onChange={() => toggleDiamondSizeConfig(metalId, diamondId)}
                         className="w-5 h-5 text-green-600"
                         disabled={!canEdit}
                       />
@@ -4114,325 +3986,127 @@ const renderVariantConfiguration = () => (
 
                   {useSizeConfig ? (
                     <div className="space-y-3">
-                      {categoryData?.attributes?.size?.options?.map(
-                        (sizeOpt) => {
-                          const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
-                          const isSelected = formData.selectedSizes[key];
-                          const pricing = formData.variantPricing[key] || {};
+                      {categoryData?.attributes?.size?.options?.map((sizeOpt) => {
+                        const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
+                        const isSelected = formData.selectedSizes[key];
+                        const pricing = formData.variantPricing[key] || {};
 
-                          return (
-                            <div
-                              key={sizeOpt.id}
-                              className="border-2 border-gray-200 rounded p-3 bg-white"
-                            >
-                              <label className="flex items-center gap-3 mb-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected || false}
-                                  onChange={() =>
-                                    toggleSize(metalId, diamondId, sizeOpt.id)
-                                  }
-                                  className="w-5 h-5 text-green-600"
-                                  disabled={!canEdit}
-                                />
-                                <span className="font-bold text-gray-800">
-                                  {sizeOpt.option_name}{" "}
-                                  {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
-                                </span>
-                              </label>
+                        return (
+                          <div key={sizeOpt.id} className="border-2 border-gray-200 rounded p-3 bg-white">
+                            <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isSelected || false}
+                                onChange={() => toggleSize(metalId, diamondId, sizeOpt.id)}
+                                className="w-5 h-5 text-green-600"
+                                disabled={!canEdit}
+                              />
+                              <span className="font-bold text-gray-800">
+                                {sizeOpt.option_name} {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                              </span>
+                            </label>
 
-                              {isSelected && (
-                                <div className="ml-8 space-y-3">
-                                  <div>
-                                    <label className="block text-sm font-semibold mb-2 text-gray-800">
-                                      📁 File Types & Pricing:
+                            {isSelected && (
+                              <div className="mt-4 space-y-4">
+                                <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                                  <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                  {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                    <label
+                                      key={fileOpt.value}
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                        ? "bg-green-100 border-green-300 text-green-800"
+                                        : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                        }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                        disabled={fileOpt.value === "stl_file" || !canEdit}
+                                        onChange={() => toggleVariantFileType(metalId, diamondId, sizeOpt.id, fileOpt.value)}
+                                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                      />
+                                      <span className="text-xs font-bold whitespace-nowrap">
+                                        {fileOpt.emoji} {fileOpt.label}
+                                      </span>
                                     </label>
-                                    <div className="space-y-3">
-                                      {FILE_TYPE_OPTIONS.map((fileOption) => {
-                                        const isFileSelected =
-                                          pricing.files?.some(
-                                            (f) =>
-                                              f.file_type === fileOption.value
-                                          ) || false;
-                                        const filePrice =
-                                          pricing.files?.find(
-                                            (f) =>
-                                              f.file_type === fileOption.value
-                                          )?.price || "";
-                                        const fileKey = `${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOption.value}`;
-                                        const uploadedFile =
-                                          uploadedPdfFiles[fileKey];
-                                        const isSTL =
-                                          fileOption.value === "stl_file";
-
-                                        return (
-                                          <div
-                                            key={fileOption.value}
-                                            className="border rounded p-3 bg-white"
-                                          >
-                                            <label
-                                              className={`flex items-center gap-2 text-sm cursor-pointer mb-2 ${
-                                                isSTL
-                                                  ? "opacity-50 cursor-not-allowed"
-                                                  : ""
-                                              }`}
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={isFileSelected}
-                                                onChange={() =>
-                                                  !isSTL &&
-                                                  toggleVariantFileType(
-                                                    metalId,
-                                                    diamondId,
-                                                    sizeOpt.id,
-                                                    fileOption.value
-                                                  )
-                                                }
-                                                disabled={isSTL || !canEdit}
-                                                className="w-4 h-4 text-green-600"
-                                              />
-                                              <span className="text-lg">
-                                                {fileOption.emoji}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {fileOption.label}
-                                              </span>
-                                              {isSTL && (
-                                                <span className="text-xs text-green-600 ml-auto">
-                                                  (Mandatory)
-                                                </span>
-                                              )}
-                                            </label>
-
-                                            {isFileSelected && (
-                                              <div className="ml-6 space-y-3">
-                                                {fileOption.requiresPrice && (
-                                                  <div className="p-3 bg-green-50 rounded border border-green-200">
-                                                    <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                                      🟩 {fileOption.label}{" "}
-                                                      Price {isSTL && "*"}
-                                                    </p>
-                                                    <input
-                                                      type="number"
-                                                      placeholder={
-                                                        isSTL
-                                                          ? "Enter price (required)"
-                                                          : "Enter price"
-                                                      }
-                                                      value={filePrice}
-                                                      onChange={(e) =>
-                                                        updateFilePrice(
-                                                          metalId,
-                                                          diamondId,
-                                                          sizeOpt.id,
-                                                          fileOption.value,
-                                                          e.target.value
-                                                        )
-                                                      }
-                                                      className={`w-full px-3 py-2 border rounded text-sm ${
-                                                        isSTL && !filePrice
-                                                          ? "border-red-500"
-                                                          : "border-gray-300"
-                                                      }`}
-                                                      disabled={!canEdit}
-                                                    />
-                                                  </div>
-                                                )}
-
-                                                {fileOption.requiresUpload !==
-                                                  false && (
-                                                  <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                                    <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                                      📎 Upload{" "}
-                                                      {fileOption.label}{" "}
-                                                      {isSTL && "(Optional)"}
-                                                    </label>
-                                                    <input
-                                                      type="file"
-                                                      accept=".pdf,.stl,.zip,.cam"
-                                                      onChange={(e) => {
-                                                        if (e.target.files[0]) {
-                                                          handlePdfFileSelect(
-                                                            metalId,
-                                                            diamondId,
-                                                            sizeOpt.id,
-                                                            fileOption.value,
-                                                            e.target.files[0]
-                                                          );
-                                                        }
-                                                      }}
-                                                      className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                                      disabled={!canEdit}
-                                                    />
-                                                    {uploadedFile && (
-                                                      <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                                        <span>✓</span>
-                                                        <span className="font-medium">
-                                                          {uploadedFile.file_name}
-                                                        </span>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-
-                                                {!fileOption.requiresPrice && (
-                                                  <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                                    💡 Enquiry only - no price
-                                                    needed
-                                                  </p>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
+                                  ))}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        }
-                      )}
+                                <div className="space-y-4">
+                                  {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                    const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                    if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                    return (
+                                      <FilePricingInput
+                                        key={fileOpt.value}
+                                        productId={product.id}
+                                        metalId={metalId}
+                                        diamondId={diamondId}
+                                        sizeId={sizeOpt.id}
+                                        fileOption={fileOpt}
+                                        pricing={filePricing || { file_type: fileOpt.value }}
+                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
+                                        onPriceChange={(value) => updateFilePrice(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                        onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                        onLinkChange={(value) => updateFileLink(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                        onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, sizeOpt.id, fileOpt.value, file)}
+                                        disabled={!canEdit}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="space-y-3 border-2 border-gray-200 rounded p-3 bg-white">
-                      <label className="block text-sm font-semibold mb-2 text-gray-800">
-                        📁 File Types & Pricing:
-                      </label>
-                      <div className="space-y-3">
-                        {FILE_TYPE_OPTIONS.map((fileOption) => {
+                    <div className="mt-4 space-y-4">
+                      <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                        {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                          <label
+                            key={fileOpt.value}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${formData.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                              ? "bg-green-100 border-green-300 text-green-800"
+                              : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                              }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                              disabled={fileOpt.value === "stl_file" || !canEdit}
+                              onChange={() => toggleVariantFileType(metalId, diamondId, null, fileOpt.value)}
+                              className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                            />
+                            <span className="text-xs font-bold whitespace-nowrap">
+                              {fileOpt.emoji} {fileOpt.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="space-y-4">
+                        {FILE_TYPE_OPTIONS.map((fileOpt) => {
                           const directKey = `${metalId}-${diamondId}-none`;
-                          const pricing =
-                            formData.variantPricing[directKey] || {};
-                          const isFileSelected =
-                            pricing.files?.some(
-                              (f) => f.file_type === fileOption.value
-                            ) || false;
-                          const filePrice =
-                            pricing.files?.find(
-                              (f) => f.file_type === fileOption.value
-                            )?.price || "";
-                          const fileKey = `${product.id}-${metalId}-${diamondId}-direct-${fileOption.value}`;
-                          const uploadedFile = uploadedPdfFiles[fileKey];
-                          const isSTL = fileOption.value === "stl_file";
-
+                          const pricing = formData.variantPricing[directKey] || {};
+                          const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                          if (!filePricing && fileOpt.value !== "stl_file") return null;
                           return (
-                            <div
-                              key={fileOption.value}
-                              className="border rounded p-3 bg-gray-50"
-                            >
-                              {isSTL ? (
-                                <div className="flex items-center gap-2 text-sm mb-2">
-                                  <span className="text-lg">
-                                    {fileOption.emoji}
-                                  </span>
-                                  <span className="font-medium text-gray-800">
-                                    {fileOption.label} (Mandatory)
-                                  </span>
-                                </div>
-                              ) : (
-                                <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={isFileSelected}
-                                    onChange={() => {
-                                      toggleVariantFileType(
-                                        metalId,
-                                        diamondId,
-                                        null,
-                                        fileOption.value
-                                      );
-                                    }}
-                                    className="w-4 h-4 text-green-600"
-                                    disabled={!canEdit}
-                                  />
-                                  <span className="text-lg">
-                                    {fileOption.emoji}
-                                  </span>
-                                  <span className="font-medium text-gray-800">
-                                    {fileOption.label}
-                                  </span>
-                                </label>
-                              )}
-
-                              {(isSTL || isFileSelected) && (
-                                <div className="ml-6 space-y-3">
-                                  {fileOption.requiresPrice && (
-                                    <div className="p-3 bg-green-50 rounded border border-green-200">
-                                      <p className="text-xs text-gray-700 mb-2 font-semibold">
-                                        🟩 {fileOption.label} Price{" "}
-                                        {isSTL && "*"}
-                                      </p>
-                                      <input
-                                        type="number"
-                                        placeholder={
-                                          isSTL
-                                            ? "Enter price (required)"
-                                            : "Enter price"
-                                        }
-                                        value={filePrice}
-                                        onChange={(e) =>
-                                          updateFilePrice(
-                                            metalId,
-                                            diamondId,
-                                            null,
-                                            fileOption.value,
-                                            e.target.value
-                                          )
-                                        }
-                                        className={`w-full px-3 py-2 border rounded text-sm ${
-                                          isSTL && !filePrice
-                                            ? "border-red-500"
-                                            : "border-gray-300"
-                                        }`}
-                                        disabled={!canEdit}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {fileOption.requiresUpload !== false && (
-                                    <div className="p-3 bg-gray-100 rounded border border-gray-300">
-                                      <label className="block text-xs font-semibold text-gray-800 mb-2">
-                                        📎 Upload {fileOption.label}
-                                      </label>
-                                      <input
-                                        type="file"
-                                        accept=".pdf,.stl,.zip,.cam"
-                                        onChange={(e) => {
-                                          if (e.target.files[0]) {
-                                            handlePdfFileSelect(
-                                              metalId,
-                                              diamondId,
-                                              null,
-                                              fileOption.value,
-                                              e.target.files[0]
-                                            );
-                                          }
-                                        }}
-                                        className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-                                        disabled={!canEdit}
-                                      />
-                                      {uploadedFile && (
-                                        <div className="mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded">
-                                          <span>✓</span>
-                                          <span className="font-medium">
-                                            {uploadedFile.file_name}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {!fileOption.requiresPrice && (
-                                    <p className="text-xs text-green-600 p-2 bg-green-50 rounded border border-green-200">
-                                      💡 Enquiry only - no price needed
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                            <FilePricingInput
+                              key={fileOpt.value}
+                              productId={product.id}
+                              metalId={metalId}
+                              diamondId={diamondId}
+                              sizeId={null}
+                              fileOption={fileOpt}
+                              pricing={filePricing || { file_type: fileOpt.value }}
+                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-${fileOpt.value}`] || filePricing}
+                              onPriceChange={(value) => updateFilePrice(metalId, diamondId, null, fileOpt.value, value)}
+                              onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, null, fileOpt.value, value)}
+                              onLinkChange={(value) => updateFileLink(metalId, diamondId, null, fileOpt.value, value)}
+                              onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, null, fileOpt.value, file)}
+                              disabled={!canEdit}
+                            />
                           );
                         })}
                       </div>
@@ -4442,10 +4116,10 @@ const renderVariantConfiguration = () => (
               );
             });
           })}
-      </div>
-    )}
-  </div>
-);
+        </div>
+      )}
+    </div>
+  );
 
   const isVendor = userRole === "vendor";
   const canEdit = !isVendor || (isVendor && product.status === "pending");
@@ -4485,11 +4159,10 @@ const renderVariantConfiguration = () => (
               <button
                 key={tab}
                 onClick={() => setActiveVariantTab(tab)}
-                className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-                  activeVariantTab === tab
-                    ? "border-emerald-500 text-emerald-600 bg-gradient-to-r from-emerald-50 to-green-50"
-                    : "border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300"
-                }`}
+                className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${activeVariantTab === tab
+                  ? "border-emerald-500 text-emerald-600 bg-gradient-to-r from-emerald-50 to-green-50"
+                  : "border-transparent text-gray-500 hover:text-emerald-700 hover:border-gray-300"
+                  }`}
               >
                 {tab === "basic" ? (
                   <FiEdit className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -4508,9 +4181,8 @@ const renderVariantConfiguration = () => (
 
         {/* Content */}
         <div
-          className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 ${
-            !canEdit ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 ${!canEdit ? "opacity-50 cursor-not-allowed" : ""
+            }`}
         >
           {activeVariantTab === "basic" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
@@ -4690,34 +4362,34 @@ const renderVariantConfiguration = () => (
                   </div>
                 </div>
 
-{/* Gender Selection - DYNAMIC */}
-<div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
-  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
-      <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
-    </div>
-    <span>Target Audience</span>
-  </label>
-  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-    {targetAudienceOptions.map((option) => (
-      <label
-        key={option.id}
-        className="flex flex-col items-center justify-center p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
-      >
-        <input
-          type="checkbox"
-          checked={formData.gender.includes(option.gender)}
-          onChange={() => toggleGender(option.gender)}
-          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 mb-1.5"
-          disabled={!canEdit}
-        />
-        <span className="text-xs sm:text-sm font-medium text-gray-700">
-          {option.gender}
-        </span>
-      </label>
-    ))}
-  </div>
-</div>
+                {/* Gender Selection - DYNAMIC */}
+                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
+                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
+                      <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </div>
+                    <span>Target Audience</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    {targetAudienceOptions.map((option) => (
+                      <label
+                        key={option.id}
+                        className="flex flex-col items-center justify-center p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.gender.includes(option.gender)}
+                          onChange={() => toggleGender(option.gender)}
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 mb-1.5"
+                          disabled={!canEdit}
+                        />
+                        <span className="text-xs sm:text-sm font-medium text-gray-700">
+                          {option.gender}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Image Management */}
                 <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
@@ -4845,101 +4517,101 @@ const renderVariantConfiguration = () => (
           )}
         </div>
 
-      {/* Footer Actions */}
-      <div className="flex flex-col gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-        
-        {/* ✅ IMAGE UPLOAD PROGRESS BAR */}
-        {isUploading && (
-          <div className="w-full">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-emerald-700">
-                📸 Uploading images...
-              </span>
-              <span className="text-sm font-bold text-emerald-900">
-                {uploadProgress}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${uploadProgress}%` }}
-              >
-                <div className="h-full w-full bg-white/30 animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Footer Actions */}
+        <div className="flex flex-col gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
 
-        {/* ✅ PDF UPLOAD PROGRESS BAR */}
-        {isPdfUploading && (
-          <div className="w-full">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-purple-700">
-                📄 Uploading: {currentUploadingFile}
-              </span>
-              <span className="text-sm font-bold text-purple-900">
-                {pdfUploadProgress}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${pdfUploadProgress}%` }}
-              >
-                <div className="h-full w-full bg-white/30 animate-pulse"></div>
+          {/* ✅ IMAGE UPLOAD PROGRESS BAR */}
+          {isUploading && (
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-emerald-700">
+                  📸 Uploading images...
+                </span>
+                <span className="text-sm font-bold text-emerald-900">
+                  {uploadProgress}%
+                </span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ACTION BUTTONS */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {canEdit ? (
-            <button
-              onClick={handleSave}
-              disabled={saving || isUploading || isPdfUploading}
-              className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all shadow-lg hover:shadow-xl"
-            >
-              {isPdfUploading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Uploading File {pdfUploadProgress}%...</span>
-                </>
-              ) : isUploading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Uploading Images {uploadProgress}%...</span>
-                </>
-              ) : saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Saving Changes...</span>
-                </>
-              ) : (
-                <>
-                  <FiCheckCircle className="w-5 h-5" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="flex-1 text-center py-3 sm:py-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg sm:rounded-xl border border-amber-200">
-              <p className="text-amber-700 font-semibold text-sm sm:text-base">
-                This product cannot be edited as it's already {product.status}
-              </p>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                >
+                  <div className="h-full w-full bg-white/30 animate-pulse"></div>
+                </div>
+              </div>
             </div>
           )}
-          
-          <button
-            onClick={onClose}
-            disabled={isUploading || isPdfUploading}
-            className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-400 hover:to-gray-500 disabled:opacity-50 font-semibold text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2 sm:gap-3"
-          >
-            <FiX className="w-5 h-5" />
-            Cancel
-          </button>
+
+          {/* ✅ PDF UPLOAD PROGRESS BAR */}
+          {isPdfUploading && (
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-purple-700">
+                  📄 Uploading: {currentUploadingFile}
+                </span>
+                <span className="text-sm font-bold text-purple-900">
+                  {pdfUploadProgress}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${pdfUploadProgress}%` }}
+                >
+                  <div className="h-full w-full bg-white/30 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ACTION BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {canEdit ? (
+              <button
+                onClick={handleSave}
+                disabled={saving || isUploading || isPdfUploading}
+                className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-700 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 font-semibold text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all shadow-lg hover:shadow-xl"
+              >
+                {isPdfUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Uploading File {pdfUploadProgress}%...</span>
+                  </>
+                ) : isUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Uploading Images {uploadProgress}%...</span>
+                  </>
+                ) : saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Saving Changes...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiCheckCircle className="w-5 h-5" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex-1 text-center py-3 sm:py-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg sm:rounded-xl border border-amber-200">
+                <p className="text-amber-700 font-semibold text-sm sm:text-base">
+                  This product cannot be edited as it's already {product.status}
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              disabled={isUploading || isPdfUploading}
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-400 hover:to-gray-500 disabled:opacity-50 font-semibold text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2 sm:gap-3"
+            >
+              <FiX className="w-5 h-5" />
+              Cancel
+            </button>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
@@ -4963,47 +4635,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
   const [slugErrors, setSlugErrors] = useState({});
   const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
 
-  const FILE_TYPE_OPTIONS = [
-    {
-      value: "stl_file",
-      label: "STL File",
-      emoji: "📄",
-      requiresPrice: true,
-      requiresUpload: true,
-      hasLinkOption: true,
-    },
-    {
-      value: "cam_product",
-      label: "CAM Product",
-      emoji: "⚙️",
-      requiresPrice: true,
-      requiresUpload: false,
-    },
-    {
-      value: "rubber_mold",
-      label: "Rubber Mold",
-      emoji: "🔧",
-      requiresPrice: false,
-      requiresUpload: false,
-    },
-    {
-      value: "casting_model",
-      label: "Casting Model",
-      emoji: "🏭",
-      requiresPrice: false,
-      requiresUpload: false,
-    },
-    {
-      value: "finished_product",
-      label: "Finished Product",
-      emoji: "✨",
-      requiresPrice: false,
-      requiresUpload: false,
-    },
-  ];
 
   const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
-  
+
   useEffect(() => {
     fetchTargetAudienceOptions();
   }, []);
@@ -5015,7 +4649,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
         `${API_URL}/target-audience/options`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.success) {
         setTargetAudienceOptions(response.data.data);
       }
@@ -5281,16 +4915,16 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
   const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
     if (!file) return;
-    
+
     setIsPdfUploading(true);
     setPdfUploadProgress(0);
     setCurrentUploadingFile(file.name);
-    
+
     const formDataObj = new FormData();
     formDataObj.append('file', file);
-    
+
     const token = localStorage.getItem('token');
-    
+
     try {
       const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
         headers: {
@@ -5304,10 +4938,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           setPdfUploadProgress(percentCompleted);
         }
       });
-      
+
       if (response.data.success) {
         const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
-        
+
         setUploadedPdfFiles(prev => ({
           ...prev,
           [fileKey]: {
@@ -5316,24 +4950,24 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             file_size: response.data.data.file_size
           }
         }));
-        
+
         setProducts(products.map(p => {
           if (p.id === productId) {
             const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
             const current = p.variantPricing[variantKey] || {};
             const currentFiles = current.files || [];
-            
-            const updatedFiles = currentFiles.map(f => 
-              f.file_type === fileType 
-                ? { 
-                    ...f, 
-                    file_path: response.data.data.file_path,
-                    file_name: response.data.data.file_name,
-                    file_size: response.data.data.file_size
-                  }
+
+            const updatedFiles = currentFiles.map(f =>
+              f.file_type === fileType
+                ? {
+                  ...f,
+                  file_path: response.data.data.file_path,
+                  file_name: response.data.data.file_name,
+                  file_size: response.data.data.file_size
+                }
                 : f
             );
-            
+
             return {
               ...p,
               variantPricing: {
@@ -5347,7 +4981,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           }
           return p;
         }));
-        
+
         alert('✅ File uploaded successfully!');
       }
     } catch (error) {
@@ -5639,11 +5273,13 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           const current = p.variantPricing[key] || {};
           const currentFiles = current.files || [];
 
-          const updatedFiles = currentFiles.map((f) =>
-            f.file_type === fileType
-              ? { ...f, stl_file_description: description }
-              : f
-          );
+          const updatedFiles = currentFiles.map((f) => {
+            if (f.file_type === fileType) {
+              if (fileType === "stl_file") return { ...f, stl_file_description: description };
+              if (fileType === "cam_product") return { ...f, cam_product_description: description };
+            }
+            return f;
+          });
 
           return {
             ...p,
@@ -5681,13 +5317,13 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
           const updatedFiles = currentFiles.map((f) =>
             f.file_type === fileType
-              ? { 
-                  ...f, 
-                  stl_file_link: link,
-                  file_path: link ? null : f.file_path,
-                  file_name: link ? null : f.file_name,
-                  file_size: link ? null : f.file_size
-                }
+              ? {
+                ...f,
+                stl_file_link: link,
+                file_path: link ? null : f.file_path,
+                file_name: link ? null : f.file_name,
+                file_size: link ? null : f.file_size
+              }
               : f
           );
 
@@ -5776,7 +5412,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           setIsUploading(true);
           setUploadProgress(0);
           setCurrentProductUploading(product.name);
-          
+
           const formData = new FormData();
           product.imageFiles.forEach((file) => {
             formData.append("images", file);
@@ -5802,7 +5438,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           if (uploadRes.data.success && uploadRes.data.data && Array.isArray(uploadRes.data.data.images)) {
             uploadedImageUrls = uploadRes.data.data.images.map((img) => img.url);
           }
-          
+
           setIsUploading(false);
         }
 
@@ -5876,6 +5512,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   file_name: uploadedFile?.file_name || null,
                   file_size: uploadedFile?.file_size || null,
                   stl_file_description: f.stl_file_description || null,
+                  cam_product_description: f.cam_product_description || null,
                   stl_file_link: f.stl_file_link || null,
                 };
               });
@@ -5936,6 +5573,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   file_name: uploadedFile?.file_name || null,
                   file_size: uploadedFile?.file_size || null,
                   stl_file_description: f.stl_file_description || null,
+                  cam_product_description: f.cam_product_description || null,
                   stl_file_link: f.stl_file_link || null,
                 };
               });
@@ -5982,159 +5620,6 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
   };
 
   const selectedCategory = categories.find((c) => c.id == selectedCategoryId);
-
-  // Helper component for STL file input with link option
-  const STLFileInput = ({ 
-    productId, 
-    metalId, 
-    diamondId, 
-    sizeId, 
-    filePrice, 
-    fileDescription, 
-    fileLink,
-    existingFile,
-    onPriceChange,
-    onDescriptionChange,
-    onLinkChange,
-    onFileUpload,
-    isSTL = true 
-  }) => {
-    const [useLink, setUseLink] = useState(!!fileLink);
-    const [link, setLink] = useState(fileLink || "");
-    const [description, setDescription] = useState(fileDescription || "");
-
-    useEffect(() => {
-      setUseLink(!!fileLink);
-      setLink(fileLink || "");
-      setDescription(fileDescription || "");
-    }, [fileLink, fileDescription]);
-
-    const handleLinkChange = (value) => {
-      setLink(value);
-      setUseLink(!!value);
-      onLinkChange(value);
-    };
-
-    const handleDescriptionChange = (value) => {
-      setDescription(value);
-      onDescriptionChange(value);
-    };
-
-    return (
-      <div className="ml-6 space-y-3">
-        {isSTL && (
-          <div className="p-3 bg-green-50 rounded border border-green-200">
-            <p className="text-xs text-gray-700 mb-2 font-semibold">
-              🟩 STL File Price *
-            </p>
-            <input
-              type="number"
-              placeholder="Enter price (required)"
-              value={filePrice}
-              onChange={(e) => onPriceChange(e.target.value)}
-              className={`w-full px-3 py-2 border rounded text-sm ${
-                !filePrice ? "border-red-500" : "border-gray-300"
-              }`}
-              required
-            />
-            {!filePrice && (
-              <p className="text-xs text-red-600 mt-1">STL price is required</p>
-            )}
-          </div>
-        )}
-
-        {/* Description Input */}
-        <div className="p-3 bg-blue-50 rounded border border-blue-200">
-          <label className="block text-xs font-semibold text-gray-800 mb-2">
-            📝 File Description
-          </label>
-          <textarea
-            placeholder="Enter description for this STL file..."
-            value={description}
-            onChange={(e) => handleDescriptionChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-            rows="2"
-          />
-        </div>
-
-        {/* Upload Option Toggle */}
-        <div className="p-3 bg-gray-50 rounded border border-gray-200">
-          <label className="block text-xs font-semibold text-gray-800 mb-2">
-            📎 Upload Option
-          </label>
-          <div className="flex gap-4 mb-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}`}
-                checked={!useLink}
-                onChange={() => setUseLink(false)}
-                className="w-4 h-4"
-              />
-              <span className="text-sm">Upload File</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name={`upload-option-${productId}-${metalId}-${diamondId}-${sizeId}`}
-                checked={useLink}
-                onChange={() => setUseLink(true)}
-                className="w-4 h-4"
-              />
-              <span className="text-sm">Share Link</span>
-            </label>
-          </div>
-
-          {!useLink ? (
-            <div>
-              <input
-                type="file"
-                accept=".pdf,.stl,.zip,.cam"
-                onChange={(e) => {
-                  if (e.target.files[0]) {
-                    onFileUpload(e.target.files[0]);
-                  }
-                }}
-                className="w-full text-xs file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-green-600 file:text-white file:cursor-pointer hover:file:bg-green-700"
-              />
-              {existingFile && (
-                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-600">📄</span>
-                      <span className="text-xs font-medium truncate">
-                        {existingFile.file_name}
-                      </span>
-                    </div>
-                    {existingFile.file_size && (
-                      <span className="text-xs text-gray-500">
-                        {(existingFile.file_size / 1024 / 1024).toFixed(2)} MB
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <input
-                type="url"
-                placeholder="Enter Google Drive, Dropbox, or any shareable link..."
-                value={link}
-                onChange={(e) => handleLinkChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-              />
-              {link && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Link will be stored and shown to customers
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
@@ -6269,11 +5754,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 <button
                   key={product.id}
                   onClick={() => setActiveProductTab(index)}
-                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${
-                    activeProductTab === index
-                      ? "border-green-500 text-green-600 bg-green-50"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap ${activeProductTab === index
+                    ? "border-green-500 text-green-600 bg-green-50"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
                 >
                   <span>📦</span>
                   <span>Product {index + 1}</span>
@@ -6297,11 +5781,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       {products.map((product, index) => (
         <div
           key={product.id}
-          className={`bg-white border-2 rounded-xl shadow-sm mb-6 transition-all duration-300 ${
-            activeProductTab === index
-              ? "border-green-300 block"
-              : "border-gray-200 hidden"
-          }`}
+          className={`bg-white border-2 rounded-xl shadow-sm mb-6 transition-all duration-300 ${activeProductTab === index
+            ? "border-green-300 block"
+            : "border-gray-200 hidden"
+            }`}
         >
           <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-t-xl border-b">
             <h4 className="font-bold text-lg text-gray-800 flex items-center gap-3">
@@ -6361,11 +5844,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   onChange={(e) =>
                     updateProduct(product.id, "slug", e.target.value)
                   }
-                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    slugErrors[product.id]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${slugErrors[product.id]
+                    ? "border-red-500"
+                    : "border-gray-300"
+                    }`}
                   placeholder="auto-generated-slug"
                 />
                 {slugErrors[product.id] && (
@@ -6587,8 +6069,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       const imgUrl = url.startsWith("blob:")
                         ? url
                         : url.startsWith("/")
-                        ? `${BASE_URL}${url}`
-                        : url;
+                          ? `${BASE_URL}${url}`
+                          : url;
 
                       return (
                         <div
@@ -6600,15 +6082,14 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               src={imgUrl}
                               alt={`Preview ${idx + 1}`}
                               className="h-full w-full object-cover rounded-lg"
-                              onLoad={(e) => {}}
+                              onLoad={(e) => { }}
                               onError={(e) => {
                                 console.error(
                                   `Failed to load image ${idx + 1}:`,
                                   url
                                 );
-                                e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect width="200" height="150" fill="%23f3f4f6"/><text x="100" y="80" font-family="Arial" font-size="14" text-anchor="middle" fill="%236b7280">Image ${
-                                  idx + 1
-                                }</text><text x="100" y="100" font-family="Arial" font-size="12" text-anchor="middle" fill="%239ca3af">Failed to load</text></svg>`;
+                                e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect width="200" height="150" fill="%23f3f4f6"/><text x="100" y="80" font-family="Arial" font-size="14" text-anchor="middle" fill="%236b7280">Image ${idx + 1
+                                  }</text><text x="100" y="100" font-family="Arial" font-size="12" text-anchor="middle" fill="%239ca3af">Failed to load</text></svg>`;
                               }}
                             />
                           </div>
@@ -6753,209 +6234,120 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               {(product.hasMetalChoice ||
                 product.hasDiamondChoice ||
                 product.configureSizes) && (
-                <div className="mt-4">
-                  <h6 className="font-bold mb-3 text-gray-800">
-                    📐 Configure Variants:
-                  </h6>
+                  <div className="mt-4">
+                    <h6 className="font-bold mb-3 text-gray-800">
+                      📐 Configure Variants:
+                    </h6>
 
-                  {/* Size Only (No Metal/Diamond) */}
-                  {!product.hasMetalChoice && !product.hasDiamondChoice && (
-                    <div className="space-y-3">
-                      {categoryData?.attributes?.size?.options?.map(
-                        (sizeOpt) => {
-                          const key = `none-none-${sizeOpt.id}`;
-                          const isSelected = product.selectedSizes[key];
-                          const pricing = product.variantPricing[key] || {};
+                    {/* Size Only (No Metal/Diamond) */}
+                    {!product.hasMetalChoice && !product.hasDiamondChoice && (
+                      <div className="space-y-3">
+                        {categoryData?.attributes?.size?.options?.map(
+                          (sizeOpt) => {
+                            const key = `none-none-${sizeOpt.id}`;
+                            const isSelected = product.selectedSizes[key];
+                            const pricing = product.variantPricing[key] || {};
 
-                          return (
-                            <div
-                              key={sizeOpt.id}
-                              className="border-2 border-gray-200 rounded p-3"
-                            >
-                              <label className="flex items-center gap-3 mb-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected || false}
-                                  onChange={() =>
-                                    toggleProductSize(
-                                      product.id,
-                                      null,
-                                      null,
-                                      sizeOpt.id
-                                    )
-                                  }
-                                  className="w-5 h-5 text-green-600"
-                                />
-                                <span className="font-bold text-gray-800">
-                                  {sizeOpt.option_name}{" "}
-                                  {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
-                                </span>
-                              </label>
+                            return (
+                              <div
+                                key={sizeOpt.id}
+                                className="border-2 border-gray-200 rounded p-3"
+                              >
+                                <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected || false}
+                                    onChange={() =>
+                                      toggleProductSize(
+                                        product.id,
+                                        null,
+                                        null,
+                                        sizeOpt.id
+                                      )
+                                    }
+                                    className="w-5 h-5 text-green-600"
+                                  />
+                                  <span className="font-bold text-gray-800">
+                                    {sizeOpt.option_name}{" "}
+                                    {sizeOpt.size_mm && `(${sizeOpt.size_mm}mm)`}
+                                  </span>
+                                </label>
 
-                              {isSelected && (
-                                <STLFileInput
-                                  productId={product.id}
-                                  metalId={null}
-                                  diamondId={null}
-                                  sizeId={sizeOpt.id}
-                                  filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
-                                  fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
-                                  fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
-                                  existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-stl_file`]}
-                                  onPriceChange={(value) => updateFilePrice(product.id, null, null, sizeOpt.id, 'stl_file', value)}
-                                  onDescriptionChange={(value) => updateFileDescription(product.id, null, null, sizeOpt.id, 'stl_file', value)}
-                                  onLinkChange={(value) => updateFileLink(product.id, null, null, sizeOpt.id, 'stl_file', value)}
-                                  onFileUpload={(file) => handlePdfFileSelect(product.id, null, null, sizeOpt.id, 'stl_file', file)}
-                                />
-                              )}
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  )}
-
-                  {/* Metal Only (No Diamond) */}
-                  {product.hasMetalChoice &&
-                    !product.hasDiamondChoice &&
-                    product.selectedMetalOptions.map((metalId) => {
-                      const metalOpt =
-                        categoryData?.attributes?.metal?.options?.find(
-                          (o) => o.id === metalId
-                        );
-                      const useSizeConfig = product.metalSizeConfig[metalId];
-
-                      return (
-                        <div
-                          key={metalId}
-                          className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h6 className="font-bold flex items-center gap-2 text-gray-800">
-                              <span>🔩</span>
-                              <span>{metalOpt?.option_name}</span>
-                            </h6>
-
-                            <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={useSizeConfig || false}
-                                onChange={() =>
-                                  toggleMetalSizeConfig(product.id, metalId)
-                                }
-                                className="w-5 h-5 text-green-600"
-                              />
-                              <span className="text-sm font-semibold text-gray-700">
-                                + Metal + Sizes
-                              </span>
-                            </label>
-                          </div>
-
-                          {useSizeConfig ? (
-                            <div className="space-y-3">
-                              {categoryData?.attributes?.size?.options?.map(
-                                (sizeOpt) => {
-                                  const key = `${metalId}-none-${sizeOpt.id}`;
-                                  const isSelected = product.selectedSizes[key];
-                                  const pricing =
-                                    product.variantPricing[key] || {};
-
-                                  return (
-                                    <div
-                                      key={sizeOpt.id}
-                                      className="border-2 border-gray-200 rounded p-3 bg-white"
-                                    >
-                                      <label className="flex items-center gap-3 mb-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={isSelected || false}
-                                          onChange={() =>
-                                            toggleProductSize(
-                                              product.id,
-                                              metalId,
-                                              null,
-                                              sizeOpt.id
-                                            )
-                                          }
-                                          className="w-5 h-5 text-green-600"
-                                        />
-                                        <span className="font-bold text-gray-800">
-                                          {sizeOpt.option_name}{" "}
-                                          {sizeOpt.size_mm &&
-                                            `(${sizeOpt.size_mm}mm)`}
-                                        </span>
-                                      </label>
-
-                                      {isSelected && (
-                                        <STLFileInput
-                                          productId={product.id}
-                                          metalId={metalId}
-                                          diamondId={null}
-                                          sizeId={sizeOpt.id}
-                                          filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
-                                          fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
-                                          fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
-                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-stl_file`]}
-                                          onPriceChange={(value) => updateFilePrice(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
-                                          onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
-                                          onLinkChange={(value) => updateFileLink(product.id, metalId, null, sizeOpt.id, 'stl_file', value)}
-                                          onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, 'stl_file', file)}
-                                        />
-                                      )}
+                                {isSelected && (
+                                  <div className="mt-4 space-y-4">
+                                    <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                      <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                      {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                        <label
+                                          key={fileOpt.value}
+                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                            ? "bg-green-100 border-green-300 text-green-800"
+                                            : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                            }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                            disabled={fileOpt.value === "stl_file"}
+                                            onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileOpt.value)}
+                                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                          />
+                                          <span className="text-xs font-bold whitespace-nowrap">
+                                            {fileOpt.emoji} {fileOpt.label}
+                                          </span>
+                                        </label>
+                                      ))}
                                     </div>
-                                  );
-                                }
-                              )}
-                            </div>
-                          ) : (
-                            <STLFileInput
-                              productId={product.id}
-                              metalId={metalId}
-                              diamondId={null}
-                              sizeId={null}
-                              filePrice={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.price || ''}
-                              fileDescription={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
-                              fileLink={product.variantPricing[`${metalId}-none-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
-                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-direct-stl_file`]}
-                              onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, 'stl_file', value)}
-                              onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, 'stl_file', value)}
-                              onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, 'stl_file', value)}
-                              onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, null, 'stl_file', file)}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
+                                    <div className="space-y-4">
+                                      {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                        const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                        if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                        return (
+                                          <FilePricingInput
+                                            key={fileOpt.value}
+                                            productId={product.id}
+                                            metalId={null}
+                                            diamondId={null}
+                                            sizeId={sizeOpt.id}
+                                            fileOption={fileOpt}
+                                            pricing={filePricing || { file_type: fileOpt.value }}
+                                            existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-${fileOpt.value}`]}
+                                            onPriceChange={(value) => updateFilePrice(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
+                                            onDescriptionChange={(value) => updateFileDescription(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
+                                            onLinkChange={(value) => updateFileLink(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
+                                            onFileUpload={(file) => handlePdfFileSelect(product.id, null, null, sizeOpt.id, fileOpt.value, file)}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
 
-                  {/* Metal + Diamond */}
-                  {product.hasMetalChoice &&
-                    product.hasDiamondChoice &&
-                    product.selectedMetalOptions.map((metalId) => {
-                      const metalOpt =
-                        categoryData?.attributes?.metal?.options?.find(
-                          (o) => o.id === metalId
-                        );
-                      return product.selectedDiamondOptions.map((diamondId) => {
-                        const diamondOpt =
-                          categoryData?.attributes?.diamond?.options?.find(
-                            (o) => o.id === diamondId
+                    {/* Metal Only (No Diamond) */}
+                    {product.hasMetalChoice &&
+                      !product.hasDiamondChoice &&
+                      product.selectedMetalOptions.map((metalId) => {
+                        const metalOpt =
+                          categoryData?.attributes?.metal?.options?.find(
+                            (o) => o.id === metalId
                           );
-                        const comboKey = `${metalId}-${diamondId}`;
-                        const useSizeConfig =
-                          product.diamondSizeConfig[comboKey];
+                        const useSizeConfig = product.metalSizeConfig[metalId];
 
                         return (
                           <div
-                            key={comboKey}
+                            key={metalId}
                             className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <h6 className="font-bold flex items-center gap-2 text-gray-800">
                                 <span>🔩</span>
                                 <span>{metalOpt?.option_name}</span>
-                                <span>+</span>
-                                <span>💎</span>
-                                <span>{diamondOpt?.option_name}</span>
                               </h6>
 
                               <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
@@ -6963,16 +6355,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                   type="checkbox"
                                   checked={useSizeConfig || false}
                                   onChange={() =>
-                                    toggleDiamondSizeConfig(
-                                      product.id,
-                                      metalId,
-                                      diamondId
-                                    )
+                                    toggleMetalSizeConfig(product.id, metalId)
                                   }
                                   className="w-5 h-5 text-green-600"
                                 />
                                 <span className="text-sm font-semibold text-gray-700">
-                                  + Metal + Diamond + Sizes
+                                  + Metal + Sizes
                                 </span>
                               </label>
                             </div>
@@ -6981,9 +6369,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               <div className="space-y-3">
                                 {categoryData?.attributes?.size?.options?.map(
                                   (sizeOpt) => {
-                                    const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
-                                    const isSelected =
-                                      product.selectedSizes[key];
+                                    const key = `${metalId}-none-${sizeOpt.id}`;
+                                    const isSelected = product.selectedSizes[key];
                                     const pricing =
                                       product.variantPricing[key] || {};
 
@@ -7000,7 +6387,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                               toggleProductSize(
                                                 product.id,
                                                 metalId,
-                                                diamondId,
+                                                null,
                                                 sizeOpt.id
                                               )
                                             }
@@ -7014,20 +6401,53 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                         </label>
 
                                         {isSelected && (
-                                          <STLFileInput
-                                            productId={product.id}
-                                            metalId={metalId}
-                                            diamondId={diamondId}
-                                            sizeId={sizeOpt.id}
-                                            filePrice={pricing.files?.find(f => f.file_type === 'stl_file')?.price || ''}
-                                            fileDescription={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
-                                            fileLink={pricing.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
-                                            existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-stl_file`]}
-                                            onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
-                                            onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
-                                            onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', value)}
-                                            onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeOpt.id, 'stl_file', file)}
-                                          />
+                                          <div className="mt-4 space-y-4">
+                                            <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                              <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                              {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                                <label
+                                                  key={fileOpt.value}
+                                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                                    ? "bg-green-100 border-green-300 text-green-800"
+                                                    : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                                    }`}
+                                                >
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                                    disabled={fileOpt.value === "stl_file"}
+                                                    onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileOpt.value)}
+                                                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                                  />
+                                                  <span className="text-xs font-bold whitespace-nowrap">
+                                                    {fileOpt.emoji} {fileOpt.label}
+                                                  </span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                            <div className="space-y-4">
+                                              {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                                const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                                if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                                return (
+                                                  <FilePricingInput
+                                                    key={fileOpt.value}
+                                                    productId={product.id}
+                                                    metalId={metalId}
+                                                    diamondId={null}
+                                                    sizeId={sizeOpt.id}
+                                                    fileOption={fileOpt}
+                                                    pricing={filePricing || { file_type: fileOpt.value }}
+                                                    existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-${fileOpt.value}`]}
+                                                    onPriceChange={(value) => updateFilePrice(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                                    onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                                    onLinkChange={(value) => updateFileLink(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
+                                                    onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, fileOpt.value, file)}
+                                                  />
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
                                         )}
                                       </div>
                                     );
@@ -7035,27 +6455,255 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                 )}
                               </div>
                             ) : (
-                              <STLFileInput
-                                productId={product.id}
-                                metalId={metalId}
-                                diamondId={diamondId}
-                                sizeId={null}
-                                filePrice={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.price || ''}
-                                fileDescription={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_description || ''}
-                                fileLink={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.find(f => f.file_type === 'stl_file')?.stl_file_link || ''}
-                                existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-stl_file`]}
-                                onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, 'stl_file', value)}
-                                onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, 'stl_file', value)}
-                                onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, 'stl_file', value)}
-                                onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, null, 'stl_file', file)}
-                              />
+                              <div className="mt-4 space-y-4">
+                                <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                  <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                  {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                    <label
+                                      key={fileOpt.value}
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${product.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                        ? "bg-green-100 border-green-300 text-green-800"
+                                        : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                        }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={product.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                        disabled={fileOpt.value === "stl_file"}
+                                        onChange={() => toggleVariantFileType(product.id, metalId, null, null, fileOpt.value)}
+                                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                      />
+                                      <span className="text-xs font-bold whitespace-nowrap">
+                                        {fileOpt.emoji} {fileOpt.label}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                                <div className="space-y-4">
+                                  {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                    const pricing = product.variantPricing[`${metalId}-none-none`] || {};
+                                    const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                    if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                    return (
+                                      <FilePricingInput
+                                        key={fileOpt.value}
+                                        productId={product.id}
+                                        metalId={metalId}
+                                        diamondId={null}
+                                        sizeId={null}
+                                        fileOption={fileOpt}
+                                        pricing={filePricing || { file_type: fileOpt.value }}
+                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-direct-${fileOpt.value}`]}
+                                        onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, fileOpt.value, value)}
+                                        onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, fileOpt.value, value)}
+                                        onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, fileOpt.value, value)}
+                                        onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, null, fileOpt.value, file)}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             )}
                           </div>
                         );
-                      });
-                    })}
-                </div>
-              )}
+                      })}
+
+                    {/* Metal + Diamond */}
+                    {product.hasMetalChoice &&
+                      product.hasDiamondChoice &&
+                      product.selectedMetalOptions.map((metalId) => {
+                        const metalOpt =
+                          categoryData?.attributes?.metal?.options?.find(
+                            (o) => o.id === metalId
+                          );
+                        return product.selectedDiamondOptions.map((diamondId) => {
+                          const diamondOpt =
+                            categoryData?.attributes?.diamond?.options?.find(
+                              (o) => o.id === diamondId
+                            );
+                          const comboKey = `${metalId}-${diamondId}`;
+                          const useSizeConfig =
+                            product.diamondSizeConfig[comboKey];
+
+                          return (
+                            <div
+                              key={comboKey}
+                              className="mb-4 border-2 border-green-200 rounded p-4 bg-green-50"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <h6 className="font-bold flex items-center gap-2 text-gray-800">
+                                  <span>🔩</span>
+                                  <span>{metalOpt?.option_name}</span>
+                                  <span>+</span>
+                                  <span>💎</span>
+                                  <span>{diamondOpt?.option_name}</span>
+                                </h6>
+
+                                <label className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={useSizeConfig || false}
+                                    onChange={() =>
+                                      toggleDiamondSizeConfig(
+                                        product.id,
+                                        metalId,
+                                        diamondId
+                                      )
+                                    }
+                                    className="w-5 h-5 text-green-600"
+                                  />
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    + Metal + Diamond + Sizes
+                                  </span>
+                                </label>
+                              </div>
+
+                              {useSizeConfig ? (
+                                <div className="space-y-3">
+                                  {categoryData?.attributes?.size?.options?.map(
+                                    (sizeOpt) => {
+                                      const key = `${metalId}-${diamondId}-${sizeOpt.id}`;
+                                      const isSelected =
+                                        product.selectedSizes[key];
+                                      const pricing =
+                                        product.variantPricing[key] || {};
+
+                                      return (
+                                        <div
+                                          key={sizeOpt.id}
+                                          className="border-2 border-gray-200 rounded p-3 bg-white"
+                                        >
+                                          <label className="flex items-center gap-3 mb-2 cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={isSelected || false}
+                                              onChange={() =>
+                                                toggleProductSize(
+                                                  product.id,
+                                                  metalId,
+                                                  diamondId,
+                                                  sizeOpt.id
+                                                )
+                                              }
+                                              className="w-5 h-5 text-green-600"
+                                            />
+                                            <span className="font-bold text-gray-800">
+                                              {sizeOpt.option_name}{" "}
+                                              {sizeOpt.size_mm &&
+                                                `(${sizeOpt.size_mm}mm)`}
+                                            </span>
+                                          </label>
+
+                                          {isSelected && (
+                                            <div className="mt-4 space-y-4">
+                                              <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                                {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                                  <label
+                                                    key={fileOpt.value}
+                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                                      ? "bg-green-100 border-green-300 text-green-800"
+                                                      : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                                      }`}
+                                                  >
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                                      disabled={fileOpt.value === "stl_file"}
+                                                      onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value)}
+                                                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                                    />
+                                                    <span className="text-xs font-bold whitespace-nowrap">
+                                                      {fileOpt.emoji} {fileOpt.label}
+                                                    </span>
+                                                  </label>
+                                                ))}
+                                              </div>
+                                              <div className="space-y-4">
+                                                {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                                  const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                                  if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                                  return (
+                                                    <FilePricingInput
+                                                      key={fileOpt.value}
+                                                      productId={product.id}
+                                                      metalId={metalId}
+                                                      diamondId={diamondId}
+                                                      sizeId={sizeOpt.id}
+                                                      fileOption={fileOpt}
+                                                      pricing={filePricing || { file_type: fileOpt.value }}
+                                                      existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOpt.value}`]}
+                                                      onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                                      onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                                      onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
+                                                      onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, file)}
+                                                    />
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="mt-4 space-y-4">
+                                  <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                    {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                      <label
+                                        key={fileOpt.value}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
+                                          ? "bg-green-100 border-green-300 text-green-800"
+                                          : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
+                                          }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
+                                          disabled={fileOpt.value === "stl_file"}
+                                          onChange={() => toggleVariantFileType(product.id, metalId, diamondId, null, fileOpt.value)}
+                                          className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                        />
+                                        <span className="text-xs font-bold whitespace-nowrap">
+                                          {fileOpt.emoji} {fileOpt.label}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <div className="space-y-4">
+                                    {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                      const pricing = product.variantPricing[`${metalId}-${diamondId}-none`] || {};
+                                      const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                      if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                      return (
+                                        <FilePricingInput
+                                          key={fileOpt.value}
+                                          productId={product.id}
+                                          metalId={metalId}
+                                          diamondId={diamondId}
+                                          sizeId={null}
+                                          fileOption={fileOpt}
+                                          pricing={filePricing || { file_type: fileOpt.value }}
+                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-${fileOpt.value}`]}
+                                          onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, fileOpt.value, value)}
+                                          onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, fileOpt.value, value)}
+                                          onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, fileOpt.value, value)}
+                                          onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, null, fileOpt.value, file)}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })}
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -7076,7 +6724,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                <div 
+                <div
                   className="bg-gradient-to-r from-emerald-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}
                 >
@@ -7098,7 +6746,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                <div 
+                <div
                   className="bg-gradient-to-r from-purple-500 to-purple-700 h-4 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${pdfUploadProgress}%` }}
                 >
@@ -7159,111 +6807,111 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState([]);
   const [previewData, setPreviewData] = useState(null);
-  const [uploadedImages, setUploadedImages] = useState([]); 
+  const [uploadedImages, setUploadedImages] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [imageUploading, setImageUploading] = useState(false); 
-   const [fileUploading, setFileUploading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
   const [imageMapping, setImageMapping] = useState({});
   const [fileMapping, setFileMapping] = useState({});
-  const [fileProcessing, setFileProcessing] = useState(false); 
-const [uploadProgress, setUploadProgress] = useState(0);
-const [isUploading, setIsUploading] = useState(false);
-const [imageUploadProgress, setImageUploadProgress] = useState(0);
+  const [fileProcessing, setFileProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageUploadProgress, setImageUploadProgress] = useState(0);
 
 
-const handleBulkImageUpload = async (e) => {
-  const files = e.target.files;
-  if (!files || files.length === 0) return;
+  const handleBulkImageUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  setImageUploading(true);
-  setImageUploadProgress(0);
-  
-  try {
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('bulk_images', file);
-    });
-
-    const token = localStorage.getItem("token");
-    const response = await axios.post(
-      `${API_URL}/products/bulk/upload-images`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setImageUploadProgress(percentCompleted);
-        }
-      }
-    );
-
-    if (response.data.success) {
-      setUploadedImages(response.data.data.images);
-      const mapping = response.data.data.imageMapping || {};
-      setImageMapping(mapping);
-      localStorage.setItem('bulkImageMapping', JSON.stringify(mapping));
-      alert(`✅ ${response.data.data.images.length} images uploaded successfully!`);
-    }
-  } catch (error) {
-    alert("Error uploading images: " + error.message);
-  } finally {
-    setImageUploading(false);
+    setImageUploading(true);
     setImageUploadProgress(0);
-  }
-};
 
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('bulk_images', file);
+      });
 
-
-const handleBulkFileUpload = async (e) => {
-  const files = e.target.files;
-  if (!files || files.length === 0) return;
-
-  setIsUploading(true);
-  setUploadProgress(0);
-  
-  try {
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('bulk_files', file);
-    });
-
-    const token = localStorage.getItem("token");
-    const response = await axios.post(
-      `${API_URL}/products/bulk/upload-files`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percentCompleted);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/bulk/upload-images`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setImageUploadProgress(percentCompleted);
+          }
         }
-      }
-    );
+      );
 
-    if (response.data.success) {
-      setUploadedFiles(response.data.data.files);
-      
-      const mapping = response.data.data.fileMapping || {};
-      setFileMapping(mapping);
-      localStorage.setItem('bulkFileMapping', JSON.stringify(mapping));
-      
-      
-      alert(`✅ ${response.data.data.files.length} files uploaded successfully!`);
+      if (response.data.success) {
+        setUploadedImages(response.data.data.images);
+        const mapping = response.data.data.imageMapping || {};
+        setImageMapping(mapping);
+        localStorage.setItem('bulkImageMapping', JSON.stringify(mapping));
+        alert(`✅ ${response.data.data.images.length} images uploaded successfully!`);
+      }
+    } catch (error) {
+      alert("Error uploading images: " + error.message);
+    } finally {
+      setImageUploading(false);
+      setImageUploadProgress(0);
     }
-  } catch (error) {
-    console.error('File upload error:', error);
-    alert("Error uploading files: " + (error.response?.data?.message || error.message));
-  } finally {
-    setIsUploading(false);
+  };
+
+
+
+  const handleBulkFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
     setUploadProgress(0);
-  }
-};
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('bulk_files', file);
+      });
+
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/bulk/upload-files`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setUploadedFiles(response.data.data.files);
+
+        const mapping = response.data.data.fileMapping || {};
+        setFileMapping(mapping);
+        localStorage.setItem('bulkFileMapping', JSON.stringify(mapping));
+
+
+        alert(`✅ ${response.data.data.files.length} files uploaded successfully!`);
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert("Error uploading files: " + (error.response?.data?.message || error.message));
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   // Step 1: Download Template
   const downloadTemplate = async () => {
@@ -7276,7 +6924,7 @@ const handleBulkFileUpload = async (e) => {
           responseType: 'blob'
         }
       );
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -7290,88 +6938,88 @@ const handleBulkFileUpload = async (e) => {
   };
 
   // Step 2: Upload Excel File
-const handleFileUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  // Show loader when file is selected
-  setFileProcessing(true); // Start loading
-  setExcelFile(file);
-  setLoading(true);
-  setErrors([]);
+    // Show loader when file is selected
+    setFileProcessing(true); // Start loading
+    setExcelFile(file);
+    setLoading(true);
+    setErrors([]);
 
-  try {
-    const formData = new FormData();
-    formData.append('excel_file', file);
-    
-    // ✅ Pass the image mapping to backend
-    const mapping = JSON.parse(localStorage.getItem('bulkImageMapping') || '{}');
-    const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
-    formData.append('imageMapping', JSON.stringify(mapping));
-    formData.append('fileMapping', JSON.stringify(fileMap));
+    try {
+      const formData = new FormData();
+      formData.append('excel_file', file);
 
-    const token = localStorage.getItem("token");
-    const response = await axios.post(
-      `${API_URL}/products/bulk/validate`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        // Optional: Track upload progress
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          // You could update state here to show progress bar if needed
+      // ✅ Pass the image mapping to backend
+      const mapping = JSON.parse(localStorage.getItem('bulkImageMapping') || '{}');
+      const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
+      formData.append('imageMapping', JSON.stringify(mapping));
+      formData.append('fileMapping', JSON.stringify(fileMap));
+
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/products/bulk/validate`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          // Optional: Track upload progress
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            // You could update state here to show progress bar if needed
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setValidationData(response.data.data);
+        setPreviewData(response.data.preview);
+        setStep(response.data.errors.length > 0 ? 2 : 3);
+
+        if (response.data.errors.length > 0) {
+          setErrors(response.data.errors);
         }
       }
-    );
-
-    if (response.data.success) {
-      setValidationData(response.data.data);
-      setPreviewData(response.data.preview);
-      setStep(response.data.errors.length > 0 ? 2 : 3);
-      
-      if (response.data.errors.length > 0) {
-        setErrors(response.data.errors);
-      }
+    } catch (error) {
+      alert("Error validating file: " + error.message);
+    } finally {
+      setFileProcessing(false); // Stop loading
+      setLoading(false);
     }
-  } catch (error) {
-    alert("Error validating file: " + error.message);
-  } finally {
-    setFileProcessing(false); // Stop loading
-    setLoading(false);
-  }
-};
+  };
 
   // Step 3: Create Products
-const createProducts = async () => {
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("token");
-    
-    // ✅ ADD THIS LINE - Get fileMapping from localStorage
-    const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
-    
-    const response = await axios.post(
-      `${API_URL}/products/bulk/create`,
-      { 
-        validationData,
-        fileMapping: fileMap  // ✅ ADD THIS LINE
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const createProducts = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
 
-    if (response.data.success) {
-      alert(`✅ Success! ${response.data.created} products created.`);
-      onBack();
+      // ✅ ADD THIS LINE - Get fileMapping from localStorage
+      const fileMap = JSON.parse(localStorage.getItem('bulkFileMapping') || '{}');
+
+      const response = await axios.post(
+        `${API_URL}/products/bulk/create`,
+        {
+          validationData,
+          fileMapping: fileMap  // ✅ ADD THIS LINE
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert(`✅ Success! ${response.data.created} products created.`);
+        onBack();
+      }
+    } catch (error) {
+      alert("Error creating products: " + error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    alert("Error creating products: " + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -7407,7 +7055,7 @@ const createProducts = async () => {
               Upload all product images at once (you can select multiple files).
               Then reference them in Excel using just the filename (e.g., ring1.jpg, ring2.jpg)
             </p>
-            
+
             <input
               type="file"
               multiple
@@ -7416,7 +7064,7 @@ const createProducts = async () => {
               disabled={imageUploading}
               className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 disabled:opacity-50"
             />
-            
+
             {/* Progress Bar for Image Upload */}
             {imageUploading && (
               <div className="mt-4">
@@ -7425,7 +7073,7 @@ const createProducts = async () => {
                   <span className="text-sm font-bold text-green-900">{imageUploadProgress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-green-500 to-green-700 h-3 rounded-full transition-all duration-300"
                     style={{ width: `${imageUploadProgress}%` }}
                   >
@@ -7434,7 +7082,7 @@ const createProducts = async () => {
                 </div>
               </div>
             )}
-            
+
             {uploadedImages.length > 0 && !imageUploading && (
               <div className="mt-4 p-4 bg-white rounded border">
                 <p className="font-bold mb-2">✅ {uploadedImages.length} images uploaded:</p>
@@ -7458,7 +7106,7 @@ const createProducts = async () => {
             <p className="text-gray-700 mb-4">
               Upload all STL, PDF, CAM, ZIP files at once. Reference them in Excel's "stl_file_upload" column using just the filename.
             </p>
-            
+
             <input
               type="file"
               multiple
@@ -7467,7 +7115,7 @@ const createProducts = async () => {
               disabled={isUploading}
               className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:opacity-50"
             />
-            
+
             {/* Progress Bar */}
             {isUploading && (
               <div className="mt-4">
@@ -7476,7 +7124,7 @@ const createProducts = async () => {
                   <span className="text-sm font-bold text-purple-900">{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-purple-500 to-purple-700 h-3 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${uploadProgress}%` }}
                   >
@@ -7485,7 +7133,7 @@ const createProducts = async () => {
                 </div>
               </div>
             )}
-            
+
             {uploadedFiles.length > 0 && !isUploading && (
               <div className="mt-4 p-4 bg-white rounded border">
                 <p className="font-bold mb-2 flex items-center gap-2">
@@ -7518,7 +7166,7 @@ const createProducts = async () => {
             <p className="text-sm text-gray-600 mb-4">
               In the Excel file, use column "image_names" with comma-separated filenames like: ring1.jpg,ring2.jpg,ring3.jpg
             </p>
-            
+
             {/* ✅ ADD THE LOADER HERE */}
             {fileProcessing ? (
               <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -7539,7 +7187,7 @@ const createProducts = async () => {
                 disabled={fileProcessing}
               />
             )}
-            
+
             {/* Optional: Show file info */}
             {excelFile && !fileProcessing && (
               <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -7582,7 +7230,7 @@ const createProducts = async () => {
             Found <strong>{previewData.total_products}</strong> products with{" "}
             <strong>{previewData.total_variants}</strong> variants.
           </p>
-          
+
           <div className="max-h-96 overflow-y-auto mb-4">
             {previewData.products.slice(0, 10).map((prod, idx) => (
               <div key={idx} className="border-b py-2">
