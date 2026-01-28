@@ -1904,8 +1904,43 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
 
   const handleToggleVisibility = async (product) => {
-    const action = product.is_hidden ? "unhide" : "hide";
-    if (!confirm(`Are you sure you want to ${action} this product?`)) return;
+    // Ask which website to hide for
+    const website = prompt(
+      "Hide product for which website?\n" +
+      "Type: 'lotusjewel' OR 'lotuscasting' OR 'both'\n" +
+      "(Leave empty to unhide from all)"
+    );
+
+    if (website === null) return; // Cancelled
+
+    if (website === "") {
+      // Unhide from all - reset columns
+      const token = localStorage.getItem("token");
+      try {
+        const response = await axios.post(
+          `${API_URL}/products/toggle-visibility`,
+          {
+            product_id: product.id,
+            website: 'none' // Special flag to reset
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (response.data.success) {
+          alert("Product is now visible on all websites");
+          fetchProducts();
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error updating visibility");
+      }
+      return;
+    }
+
+    if (!['lotusjewel', 'lotuscasting', 'both'].includes(website)) {
+      alert("Invalid option! Type exactly: lotusjewel, lotuscasting, or both");
+      return;
+    }
 
     const token = localStorage.getItem("token");
     try {
@@ -1913,7 +1948,7 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
         `${API_URL}/products/toggle-visibility`,
         {
           product_id: product.id,
-          is_hidden: !product.is_hidden
+          website: website
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -2524,11 +2559,8 @@ const ProductCard = ({
             </button>
             <button
               onClick={() => onToggleVisibility(product)}
-              className={`p-2 rounded-lg transition-all shadow-md flex items-center justify-center ${product.is_hidden
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600'
-                : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
-                }`}
-              title={product.is_hidden ? "Unhide Product" : "Hide Product"}
+              className="p-2 rounded-lg transition-all shadow-md flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+              title="Hide Product (Choose Website)"
             >
               <FiEye className="w-3.5 h-3.5" />
             </button>
