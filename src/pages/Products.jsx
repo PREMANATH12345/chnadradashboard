@@ -2793,19 +2793,21 @@ const EditProductPanel = ({
   userRole,
 }) => {
   const [formData, setFormData] = useState(() => {
-    // Parse product_details if it's a string
-    let productDetails = product.product_details;
-    if (typeof productDetails === 'string') {
-      try {
-        productDetails = JSON.parse(productDetails);
-      } catch (e) {
-        console.error('Error parsing product_details:', e);
-        productDetails = {};
+    // Parse product_details more robustly
+    let details = product.product_details;
+    try {
+      while (typeof details === 'string') {
+        const parsed = JSON.parse(details);
+        if (parsed === null || typeof parsed !== 'object' && typeof parsed !== 'string') break;
+        details = parsed;
+        if (typeof parsed !== 'string') break;
       }
+    } catch (e) {
+      console.error('Error parsing product_details:', e);
+      details = details || {};
     }
 
-    const selectedSizes = productDetails.selectedSizes || {};
-
+    const productDetails = details || {};
 
     return {
       name: product.name,
@@ -2816,18 +2818,32 @@ const EditProductPanel = ({
       style_id: productDetails.style_id || "",
       metal_id: productDetails.metal_id || "",
       category_id: product.category_id || "",
-      hasMetalChoice: productDetails.hasMetalChoice || false,
-      hasDiamondChoice: productDetails.hasDiamondChoice || false,
+      hasMetalChoice: !!productDetails.hasMetalChoice || (productDetails.selectedMetalOptions?.length > 0),
+      hasDiamondChoice: !!productDetails.hasDiamondChoice || (productDetails.selectedDiamondOptions?.length > 0),
       selectedMetalOptions: productDetails.selectedMetalOptions || [],
       selectedDiamondOptions: productDetails.selectedDiamondOptions || [],
-      selectedSizes: selectedSizes,
       selectedSizes: productDetails.selectedSizes || {},
       variantPricing: productDetails.variantPricing || {},
       metalSizeConfig: productDetails.metalSizeConfig || {},
       diamondSizeConfig: productDetails.diamondSizeConfig || {},
-      configureSizes: productDetails.configureSizes || false,
+      configureSizes: !!productDetails.configureSizes || (productDetails.selectedSizes && Object.keys(productDetails.selectedSizes).length > 0),
     };
   });
+
+  // Re-parse product details once for other initial states
+  const parsedDetails = (() => {
+    let details = product.product_details;
+    try {
+      while (typeof details === 'string') {
+        const parsed = JSON.parse(details);
+        if (parsed === null || typeof parsed !== 'object' && typeof parsed !== 'string') break;
+        details = parsed;
+        if (typeof parsed !== 'string') break;
+      }
+    } catch (e) { details = details || {}; }
+    return details || {};
+  })();
+
   const [categoryData, setCategoryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2837,9 +2853,7 @@ const EditProductPanel = ({
   const [isPdfUploading, setIsPdfUploading] = useState(false);
   const [currentUploadingFile, setCurrentUploadingFile] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
-  const [imageUrls, setImageUrls] = useState(
-    product.product_details?.images || []
-  );
+  const [imageUrls, setImageUrls] = useState(parsedDetails.images || []);
   const [activeVariantTab, setActiveVariantTab] = useState("basic");
   const [uploadedPdfFiles, setUploadedPdfFiles] = useState({});
 
@@ -2879,27 +2893,26 @@ const EditProductPanel = ({
   };
 
   useEffect(() => {
-    // Parse product_details if it's a string
-    let productDetails = product.product_details;
-    if (typeof productDetails === 'string') {
-      try {
-        productDetails = JSON.parse(productDetails);
-      } catch (e) {
-        console.error('Error parsing product_details in useEffect:', e);
-        productDetails = {};
+    let details = product.product_details;
+    try {
+      while (typeof details === 'string') {
+        const parsed = JSON.parse(details);
+        if (parsed === null || typeof parsed !== 'object' && typeof parsed !== 'string') break;
+        details = parsed;
+        if (typeof parsed !== 'string') break;
       }
-    }
+    } catch (e) { details = {}; }
 
-    if (productDetails?.variantPricing) {
-      const reconstructedPricing = {};
+    if (!details || typeof details !== 'object') details = {};
 
-      Object.entries(productDetails.variantPricing).forEach(([key, pricing]) => {
+    const reconstructedPricing = {};
+    if (details.variantPricing) {
+      Object.entries(details.variantPricing).forEach(([key, pricing]) => {
         reconstructedPricing[key] = {
           ...pricing,
           files: Array.isArray(pricing.files) ? pricing.files : []
         };
 
-        // ✅ Ensure STL file exists for each variant
         if (reconstructedPricing[key].files.length === 0 ||
           !reconstructedPricing[key].files.some(f => f.file_type === 'stl_file')) {
           reconstructedPricing[key].files = [
@@ -2908,33 +2921,12 @@ const EditProductPanel = ({
           ];
         }
       });
-
-      setFormData(prev => ({
-        ...prev,
-        variantPricing: reconstructedPricing
-      }));
-    }
-  }, [product.id, product.product_details]);
-
-  // Add this useEffect to load existing files into uploadedPdfFiles
-  useEffect(() => {
-    // Parse product_details if it's a string
-    let productDetails = product.product_details;
-    if (typeof productDetails === 'string') {
-      try {
-        productDetails = JSON.parse(productDetails);
-      } catch (e) {
-        console.error('Error parsing product_details in useEffect:', e);
-        productDetails = {};
-      }
     }
 
-    if (productDetails?.variantPricing) {
-      const existingFiles = {};
-
-      Object.entries(productDetails.variantPricing).forEach(([key, pricing]) => {
+    const existingFiles = {};
+    if (details.variantPricing) {
+      Object.entries(details.variantPricing).forEach(([key, pricing]) => {
         const [metalPart, diamondPart, sizePart] = key.split('-');
-
         if (pricing.files && Array.isArray(pricing.files)) {
           pricing.files.forEach(file => {
             if (file.file_path && file.file_name) {
@@ -2948,92 +2940,66 @@ const EditProductPanel = ({
           });
         }
       });
-
-      setUploadedPdfFiles(prev => ({ ...prev, ...existingFiles }));
-    }
-  }, [product.id, product.product_details]);
-
-
-  useEffect(() => {
-
-    // Parse product_details if it's a string
-    let productDetails = product.product_details;
-    if (typeof productDetails === 'string') {
-      try {
-        productDetails = JSON.parse(productDetails);
-      } catch (e) {
-        console.error('Error parsing product_details in useEffect:', e);
-        productDetails = {};
-      }
     }
 
-    // ✅ FOR SIZE-ONLY PRODUCTS (No Metal/Diamond)
-    if (!productDetails?.hasMetalChoice &&
-      !productDetails?.hasDiamondChoice &&
-      productDetails?.selectedSizes) {
+    setUploadedPdfFiles(existingFiles);
+    setImageUrls(details.images || []);
 
-
-      // Ensure configureSizes is enabled
-      setFormData(prev => ({
-        ...prev,
-        configureSizes: true,
-        selectedSizes: productDetails.selectedSizes
-      }));
-
-      return; // Exit early for size-only products
-    }
-
-    // Original metal/diamond logic...
-    if (productDetails?.selectedMetalOptions) {
+    setFormData(prev => {
       const newMetalSizeConfig = {};
       const newDiamondSizeConfig = {};
 
-      // For Metal Only - Check if any sizes are selected for this metal
-      productDetails.selectedMetalOptions.forEach(metalId => {
-        const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
-          const [metalPart, diamondPart, sizePart] = key.split('-');
-
-          return parseInt(metalPart) === metalId &&
-            diamondPart === 'none' &&
-            sizePart !== 'none' &&
-            productDetails.selectedSizes[key] === true;
-        });
-
-        if (hasSizesConfigured) {
-          newMetalSizeConfig[metalId] = true;
-        }
-      });
-
-      // For Metal + Diamond - Check if any sizes are selected for this combination
-      if (productDetails?.selectedDiamondOptions) {
-        productDetails.selectedMetalOptions.forEach(metalId => {
-          productDetails.selectedDiamondOptions.forEach(diamondId => {
-            const comboKey = `${metalId}-${diamondId}`;
-
-            const hasSizesConfigured = Object.keys(productDetails.selectedSizes || {}).some(key => {
-              const [metalPart, diamondPart, sizePart] = key.split('-');
-
-              return parseInt(metalPart) === metalId &&
-                parseInt(diamondPart) === diamondId &&
-                sizePart !== 'none' &&
-                productDetails.selectedSizes[key] === true;
-            });
-
-            if (hasSizesConfigured) {
-              newDiamondSizeConfig[comboKey] = true;
-            }
+      if (details.selectedMetalOptions) {
+        details.selectedMetalOptions.forEach(metalId => {
+          const hasSizesConfigured = Object.keys(details.selectedSizes || {}).some(key => {
+            const [metalPart, diamondPart, sizePart] = key.split('-');
+            return parseInt(metalPart) === metalId &&
+              diamondPart === 'none' &&
+              sizePart !== 'none' &&
+              details.selectedSizes[key] === true;
           });
+          if (hasSizesConfigured) newMetalSizeConfig[metalId] = true;
         });
+
+        if (details.selectedDiamondOptions) {
+          details.selectedMetalOptions.forEach(metalId => {
+            details.selectedDiamondOptions.forEach(diamondId => {
+              const comboKey = `${metalId}-${diamondId}`;
+              const hasSizesConfigured = Object.keys(details.selectedSizes || {}).some(key => {
+                const [metalPart, diamondPart, sizePart] = key.split('-');
+                return parseInt(metalPart) === metalId &&
+                  parseInt(diamondPart) === diamondId &&
+                  sizePart !== 'none' &&
+                  details.selectedSizes[key] === true;
+              });
+              if (hasSizesConfigured) newDiamondSizeConfig[comboKey] = true;
+            });
+          });
+        }
       }
 
-      // Update state
-      setFormData(prev => ({
+      return {
         ...prev,
+        name: product.name,
+        slug: product.slug,
+        category_id: product.category_id || "",
+        description: details.description || "",
+        featured: details.featured || [],
+        gender: details.gender || [],
+        style_id: details.style_id || "",
+        metal_id: details.metal_id || "",
+        hasMetalChoice: !!details.hasMetalChoice || (details.selectedMetalOptions?.length > 0),
+        hasDiamondChoice: !!details.hasDiamondChoice || (details.selectedDiamondOptions?.length > 0),
+        selectedMetalOptions: details.selectedMetalOptions || [],
+        selectedDiamondOptions: details.selectedDiamondOptions || [],
+        variantPricing: reconstructedPricing,
+        selectedSizes: details.selectedSizes || {},
+        configureSizes: !!details.configureSizes || (details.selectedSizes && Object.keys(details.selectedSizes).length > 0),
         metalSizeConfig: newMetalSizeConfig,
         diamondSizeConfig: newDiamondSizeConfig
-      }));
-    }
-  }, [product.id]);
+      };
+    });
+  }, [product.id, product.product_details]);
 
 
 
@@ -3498,8 +3464,18 @@ const EditProductPanel = ({
         setIsUploading(false);  // ✅ END UPLOAD
       }
 
+      let currentDetails = product.product_details;
+      if (typeof currentDetails === 'string') {
+        try {
+          currentDetails = JSON.parse(currentDetails);
+        } catch (e) {
+          console.error('Error parsing currentDetails in handleSave:', e);
+          currentDetails = {};
+        }
+      }
+
       const productDetails = {
-        ...product.product_details,
+        ...currentDetails,
         description: formData.description,
         featured: formData.featured,
         gender: formData.gender,
@@ -4132,7 +4108,7 @@ const EditProductPanel = ({
                               sizeId={null}
                               fileOption={fileOpt}
                               pricing={filePricing || { file_type: fileOpt.value }}
-                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-${fileOpt.value}`] || filePricing}
+                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-${fileOpt.value}`] || filePricing}
                               onPriceChange={(value) => updateFilePrice(metalId, diamondId, null, fileOpt.value, value)}
                               onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, null, fileOpt.value, value)}
                               onLinkChange={(value) => updateFileLink(metalId, diamondId, null, fileOpt.value, value)}
@@ -6525,7 +6501,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                         sizeId={null}
                                         fileOption={fileOpt}
                                         pricing={filePricing || { file_type: fileOpt.value }}
-                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-direct-${fileOpt.value}`]}
+                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${fileOpt.value}`]}
                                         onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, fileOpt.value, value)}
                                         onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, fileOpt.value, value)}
                                         onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, fileOpt.value, value)}
@@ -6719,7 +6695,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                           sizeId={null}
                                           fileOption={fileOpt}
                                           pricing={filePricing || { file_type: fileOpt.value }}
-                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-direct-${fileOpt.value}`]}
+                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-${fileOpt.value}`]}
                                           onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, fileOpt.value, value)}
                                           onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, fileOpt.value, value)}
                                           onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, fileOpt.value, value)}
