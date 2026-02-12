@@ -67,8 +67,9 @@ const FILE_TYPE_OPTIONS = [
     value: "rubber_mold",
     label: "Rubber Mold",
     emoji: "🔧",
-    requiresPrice: false,
+    requiresPrice: true,
     requiresUpload: false,
+    hasDescription: true,
   },
   {
     value: "casting_model",
@@ -103,11 +104,13 @@ const FilePricingInput = ({
   const fileType = fileOption.value;
   const isSTL = fileType === "stl_file";
   const isCAM = fileType === "cam_product";
+  const isRubberMold = fileType === "rubber_mold";
 
   const filePrice = pricing?.price || "";
   const fileDescription = isSTL
     ? (pricing?.stl_file_description || "")
-    : (isCAM ? (pricing?.cam_product_description || "") : "");
+    : (isCAM ? (pricing?.cam_product_description || "")
+      : (isRubberMold ? (pricing?.rubber_mold_description || "") : ""));
   const fileLink = isSTL ? (pricing?.stl_file_link || "") : "";
 
   const [useLink, setUseLink] = useState(!!fileLink);
@@ -154,7 +157,7 @@ const FilePricingInput = ({
         </div>
       )}
 
-      {(isSTL || isCAM) && (
+      {(isSTL || isCAM || isRubberMold) && (
         <div className="p-3 bg-blue-50 rounded border border-blue-200">
           <label className="block text-xs font-semibold text-gray-800 mb-2">
             📝 {fileOption.label} Description
@@ -3255,6 +3258,7 @@ const EditProductPanel = ({
         if (f.file_type === fileType) {
           if (fileType === "stl_file") return { ...f, stl_file_description: description };
           if (fileType === "cam_product") return { ...f, cam_product_description: description };
+          if (fileType === "rubber_mold") return { ...f, rubber_mold_description: description };
         }
         return f;
       });
@@ -3524,7 +3528,7 @@ const EditProductPanel = ({
           const files = Array.isArray(pricing.files) ? pricing.files : [];
           if (files.length === 0) continue;
 
-          const mappedFiles = files.map(f => {
+          const mappedFiles = files.filter(f => f.file_type).map(f => {
             const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
             const uploadedFile = uploadedPdfFiles[fileKey];
 
@@ -3536,6 +3540,7 @@ const EditProductPanel = ({
               file_size: uploadedFile?.file_size || f.file_size || null,
               stl_file_description: f.stl_file_description || null,
               cam_product_description: f.cam_product_description || null,
+              rubber_mold_description: f.rubber_mold_description || null,
               stl_file_link: f.stl_file_link || null,
             };
           });
@@ -3561,7 +3566,7 @@ const EditProductPanel = ({
             const files = Array.isArray(pricing.files) ? pricing.files : [];
             if (files.length === 0) continue;
 
-            const mappedFiles = files.map(f => {
+            const mappedFiles = files.filter(f => f.file_type).map(f => {
               const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
               const uploadedFile = uploadedPdfFiles[fileKey];
 
@@ -3573,6 +3578,7 @@ const EditProductPanel = ({
                 file_size: uploadedFile?.file_size || f.file_size || null,
                 stl_file_description: f.stl_file_description || null,
                 cam_product_description: f.cam_product_description || null,
+                rubber_mold_description: f.rubber_mold_description || null,
                 stl_file_link: f.stl_file_link || null,
               };
             });
@@ -5402,10 +5408,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     }
 
     for (const product of products) {
-      if (!product.name || !product.style_id || !product.metal_id) {
-        alert("Please fill all required fields for all products");
+      if (!product.name) {
+        alert("Product Name is required for all products");
         return;
       }
+      // If no direct price, then style/metal might be needed depending on logic, 
+      // but user asked to make them optional. We'll trust the user.
     }
 
     setLoading(true);
@@ -5681,7 +5689,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       {categoryData && selectedCategory && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Styles Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          {/* <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
               <span className="bg-gray-100 p-1 rounded">🎨</span>
               Available Styles
@@ -5704,10 +5712,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </label>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Metals Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          {/* <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
               <span className="bg-gray-100 p-1 rounded">💎</span>
               Available Metals & Stones
@@ -5730,7 +5738,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </label>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
       )}
 
@@ -5876,11 +5884,31 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 )}
               </div>
 
+              {/* Price (Optional Direct Price) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span>💰</span>
+                  Direct Price (Optional)
+                </label>
+                <input
+                  type="number"
+                  value={product.price}
+                  onChange={(e) =>
+                    updateProduct(product.id, "price", e.target.value)
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  placeholder="e.g. 1500 (Overrides variant pricing)"
+                />
+                <p className="text-xs text-gray-500">
+                  If set, this price will be used and variant selection will be disabled/hidden on the website.
+                </p>
+              </div>
+
               {/* Style Selection */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
                   <span>🎨</span>
-                  Style *
+                  Style (Optional)
                 </label>
                 <select
                   value={product.style_id}
@@ -5902,7 +5930,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
                   <span>💎</span>
-                  Metal/Stone *
+                  Metal/Stone (Optional)
                 </label>
                 <select
                   value={product.metal_id}
