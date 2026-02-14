@@ -3,6 +3,7 @@ import axios from "axios";
 import {
   FiClipboard,
   FiEye,
+  FiEyeOff,
   FiPlus,
   FiGrid,
   FiPackage,
@@ -1755,6 +1756,223 @@ const MinimalToolCard = ({ icon, title, description, onClick }) => {
 };
 
 
+
+const HideVisibilityModal = ({ product, onClose, onSave }) => {
+  const [selection, setSelection] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      if (product.hide_both === 1) setSelection("both");
+      else if (product.hide_lotusjewel === 1) setSelection("lotusjewel");
+      else if (product.hide_lotuscasting === 1) setSelection("lotuscasting");
+      else setSelection("none");
+    }
+  }, [product]);
+
+  const handleSave = async () => {
+    if (!selection) return;
+
+    setLoading(true);
+    const token = localStorage.getItem("token");
+
+    try {
+      // If "none" (Show on All), we explicitly send 'none' 
+      // The backend should handle this by resetting all hide flags 
+      // and skipping the "set equal to 1" part if the value is 'none'
+
+      const payload = {
+        product_id: product.id,
+        website: selection
+      };
+
+      const response = await axios.post(
+        `${API_URL}/products/toggle-visibility`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert("Visibility updated successfully!");
+        onSave(); // Refreshes products
+      }
+    } catch (error) {
+      console.error("Error updating visibility:", error);
+      alert("Error updating visibility");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <FiEyeOff className="text-gray-500" />
+              Manage Visibility
+            </h3>
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            Control where <strong>{product?.name}</strong> is visible
+          </p>
+
+          {/* Current Status Indicator */}
+          <div className={`mt-3 px-3 py-2 rounded-lg text-sm font-medium border flex items-center gap-2 
+            ${product?.hide_both === 1
+              ? 'bg-red-50 text-red-700 border-red-100'
+              : product?.hide_lotusjewel === 1
+                ? 'bg-amber-50 text-amber-700 border-amber-100'
+                : product?.hide_lotuscasting === 1
+                  ? 'bg-amber-50 text-amber-700 border-amber-100'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            }`}>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 
+                ${product?.hide_both === 1
+                  ? 'bg-red-500'
+                  : (product?.hide_lotusjewel === 1 || product?.hide_lotuscasting === 1)
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'}`}>
+              </span>
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 
+                ${product?.hide_both === 1
+                  ? 'bg-red-600'
+                  : (product?.hide_lotusjewel === 1 || product?.hide_lotuscasting === 1)
+                    ? 'bg-amber-600'
+                    : 'bg-emerald-600'}`}>
+              </span>
+            </span>
+            <span>
+              Current Status: <strong>
+                {product?.hide_both === 1
+                  ? "Hidden on Both Websites"
+                  : product?.hide_lotusjewel === 1
+                    ? "Hidden on Lotus Jewel"
+                    : product?.hide_lotuscasting === 1
+                      ? "Hidden on Lotus Casting"
+                      : "Visible on All Websites"}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        {/* content */}
+        <div className="p-6 space-y-4">
+          <div className="space-y-3">
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${selection === 'none' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-200 hover:bg-gray-50'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selection === 'none' ? 'border-emerald-600' : 'border-gray-300'}`}>
+                {selection === 'none' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />}
+              </div>
+              <input
+                type="radio"
+                name="visibility"
+                value="none"
+                checked={selection === 'none'}
+                onChange={() => setSelection('none')}
+                className="hidden"
+              />
+              <div>
+                <span className="block font-bold text-gray-800">Show on All Websites</span>
+                <span className="text-xs text-gray-500">Visible on Lotus Jewel & Lotus Casting</span>
+              </div>
+            </label>
+
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${selection === 'lotusjewel' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-amber-200 hover:bg-gray-50'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selection === 'lotusjewel' ? 'border-amber-600' : 'border-gray-300'}`}>
+                {selection === 'lotusjewel' && <div className="w-2.5 h-2.5 rounded-full bg-amber-600" />}
+              </div>
+              <input
+                type="radio"
+                name="visibility"
+                value="lotusjewel"
+                checked={selection === 'lotusjewel'}
+                onChange={() => setSelection('lotusjewel')}
+                className="hidden"
+              />
+              <div>
+                <span className="block font-bold text-gray-800">Hide on Lotus Jewel</span>
+                <span className="text-xs text-gray-500">Visible ONLY on Lotus Casting</span>
+              </div>
+            </label>
+
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${selection === 'lotuscasting' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selection === 'lotuscasting' ? 'border-blue-600' : 'border-gray-300'}`}>
+                {selection === 'lotuscasting' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+              </div>
+              <input
+                type="radio"
+                name="visibility"
+                value="lotuscasting"
+                checked={selection === 'lotuscasting'}
+                onChange={() => setSelection('lotuscasting')}
+                className="hidden"
+              />
+              <div>
+                <span className="block font-bold text-gray-800">Hide on Lotus Casting</span>
+                <span className="text-xs text-gray-500">Visible ONLY on Lotus Jewel</span>
+              </div>
+            </label>
+
+            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${selection === 'both' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-200 hover:bg-gray-50'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selection === 'both' ? 'border-red-600' : 'border-gray-300'}`}>
+                {selection === 'both' && <div className="w-2.5 h-2.5 rounded-full bg-red-600" />}
+              </div>
+              <input
+                type="radio"
+                name="visibility"
+                value="both"
+                checked={selection === 'both'}
+                onChange={() => setSelection('both')}
+                className="hidden"
+              />
+              <div>
+                <span className="block font-bold text-gray-800">Hide on Both</span>
+                <span className="text-xs text-gray-500">Hidden everywhere</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-3 px-4 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="flex-1 py-3 px-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [products, setProducts] = useState([]);
@@ -1769,6 +1987,7 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
+  const [visibilityModal, setVisibilityModal] = useState(null);
 
 
   // Fetch vendors when component mounts (for admin only)
@@ -1906,64 +2125,8 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
 
 
 
-  const handleToggleVisibility = async (product) => {
-    // Ask which website to hide for
-    const website = prompt(
-      "Hide product for which website?\n" +
-      "Type: 'lotusjewel' OR 'lotuscasting' OR 'both'\n" +
-      "(Leave empty to unhide from all)"
-    );
-
-    if (website === null) return; // Cancelled
-
-    if (website === "") {
-      // Unhide from all - reset columns
-      const token = localStorage.getItem("token");
-      try {
-        const response = await axios.post(
-          `${API_URL}/products/toggle-visibility`,
-          {
-            product_id: product.id,
-            website: 'none' // Special flag to reset
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (response.data.success) {
-          alert("Product is now visible on all websites");
-          fetchProducts();
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Error updating visibility");
-      }
-      return;
-    }
-
-    if (!['lotusjewel', 'lotuscasting', 'both'].includes(website)) {
-      alert("Invalid option! Type exactly: lotusjewel, lotuscasting, or both");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    try {
-      const response = await axios.post(
-        `${API_URL}/products/toggle-visibility`,
-        {
-          product_id: product.id,
-          website: website
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        alert(response.data.message);
-        fetchProducts();
-      }
-    } catch (error) {
-      console.error("Error toggling visibility:", error);
-      alert("Error toggling product visibility");
-    }
+  const handleToggleVisibility = (product) => {
+    setVisibilityModal(product);
   };
 
 
@@ -2386,6 +2549,17 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
           }}
           categories={categories}
           userRole={userRole}
+        />
+      )}
+
+      {visibilityModal && (
+        <HideVisibilityModal
+          product={visibilityModal}
+          onClose={() => setVisibilityModal(null)}
+          onSave={() => {
+            setVisibilityModal(null);
+            fetchProducts();
+          }}
         />
       )}
     </div>

@@ -69,3 +69,10 @@
 .badge-error {
   @apply bg-red-100 text-red-700;
 }
+
+/* Hide scrollbar for Webkit browsers */
+div[class*="overflow-y-auto"]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

@@ -29,6 +29,7 @@ import VendorDash from "./pages/VendorDash";
 import { ssoLogin } from "./api/auth";
 import Invoice from "./pages/Invoice";
 import Enquiries from "./pages/Enquiries";
+import GstSettings from "./pages/GstSettings";
 
 /* =====================================================
    AUTH INITIALIZER (INSIDE ROUTER ✅)
@@ -51,7 +52,7 @@ const AuthInitializer = ({
       const params = new URLSearchParams(location.search);
       const vendor_id = params.get("vendor_id");
       const user_name = params.get("user_name");
-     
+
 
       // ✅ Call SSO ONLY if params exist
       if (vendor_id && user_name) {
@@ -131,7 +132,7 @@ function App() {
 
   const handleLogout = () => {
     // Get values BEFORE clearing storage
-    const userData = JSON.parse(localStorage.getItem("user")); 
+    const userData = JSON.parse(localStorage.getItem("user"));
 
     // Clear user data
     localStorage.clear();
@@ -148,34 +149,34 @@ function App() {
   };
 
   // Check user roles
-const isAdmin = user?.role?.toLowerCase() === "admin";
-const isVendor = user?.role?.toLowerCase() === "vendor";
-const isMD = user?.role?.toLowerCase() === 'md';
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isVendor = user?.role?.toLowerCase() === "vendor";
+  const isMD = user?.role?.toLowerCase() === 'md';
 
-// Protected Route Component
-const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false }) => {
-  // Wait for loading to complete before redirecting
-  if (loading) {
-    return <div className="text-center p-10">Loading...</div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard/products" />;
-  }
-  
-  if (requireVendor && !isVendor) {
-    return <Navigate to="/dashboard/home" />;
-  }
-  
-  return children;
-};
+  // Protected Route Component
+  const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false }) => {
+    // Wait for loading to complete before redirecting
+    if (loading) {
+      return <div className="text-center p-10">Loading...</div>;
+    }
 
-// Remove the early return, let routes handle loading state
-// if (loading) return <div className="text-center p-10">Loading...</div>;
+    if (!isAuthenticated) {
+      return <Navigate to="/login" />;
+    }
+
+    if (requireAdmin && !isAdmin) {
+      return <Navigate to="/dashboard/products" />;
+    }
+
+    if (requireVendor && !isVendor) {
+      return <Navigate to="/dashboard/home" />;
+    }
+
+    return children;
+  };
+
+  // Remove the early return, let routes handle loading state
+  // if (loading) return <div className="text-center p-10">Loading...</div>;
 
   return (
     <Router>
@@ -222,7 +223,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false 
           },
         }}
       />
-      
+
       <Routes>
         {/* Login Page */}
         <Route
@@ -266,14 +267,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false 
               </ProtectedRoute>
             }
           />
-           <Route
+          <Route
             path="invoice"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <Invoice />
               </ProtectedRoute>
             }
-          /> 
+          />
           <Route
             path="attributes"
             element={
@@ -359,6 +360,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireVendor = false 
             element={
               <ProtectedRoute requireAdmin={true}>
                 <VendorRegister />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="gst"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <GstSettings />
               </ProtectedRoute>
             }
           />

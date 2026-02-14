@@ -24,6 +24,7 @@ import {
   ChartPieIcon,
   ChatBubbleLeftRightIcon,
   ChevronDownIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 import { NavLink } from "react-router-dom";
 
@@ -129,6 +130,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <UserPlusIcon className="w-4" />,
       roles: ["admin"],
     },
+    {
+      path: "gst",
+      label: "GST Settings",
+      icon: <BanknotesIcon className="w-4" />,
+      roles: ["admin"],
+    },
   ];
 
   // Filter menu items based on user role
@@ -188,9 +195,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
 
       {/* Sidebar */}
       <aside
-        className={`w-64 bg-gradient-to-b from-green-900 to-green-800 text-white fixed top-0 left-0 h-screen z-30 border-r border-green-700 transform transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`w-64 bg-gradient-to-b from-green-900 to-green-800 text-white fixed top-0 left-0 h-screen z-30 border-r border-green-700 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         {/* Header */}
         <div className="p-4 border-b border-green-700 flex justify-between items-center bg-green-950">
@@ -252,10 +258,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
                     to={`/dashboard/${item.path}`}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
-                      `w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-all text-sm ${
-                        isActive
-                          ? "bg-green-600 scale-105 shadow text-white"
-                          : "text-green-100 hover:bg-green-700 hover:text-white"
+                      `w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-all text-sm ${isActive
+                        ? "bg-green-600 scale-105 shadow text-white"
+                        : "text-green-100 hover:bg-green-700 hover:text-white"
                       }`
                     }
                   >
@@ -273,14 +278,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
             </nav>
           </div>
 
-          {/* CSS to hide scrollbar for Webkit browsers (Chrome, Safari, Edge) */}
-          <style jsx>{`
-            div[class*="overflow-y-auto"]::-webkit-scrollbar {
-              display: none;
-              width: 0;
-              height: 0;
-            }
-          `}</style>
         </div>
 
         {/* Fixed Logout Button at Bottom */}
@@ -293,10 +290,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
             <span>Logout</span>
           </button>
         </div>
-      </aside>
+      </aside >
     </>
   );
 };
 
 export default Sidebar;
-   
