@@ -147,6 +147,7 @@ const FilePricingInput = ({
             placeholder={`Enter ${fileOption.label} price`}
             value={filePrice}
             onChange={(e) => onPriceChange(e.target.value)}
+            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
             disabled={disabled}
             className={`w-full px-3 py-2 border rounded text-sm ${!filePrice && isSTL ? "border-red-500" : "border-gray-300"
               } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
@@ -3439,6 +3440,14 @@ const EditProductPanel = ({
         return f;
       });
 
+      if (!updatedFiles.some((f) => f.file_type === fileType)) {
+        const newFile = { file_type: fileType };
+        if (fileType === "stl_file") newFile.stl_file_description = description;
+        if (fileType === "cam_product") newFile.cam_product_description = description;
+        if (fileType === "rubber_mold") newFile.rubber_mold_description = description;
+        updatedFiles.push(newFile);
+      }
+
       return {
         ...prev,
         variantPricing: {
@@ -3469,6 +3478,13 @@ const EditProductPanel = ({
           }
           : f
       );
+
+      if (!updatedFiles.some((f) => f.file_type === fileType)) {
+        updatedFiles.push({
+          file_type: fileType,
+          stl_file_link: link
+        });
+      }
 
       return {
         ...prev,
@@ -5462,10 +5478,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           const currentFiles = current.files || [];
 
           const updatedFiles = currentFiles.map((f) =>
-            f.file_type === fileType
-              ? { ...f, price: parseFloat(price) || null }
-              : f
+            f.file_type === fileType ? { ...f, price: price } : f
           );
+
+          if (!updatedFiles.some((f) => f.file_type === fileType)) {
+            updatedFiles.push({ file_type: fileType, price: price });
+          }
 
           return {
             ...p,
@@ -5508,6 +5526,13 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             }
             return f;
           });
+
+          if (!updatedFiles.some((f) => f.file_type === fileType)) {
+            const newFile = { file_type: fileType };
+            if (fileType === "stl_file") newFile.stl_file_description = description;
+            if (fileType === "cam_product") newFile.cam_product_description = description;
+            updatedFiles.push(newFile);
+          }
 
           return {
             ...p,
@@ -5554,6 +5579,13 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               }
               : f
           );
+
+          if (!updatedFiles.some((f) => f.file_type === fileType)) {
+            updatedFiles.push({
+              file_type: fileType,
+              stl_file_link: link
+            });
+          }
 
           return {
             ...p,
@@ -6373,7 +6405,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             {/* Variant Configuration */}
             <div className="mt-6 p-4 bg-white border-2 border-green-300 rounded-lg">
               <h5 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
-                ⚙️ Variant Configuration
+                ⚙️ Variant Configuration (Optional)
               </h5>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
