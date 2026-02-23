@@ -12,30 +12,27 @@ const OptionItem = ({
   attributeType,
   isLast,
 }) => {
-  // Handle name change with debounced auto-generation
+  // Handle name change — batch both option_name and option_value in ONE update
   const handleNameChange = (value) => {
-    // Update the name
-    onUpdate(index, "option_name", value);
-
-    // Only auto-generate value if it's empty or was previously auto-generated
-    const currentValue = option.option_value || "";
     const nameSlug = value
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
 
-    // Check if current value looks like it was auto-generated from the old name
+    const currentValue = option.option_value || "";
     const oldNameSlug = (option.option_name || "")
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
 
-    // Only auto-update if:
-    // 1. Value is empty, OR
-    // 2. Current value matches the old name's slug (meaning it was auto-generated)
-    if (!currentValue || currentValue === oldNameSlug) {
-      onUpdate(index, "option_value", nameSlug);
-    }
+    // Only auto-update value if it's empty or was previously auto-generated
+    const shouldUpdateValue = !currentValue || currentValue === oldNameSlug;
+
+    // ✅ Single batched update — prevents double re-render / focus loss
+    onUpdate(index, {
+      option_name: value,
+      ...(shouldUpdateValue && { option_value: nameSlug }),
+    });
   };
 
   return (
@@ -54,8 +51,8 @@ const OptionItem = ({
               attributeType === "metal"
                 ? "e.g., 14KT Yellow Gold"
                 : attributeType === "diamond"
-                ? "e.g., GH-SI Quality"
-                : "e.g., Size 5"
+                  ? "e.g., GH-SI Quality"
+                  : "e.g., Size 5"
             }
             required
           />
@@ -82,7 +79,7 @@ const OptionItem = ({
             <input
               type="text"
               value={option.size_mm || ""}
-              onChange={(e) => onUpdate(index, "size_mm", e.target.value)}
+              onChange={(e) => onUpdate(index, { size_mm: e.target.value })}
               className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 placeholder-gray-400 text-sm"
               placeholder="e.g., 15.7"
               required
@@ -103,6 +100,7 @@ const OptionItem = ({
     </div>
   );
 };
+
 const AttributeModal = ({
   showModal,
   setShowModal,
@@ -125,17 +123,15 @@ const AttributeModal = ({
     setLoading(true);
     try {
       if (editingAttribute?.options && editingAttribute.options.length > 0) {
-        // Load existing options
         setOptions(
           editingAttribute.options.map((opt) => ({
-            id: opt.id, // Keep the existing ID for updates
+            id: opt.id,
             option_name: opt.option_name || "",
             option_value: opt.option_value || "",
             size_mm: opt.size_mm || "",
           }))
         );
       } else {
-        // Start with one empty option
         setOptions([{ option_name: "", option_value: "", size_mm: "" }]);
       }
     } catch (error) {
@@ -157,10 +153,13 @@ const AttributeModal = ({
     ]);
   };
 
-  const updateOption = (index, field, value) => {
-    const updatedOptions = [...options];
-    updatedOptions[index] = { ...updatedOptions[index], [field]: value };
-    setOptions(updatedOptions);
+  // ✅ Updated to accept a fields object for batched updates
+  const updateOption = (index, fields) => {
+    setOptions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...fields };
+      return updated;
+    });
   };
 
   const removeOption = (index) => {
@@ -184,7 +183,6 @@ const AttributeModal = ({
   };
 
   const handleSave = async () => {
-    // Validate form
     const validOptions = options.filter((opt) => {
       if (!opt.option_name.trim()) return false;
       if (editingAttribute?.type === "size" && !opt.size_mm.trim())
@@ -197,7 +195,6 @@ const AttributeModal = ({
       return;
     }
 
-    // Check for duplicates
     const optionNames = new Set();
     for (const option of validOptions) {
       const name = option.option_name.trim().toLowerCase();
@@ -212,19 +209,16 @@ const AttributeModal = ({
 
     try {
       if (editingAttribute?.id) {
-        // ========== UPDATE EXISTING ATTRIBUTE ==========
         await saveAttributeOptions(editingAttribute.id, validOptions);
         toast.success("Options updated successfully!");
       } else if (editingAttribute) {
-        // ========== CREATE NEW ATTRIBUTE ==========
         const attributeName =
           editingAttribute.type === "metal"
             ? "Choice of Metal"
             : editingAttribute.type === "diamond"
-            ? "Diamond Quality"
-            : "Size";
+              ? "Diamond Quality"
+              : "Size";
 
-        // Create attribute
         const createResponse = await DoAll({
           action: "insert",
           table: "attributes",
@@ -237,26 +231,21 @@ const AttributeModal = ({
           },
         });
 
-        // ✅ FIX: Check response.success (not response.data.success)
         if (!createResponse?.success) {
           throw new Error(
             createResponse.message || "Failed to create attribute"
           );
         }
 
-        // Get the new attribute ID
         const attributeId = createResponse.insertId;
-
         if (!attributeId) {
           throw new Error("No attribute ID returned from database");
         }
 
-        // Save options
         await saveAttributeOptions(attributeId, validOptions);
         toast.success("Attribute created successfully!");
       }
 
-      // Refresh and close
       if (fetchAttributes) {
         await fetchAttributes();
       }
@@ -264,9 +253,7 @@ const AttributeModal = ({
     } catch (error) {
       console.error("Error saving attribute:", error);
       toast.error(
-        `Error ${editingAttribute?.id ? "updating" : "creating"} attribute: ${
-          error.message
-        }`
+        `Error ${editingAttribute?.id ? "updating" : "creating"} attribute: ${error.message}`
       );
     } finally {
       setSaving(false);
@@ -282,7 +269,6 @@ const AttributeModal = ({
     }
 
     try {
-      // Delete old options (soft delete)
       if (editingAttribute?.id) {
         try {
           await DoAll({
@@ -295,7 +281,6 @@ const AttributeModal = ({
         }
       }
 
-      // Insert new options
       const optionPromises = validOptions.map(async (option) => {
         const response = await DoAll({
           action: "insert",
@@ -323,15 +308,11 @@ const AttributeModal = ({
       });
 
       const results = await Promise.allSettled(optionPromises);
-
-      // Check for any failures
       const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
         console.error("Some options failed to save:", failures);
         toast.warning(
-          `${validOptions.length - failures.length} of ${
-            validOptions.length
-          } options saved`
+          `${validOptions.length - failures.length} of ${validOptions.length} options saved`
         );
       }
     } catch (error) {
@@ -461,8 +442,8 @@ const AttributeModal = ({
                   {saving
                     ? "Saving..."
                     : editingAttribute?.id
-                    ? "Update Options"
-                    : "Create"}
+                      ? "Update Options"
+                      : "Create"}
                 </span>
               </button>
             </div>
