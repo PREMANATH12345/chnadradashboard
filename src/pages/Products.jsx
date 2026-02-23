@@ -3148,11 +3148,23 @@ const EditProductPanel = ({
     setImageUrls(details.images || []);
 
     setFormData(prev => {
+      // Normalize and clean selected metal options
+      const rawMetals = details.selectedMetalOptions || [];
+      const cleanSelectedMetals = rawMetals
+        .map(id => parseInt(id))
+        .filter(id => !isNaN(id));
+
+      // Normalize and clean selected diamond options
+      const rawDiamonds = details.selectedDiamondOptions || [];
+      const cleanSelectedDiamonds = rawDiamonds
+        .map(id => parseInt(id))
+        .filter(id => !isNaN(id));
+
       const newMetalSizeConfig = {};
       const newDiamondSizeConfig = {};
 
-      if (details.selectedMetalOptions) {
-        details.selectedMetalOptions.forEach(metalId => {
+      if (cleanSelectedMetals.length > 0) {
+        cleanSelectedMetals.forEach(metalId => {
           const hasSizesConfigured = Object.keys(details.selectedSizes || {}).some(key => {
             const [metalPart, diamondPart, sizePart] = key.split('-');
             return parseInt(metalPart) === metalId &&
@@ -3163,9 +3175,9 @@ const EditProductPanel = ({
           if (hasSizesConfigured) newMetalSizeConfig[metalId] = true;
         });
 
-        if (details.selectedDiamondOptions) {
-          details.selectedMetalOptions.forEach(metalId => {
-            details.selectedDiamondOptions.forEach(diamondId => {
+        if (cleanSelectedDiamonds.length > 0) {
+          cleanSelectedMetals.forEach(metalId => {
+            cleanSelectedDiamonds.forEach(diamondId => {
               const comboKey = `${metalId}-${diamondId}`;
               const hasSizesConfigured = Object.keys(details.selectedSizes || {}).some(key => {
                 const [metalPart, diamondPart, sizePart] = key.split('-');
@@ -3190,10 +3202,10 @@ const EditProductPanel = ({
         gender: details.gender || [],
         style_id: details.style_id || "",
         metal_id: details.metal_id || "",
-        hasMetalChoice: !!details.hasMetalChoice || (details.selectedMetalOptions?.length > 0),
-        hasDiamondChoice: !!details.hasDiamondChoice || (details.selectedDiamondOptions?.length > 0),
-        selectedMetalOptions: details.selectedMetalOptions || [],
-        selectedDiamondOptions: details.selectedDiamondOptions || [],
+        hasMetalChoice: !!details.hasMetalChoice || (cleanSelectedMetals.length > 0),
+        hasDiamondChoice: !!details.hasDiamondChoice || (cleanSelectedDiamonds.length > 0),
+        selectedMetalOptions: cleanSelectedMetals,
+        selectedDiamondOptions: cleanSelectedDiamonds,
         variantPricing: reconstructedPricing,
         selectedSizes: details.selectedSizes || {},
         configureSizes: !!details.configureSizes || (details.selectedSizes && Object.keys(details.selectedSizes).length > 0),
@@ -3332,9 +3344,8 @@ const EditProductPanel = ({
     setFormData((prev) => ({
       ...prev,
       hasMetalChoice: !prev.hasMetalChoice,
-      selectedMetalOptions: !prev.hasMetalChoice
-        ? []
-        : prev.selectedMetalOptions,
+      selectedMetalOptions: [],
+      metalSizeConfig: {},
     }));
   };
 
@@ -3342,17 +3353,17 @@ const EditProductPanel = ({
     setFormData((prev) => ({
       ...prev,
       hasDiamondChoice: !prev.hasDiamondChoice,
-      selectedDiamondOptions: !prev.hasDiamondChoice
-        ? []
-        : prev.selectedDiamondOptions,
+      selectedDiamondOptions: [],
+      diamondSizeConfig: {},
     }));
   };
 
   const toggleMetalOption = (optionId) => {
+    const id = parseInt(optionId);
     setFormData((prev) => {
-      const selectedMetalOptions = prev.selectedMetalOptions.includes(optionId)
-        ? prev.selectedMetalOptions.filter((id) => id !== optionId)
-        : [...prev.selectedMetalOptions, optionId];
+      const selectedMetalOptions = prev.selectedMetalOptions.includes(id)
+        ? prev.selectedMetalOptions.filter((m) => m !== id)
+        : [...prev.selectedMetalOptions, id];
 
       const updatedFormData = { ...prev, selectedMetalOptions };
 
@@ -3380,11 +3391,12 @@ const EditProductPanel = ({
   };
 
   const toggleDiamondOption = (optionId) => {
+    const id = parseInt(optionId);
     setFormData((prev) => ({
       ...prev,
-      selectedDiamondOptions: prev.selectedDiamondOptions.includes(optionId)
-        ? prev.selectedDiamondOptions.filter((id) => id !== optionId)
-        : [...prev.selectedDiamondOptions, optionId],
+      selectedDiamondOptions: prev.selectedDiamondOptions.includes(id)
+        ? prev.selectedDiamondOptions.filter((m) => m !== id)
+        : [...prev.selectedDiamondOptions, id],
     }));
   };
 
@@ -3836,16 +3848,26 @@ const EditProductPanel = ({
         ⚙️ Variant Configuration (Optional)
       </h5>
 
+      {formData.price && formData.price.toString().trim() !== "" && (
+        <div className="mb-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl flex items-start gap-2 sm:gap-3">
+          <FiInfo className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 mt-0.5" />
+          <div>
+            <p className="text-xs sm:text-sm font-bold text-amber-800">Price is set ({formData.price})</p>
+            <p className="text-[10px] sm:text-xs text-amber-700">Remove the Product Price in Basic Information to enable and configure variants.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
         {/* Choice of Metal */}
         <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-          <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
+          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.hasMetalChoice}
               onChange={toggleMetalChoice}
               className="w-4 h-4 sm:w-5 sm:h-5"
-              disabled={!canEdit}
+              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
             />
             <span className="font-bold text-sm sm:text-base">
               🔩 Choice of Metal
@@ -3875,13 +3897,13 @@ const EditProductPanel = ({
 
         {/* Diamond Quality */}
         <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-          <label className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer">
+          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.hasDiamondChoice}
               onChange={toggleDiamondChoice}
               className="w-4 h-4 sm:w-5 sm:h-5"
-              disabled={!canEdit}
+              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
             />
             <span className="font-bold text-sm sm:text-base">
               💎 Diamond Quality
@@ -3911,13 +3933,13 @@ const EditProductPanel = ({
 
         {/* Size Info */}
         <div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
-          <label className="flex items-center gap-2 mb-2 cursor-pointer">
+          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.configureSizes || false}
               onChange={toggleConfigureSizes}
               className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-              disabled={!canEdit}
+              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
             />
             <h6 className="font-bold text-sm sm:text-base">
               📏 Configure Sizes with Pricing
@@ -3939,11 +3961,13 @@ const EditProductPanel = ({
       </div>
 
       {/* Size & Pricing Configuration */}
-      {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+      {!(formData.price && formData.price.toString().trim() !== "") && (formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
         <div className="mt-3 sm:mt-4">
-          <h6 className="font-bold mb-2 sm:mb-3 text-sm sm:text-base">
-            📐 Configure Variants:
-          </h6>
+          {(formData.selectedMetalOptions.length > 0 || formData.selectedDiamondOptions.length > 0 || (formData.configureSizes && Object.values(formData.selectedSizes).some(v => v))) && (
+            <h6 className="font-bold mb-2 sm:mb-3 text-sm sm:text-base">
+              📐 Configure Variants:
+            </h6>
+          )}
 
           {/* Size Only (No Metal/Diamond) */}
           {!formData.hasMetalChoice && !formData.hasDiamondChoice && (
@@ -4026,7 +4050,8 @@ const EditProductPanel = ({
 
           {/* Metal Only (No Diamond) */}
           {formData.hasMetalChoice && !formData.hasDiamondChoice && formData.selectedMetalOptions.map((metalId) => {
-            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => parseInt(o.id) === parseInt(metalId));
+            if (!metalOpt) return null;
             const useSizeConfig = formData.metalSizeConfig[metalId];
 
             return (
@@ -4184,9 +4209,11 @@ const EditProductPanel = ({
 
           {/* Metal + Diamond */}
           {formData.hasMetalChoice && formData.hasDiamondChoice && formData.selectedMetalOptions.map((metalId) => {
-            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => o.id === metalId);
+            const metalOpt = categoryData?.attributes?.metal?.options?.find(o => parseInt(o.id) === parseInt(metalId));
+            if (!metalOpt) return null;
             return formData.selectedDiamondOptions.map((diamondId) => {
-              const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => o.id === diamondId);
+              const diamondOpt = categoryData?.attributes?.diamond?.options?.find(o => parseInt(o.id) === parseInt(diamondId));
+              if (!diamondOpt) return null;
               const comboKey = `${metalId}-${diamondId}`;
               const useSizeConfig = formData.diamondSizeConfig[comboKey];
 
@@ -4545,28 +4572,19 @@ const EditProductPanel = ({
                       onChange={(e) =>
                         setFormData({ ...formData, price: e.target.value })
                       }
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm ${(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes)
+                        ? "bg-gray-100 cursor-not-allowed opacity-60"
+                        : ""
+                        }`}
                       placeholder="Product Price"
-                      disabled={!canEdit}
+                      disabled={!canEdit || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes}
                     />
-                  </div>
-
-                  {/* Original Price */}
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center gap-1.5 sm:gap-2">
-                      <span>🏷️</span>
-                      <span>Original Price (MSRP)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.originalPrice}
-                      onChange={(e) =>
-                        setFormData({ ...formData, originalPrice: e.target.value })
-                      }
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm"
-                      placeholder="MSRP (Optional)"
-                      disabled={!canEdit}
-                    />
+                    {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+                      <p className="text-[10px] sm:text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+                        <span>⚠️</span>
+                        Remove Variant Configuration to enable Price.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -5361,9 +5379,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           return {
             ...p,
             hasMetalChoice: !p.hasMetalChoice,
-            selectedMetalOptions: !p.hasMetalChoice
-              ? []
-              : p.selectedMetalOptions,
+            selectedMetalOptions: [],
+            metalSizeConfig: {},
           };
         }
         return p;
@@ -5378,9 +5395,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           return {
             ...p,
             hasDiamondChoice: !p.hasDiamondChoice,
-            selectedDiamondOptions: !p.hasDiamondChoice
-              ? []
-              : p.selectedDiamondOptions,
+            selectedDiamondOptions: [],
+            diamondSizeConfig: {},
           };
         }
         return p;
@@ -6188,12 +6204,23 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   onChange={(e) =>
                     updateProduct(product.id, "price", e.target.value)
                   }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  disabled={product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm ${(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes)
+                    ? "bg-gray-100 cursor-not-allowed opacity-60"
+                    : ""
+                    }`}
                   placeholder="e.g. 1500 (Overrides variant pricing)"
                 />
-                <p className="text-xs text-gray-500">
-                  If set, this price will be used and variant selection will be disabled/hidden on the website.
-                </p>
+                {product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes ? (
+                  <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+                    <span>⚠️</span>
+                    Remove Variant Configuration to enable Direct Price.
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500">
+                    If set, this price will be used and variant selection will be disabled/hidden on the website.
+                  </p>
+                )}
               </div>
 
               {/* Style Selection */}
@@ -6449,13 +6476,24 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 ⚙️ Variant Configuration (Optional)
               </h5>
 
+              {product.price && product.price.toString().trim() !== "" && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                  <span className="text-amber-600 text-lg">ℹ️</span>
+                  <div>
+                    <p className="text-sm font-bold text-amber-800">Direct Price is set ({product.price})</p>
+                    <p className="text-xs text-amber-700">Remove the Direct Price above to enable and configure product variants.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {/* Choice of Metal */}
                 <div className="border-2 border-gray-200 rounded p-3">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.hasMetalChoice}
+                      disabled={product.price && product.price.toString().trim() !== ""}
                       onChange={() => toggleProductMetalChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
@@ -6492,10 +6530,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                 {/* Diamond Quality */}
                 <div className="border-2 border-gray-200 rounded p-3">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.hasDiamondChoice}
+                      disabled={product.price && product.price.toString().trim() !== ""}
                       onChange={() => toggleProductDiamondChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
@@ -6534,10 +6573,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                 {/* Size Info */}
                 <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
-                  <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.configureSizes || false}
+                      disabled={product.price && product.price.toString().trim() !== ""}
                       onChange={() => toggleConfigureSizes(product.id)}
                       className="w-5 h-5 text-emerald-600"
                     />
@@ -6554,13 +6594,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               </div>
 
               {/* Size & Pricing Configuration */}
-              {(product.hasMetalChoice ||
+              {!(product.price && product.price.toString().trim() !== "") && (product.hasMetalChoice ||
                 product.hasDiamondChoice ||
                 product.configureSizes) && (
                   <div className="mt-4">
-                    <h6 className="font-bold mb-3 text-gray-800">
-                      📐 Configure Variants:
-                    </h6>
+                    {(product.selectedMetalOptions.length > 0 || product.selectedDiamondOptions.length > 0 || (product.configureSizes && Object.values(product.selectedSizes).some(v => v))) && (
+                      <h6 className="font-bold mb-3 text-gray-800">
+                        📐 Configure Variants:
+                      </h6>
+                    )}
 
                     {/* Size Only (No Metal/Diamond) */}
                     {!product.hasMetalChoice && !product.hasDiamondChoice && (
@@ -6658,8 +6700,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       product.selectedMetalOptions.map((metalId) => {
                         const metalOpt =
                           categoryData?.attributes?.metal?.options?.find(
-                            (o) => o.id === metalId
+                            (o) => parseInt(o.id) === parseInt(metalId)
                           );
+                        if (!metalOpt) return null;
                         const useSizeConfig = product.metalSizeConfig[metalId];
 
                         return (
@@ -6837,13 +6880,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       product.selectedMetalOptions.map((metalId) => {
                         const metalOpt =
                           categoryData?.attributes?.metal?.options?.find(
-                            (o) => o.id === metalId
+                            (o) => parseInt(o.id) === parseInt(metalId)
                           );
+                        if (!metalOpt) return null;
                         return product.selectedDiamondOptions.map((diamondId) => {
                           const diamondOpt =
                             categoryData?.attributes?.diamond?.options?.find(
-                              (o) => o.id === diamondId
+                              (o) => parseInt(o.id) === parseInt(diamondId)
                             );
+                          if (!diamondOpt) return null;
                           const comboKey = `${metalId}-${diamondId}`;
                           const useSizeConfig =
                             product.diamondSizeConfig[comboKey];
