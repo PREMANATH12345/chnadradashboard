@@ -5565,6 +5565,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             if (f.file_type === fileType) {
               if (fileType === "stl_file") return { ...f, stl_file_description: description };
               if (fileType === "cam_product") return { ...f, cam_product_description: description };
+              if (fileType === "rubber_mold") return { ...f, rubber_mold_description: description };
             }
             return f;
           });
@@ -5573,6 +5574,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             const newFile = { file_type: fileType };
             if (fileType === "stl_file") newFile.stl_file_description = description;
             if (fileType === "cam_product") newFile.cam_product_description = description;
+            if (fileType === "rubber_mold") newFile.rubber_mold_description = description;
             updatedFiles.push(newFile);
           }
 
@@ -5817,6 +5819,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   file_size: uploadedFile?.file_size || null,
                   stl_file_description: f.stl_file_description || null,
                   cam_product_description: f.cam_product_description || null,
+                  rubber_mold_description: f.rubber_mold_description || null,
                   stl_file_link: f.stl_file_link || null,
                 };
               });
@@ -5878,6 +5881,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   file_size: uploadedFile?.file_size || null,
                   stl_file_description: f.stl_file_description || null,
                   cam_product_description: f.cam_product_description || null,
+                  rubber_mold_description: f.rubber_mold_description || null,
                   stl_file_link: f.stl_file_link || null,
                 };
               });
