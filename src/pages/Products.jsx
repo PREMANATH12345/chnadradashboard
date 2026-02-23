@@ -1456,10 +1456,7 @@ const ProductsDashboard = ({
               typeof p.product_details === "string"
                 ? JSON.parse(p.product_details)
                 : p.product_details || {};
-            return (
-              details.featured?.includes("Latest Designs") ||
-              details.featured?.includes("Bestsellers")
-            );
+            return details.featured && details.featured.length > 0;
           } catch {
             return false;
           }
@@ -3039,6 +3036,31 @@ const EditProductPanel = ({
 
 
   const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+  const [featureOptions, setFeatureOptions] = useState([]);
+
+  useEffect(() => {
+    fetchFeatureOptions();
+  }, []);
+
+  const fetchFeatureOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/doAll`,
+        {
+          action: "get",
+          table: "feature_options",
+          where: { is_deleted: 0 },
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setFeatureOptions(response.data.data.filter(opt => opt.is_active === 1 || opt.is_active === undefined));
+      }
+    } catch (error) {
+      console.error("Error fetching feature options:", error);
+    }
+  };
 
 
   // Add this useEffect right after the formData useState
@@ -4581,12 +4603,7 @@ const EditProductPanel = ({
                     <span>Featured Tags</span>
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                    {[
-                      "Latest Designs",
-                      "Bestsellers",
-                      "Fast Delivery",
-                      "Special Deals",
-                    ].map((feature) => (
+                    {featureOptions.map(opt => opt.title).map((feature) => (
                       <label
                         key={feature}
                         className="flex items-center gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
@@ -4881,6 +4898,31 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
 
   const [targetAudienceOptions, setTargetAudienceOptions] = useState([]);
+  const [featureOptions, setFeatureOptions] = useState([]);
+
+  useEffect(() => {
+    fetchFeatureOptions();
+  }, []);
+
+  const fetchFeatureOptions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/doAll`,
+        {
+          action: "get",
+          table: "feature_options",
+          where: { is_deleted: 0 },
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setFeatureOptions(response.data.data.filter(opt => opt.is_active === 1 || opt.is_active === undefined));
+      }
+    } catch (error) {
+      console.error("Error fetching feature options:", error);
+    }
+  };
 
   useEffect(() => {
     fetchTargetAudienceOptions();
@@ -6204,12 +6246,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   Featured Options
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    "Latest Designs",
-                    "Bestsellers",
-                    "Fast Delivery",
-                    "Special Deals",
-                  ].map((feature) => (
+                  {featureOptions.map(opt => opt.title).map((feature) => (
                     <label
                       key={feature}
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors"
