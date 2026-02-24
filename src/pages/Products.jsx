@@ -2582,10 +2582,20 @@ const getStlFilePrice = (product) => {
 
   if (!productDetails) return 0;
 
+  // Determine if variants are active
+  const isVariantActive = productDetails.configureSizes ||
+    productDetails.hasMetalChoice ||
+    productDetails.hasDiamondChoice;
+
   // Check if there's variant pricing with STL file
-  if (productDetails.variantPricing && typeof productDetails.variantPricing === 'object') {
+  if (isVariantActive && productDetails.variantPricing && typeof productDetails.variantPricing === 'object') {
     // Loop through all variant pricing entries
     for (const [key, pricing] of Object.entries(productDetails.variantPricing)) {
+      // If selectedSizes exists, verify this variant is actually active/selected
+      if (productDetails.selectedSizes && productDetails.selectedSizes[key] === false) {
+        continue;
+      }
+
       if (pricing && pricing.files && Array.isArray(pricing.files)) {
         const stlFile = pricing.files.find(f =>
           f &&
@@ -2606,7 +2616,7 @@ const getStlFilePrice = (product) => {
   }
 
   // Fallback to productDetails.price
-  if (productDetails.price !== null && productDetails.price !== undefined) {
+  if (productDetails.price !== null && productDetails.price !== undefined && productDetails.price !== '') {
     const price = parseFloat(productDetails.price);
     if (!isNaN(price)) {
       return price;
