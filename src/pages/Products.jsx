@@ -259,6 +259,104 @@ const FilePricingInput = ({
   );
 };
 
+const VariantImageUpload = ({
+  productId,
+  metalId,
+  diamondId,
+  sizeId,
+  imageUrls = [],
+  onImageUpload,
+  onImageRemove,
+  disabled = false,
+}) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const inputId = `variant-images-${productId}-${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+
+  return (
+    <div className="mt-4 p-4 bg-white border-2 border-dashed border-emerald-200 rounded-xl">
+      <label className="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FiImage className="text-emerald-500" />
+          Variant Images ({imageUrls?.length || 0}/10)
+        </div>
+        {imageUrls?.length >= 10 && <span className="text-amber-600 font-bold normal-case">Max 10 Images reached</span>}
+      </label>
+
+      <div className="flex flex-wrap gap-3">
+        {/* Existing Previews */}
+        {imageUrls && imageUrls.length > 0 && imageUrls.map((url, idx) => (
+          <div key={idx} className="relative w-20 h-20 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center group shadow-inner">
+            <img
+              src={url.startsWith("blob:") ? url : `${BASE_URL}${url}`}
+              className="w-full h-full object-cover"
+              alt={`Variant ${idx + 1}`}
+            />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onImageRemove(idx)}
+                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+              >
+                <FiTrash2 className="w-5 h-5 shadow-sm" />
+              </button>
+            )}
+            <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl">
+              {idx + 1}
+            </div>
+          </div>
+        ))}
+
+        {/* Upload Button */}
+        {imageUrls?.length < 10 && (
+          <div className="flex flex-col">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              id={inputId}
+              className="hidden"
+              onChange={async (e) => {
+                const files = Array.from(e.target.files).slice(0, 10 - (imageUrls?.length || 0));
+                if (files.length === 0) return;
+                setIsUploading(true);
+                await onImageUpload(files);
+                setIsUploading(false);
+                e.target.value = ""; // Clear input for re-selection
+              }}
+              disabled={disabled || isUploading}
+            />
+            <label
+              htmlFor={inputId}
+              className={`w-20 h-20 flex flex-col items-center justify-center bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg border-2 border-dashed border-emerald-300 cursor-pointer hover:bg-emerald-100 transition-all shadow-sm ${disabled || isUploading ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95"
+                }`}
+            >
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent animate-spin rounded-full" />
+                  <span className="text-[8px]">Uploading...</span>
+                </div>
+              ) : (
+                <>
+                  <FiPlus className="w-6 h-6 mb-1" />
+                  <span>Add Image</span>
+                </>
+              )}
+            </label>
+          </div>
+        )}
+
+        {(!imageUrls || imageUrls.length === 0) && !isUploading && (
+          <div className="flex items-center">
+            <p className="text-[10px] text-gray-500 font-medium italic">
+              👈 No images uploaded yet. (Max 10)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Products = () => {
   const [currentStep, setCurrentStep] = useState("dashboard");
   const [categories, setCategories] = useState([]);
@@ -2651,7 +2749,48 @@ const ProductCard = ({
 
   const displayPrice = getStlFilePrice(product);
 
-  const mainImage = productDetails.images?.[0] || "";
+  // Logic to determine main display image and collect all images
+  const getImages = () => {
+    let main = productDetails.images?.[0] || "";
+    let combined = [...(productDetails.images || [])];
+
+    // Check if variants are active
+    const isVariantActive = productDetails.configureSizes ||
+      productDetails.hasMetalChoice ||
+      productDetails.hasDiamondChoice;
+
+    if (isVariantActive && productDetails.variantPricing) {
+      const variantEntries = Object.entries(productDetails.variantPricing);
+
+      // Collect images from all active variants
+      variantEntries.forEach(([key, pricing]) => {
+        if (productDetails.selectedSizes && productDetails.selectedSizes[key] === false) return;
+
+        const vImgs = pricing.variant_images || (pricing.variant_image ? [pricing.variant_image] : []);
+        if (Array.isArray(vImgs)) {
+          vImgs.forEach(img => {
+            if (img && !combined.includes(img)) combined.push(img);
+          });
+        }
+      });
+
+      // Prioritize variant image for main display if variants exist
+      if (isVariantActive) {
+        for (const [key, pricing] of variantEntries) {
+          if (productDetails.selectedSizes && productDetails.selectedSizes[key] === false) continue;
+          const vImgs = pricing.variant_images || (pricing.variant_image ? [pricing.variant_image] : []);
+          if (Array.isArray(vImgs) && vImgs.length > 0) {
+            main = vImgs[0];
+            break;
+          }
+        }
+      }
+    }
+
+    return { main, all: combined };
+  };
+
+  const { main: mainImage, all: allImages } = getImages();
   const isVendor = userRole === "vendor";
 
   const statusConfig = {
@@ -2723,14 +2862,14 @@ const ProductCard = ({
           </div>
         )}
 
-        {productDetails.images?.length > 0 && (
+        {allImages.length > 0 && (
           <button
-            onClick={() => onViewImages(productDetails.images)}
+            onClick={() => onViewImages(allImages)}
             className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 px-2 py-1 sm:px-3 sm:py-2 bg-gradient-to-r from-gray-900/80 to-black/80 text-white rounded-lg sm:rounded-xl text-xs font-medium backdrop-blur-sm hover:from-gray-900 hover:to-black transition-all flex items-center gap-1 sm:gap-2"
             title="View Images"
           >
             <FiEye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-            {productDetails.images.length} images
+            {allImages.length} images
           </button>
         )}
         {canEditDelete && (
@@ -3122,6 +3261,9 @@ const EditProductPanel = ({
       Object.entries(details.variantPricing).forEach(([key, pricing]) => {
         reconstructedPricing[key] = {
           ...pricing,
+          variant_images: Array.isArray(pricing.variant_images) 
+            ? pricing.variant_images 
+            : (pricing.variant_image ? [pricing.variant_image] : []),
           files: Array.isArray(pricing.files) ? pricing.files : []
         };
 
@@ -3224,6 +3366,66 @@ const EditProductPanel = ({
       };
     });
   }, [product.id, product.product_details]);
+
+  const hasVariants = formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes;
+
+  const handleVariantImageUpload = async (metalId, diamondId, sizeId, files) => {
+    if (!files || files.length === 0) return;
+
+    const formDataObj = new FormData();
+    files.forEach(file => formDataObj.append('images', file));
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await axios.post(`${API_URL}/upload-images`, formDataObj, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        const newUrls = response.data.data.images.map(img => img.url);
+        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+
+        setFormData(prev => {
+          const currentImages = prev.variantPricing[key]?.variant_images || [];
+          return {
+            ...prev,
+            variantPricing: {
+              ...prev.variantPricing,
+              [key]: {
+                ...(prev.variantPricing[key] || {}),
+                variant_images: [...currentImages, ...newUrls].slice(0, 10)
+              }
+            }
+          };
+        });
+        alert(`✅ ${newUrls.length} image(s) uploaded!`);
+      }
+    } catch (error) {
+      console.error('Variant image upload error:', error);
+      alert('❌ Error uploading variant images');
+    }
+  };
+
+  const removeVariantImage = (metalId, diamondId, sizeId, index) => {
+    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+
+    setFormData(prev => {
+      const updatedPricing = { ...prev.variantPricing };
+      if (updatedPricing[key]) {
+        const images = [...(updatedPricing[key].variant_images || [])];
+        images.splice(index, 1);
+        updatedPricing[key] = {
+          ...updatedPricing[key],
+          variant_images: images
+        };
+      }
+      return { ...prev, variantPricing: updatedPricing };
+    });
+  };
 
 
 
@@ -3790,6 +3992,7 @@ const EditProductPanel = ({
             end_product_price: parseFloat(pricing.end_product_price) || null,
             end_product_discount: parseFloat(pricing.end_product_discount) || null,
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+            variant_images: pricing.variant_images || [],
             files: mappedFiles
           });
         }
@@ -3828,6 +4031,7 @@ const EditProductPanel = ({
               end_product_price: parseFloat(pricing.end_product_price) || null,
               end_product_discount: parseFloat(pricing.end_product_discount) || null,
               end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              variant_images: pricing.variant_images || [],
               files: mappedFiles
             });
           }
@@ -4004,6 +4208,17 @@ const EditProductPanel = ({
 
                     {isSelected && (
                       <div className="mt-4 space-y-4">
+                        <VariantImageUpload
+                          productId={product.id}
+                          metalId={null}
+                          diamondId={null}
+                          sizeId={sizeOpt.id}
+                          imageUrls={pricing.variant_images}
+                          onImageUpload={(files) => handleVariantImageUpload(null, null, sizeOpt.id, files)}
+                          onImageRemove={(idx) => removeVariantImage(null, null, sizeOpt.id, idx)}
+                          disabled={!canEdit}
+                        />
+
                         <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                           <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                           {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4109,6 +4324,17 @@ const EditProductPanel = ({
 
                           {isSelected && (
                             <div className="mt-4 space-y-4">
+                              <VariantImageUpload
+                                productId={product.id}
+                                metalId={metalId}
+                                diamondId={null}
+                                sizeId={sizeOpt.id}
+                                imageUrls={pricing.variant_images}
+                                onImageUpload={(files) => handleVariantImageUpload(metalId, null, sizeOpt.id, files)}
+                                onImageRemove={(idx) => removeVariantImage(metalId, null, sizeOpt.id, idx)}
+                                disabled={!canEdit}
+                              />
+
                               <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
                                 <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                 {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4163,6 +4389,17 @@ const EditProductPanel = ({
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
+                    <VariantImageUpload
+                      productId={product.id}
+                      metalId={metalId}
+                      diamondId={null}
+                      sizeId={null}
+                      imageUrls={formData.variantPricing[`${metalId}-none-none`]?.variant_images}
+                      onImageUpload={(files) => handleVariantImageUpload(metalId, null, null, files)}
+                      onImageRemove={(idx) => removeVariantImage(metalId, null, null, idx)}
+                      disabled={!canEdit}
+                    />
+
                     <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                       <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                       {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4275,6 +4512,17 @@ const EditProductPanel = ({
 
                             {isSelected && (
                               <div className="mt-4 space-y-4">
+                                <VariantImageUpload
+                                  productId={product.id}
+                                  metalId={metalId}
+                                  diamondId={diamondId}
+                                  sizeId={sizeOpt.id}
+                                  imageUrls={pricing.variant_images}
+                                  onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, sizeOpt.id, files)}
+                                  onImageRemove={(idx) => removeVariantImage(metalId, diamondId, sizeOpt.id, idx)}
+                                  disabled={!canEdit}
+                                />
+
                                 <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
                                   <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                   {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4329,6 +4577,17 @@ const EditProductPanel = ({
                     </div>
                   ) : (
                     <div className="mt-4 space-y-4">
+                      <VariantImageUpload
+                        productId={product.id}
+                        metalId={metalId}
+                        diamondId={diamondId}
+                        sizeId={null}
+                        imageUrls={formData.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
+                        onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, null, files)}
+                        onImageRemove={(idx) => removeVariantImage(metalId, diamondId, null, idx)}
+                        disabled={!canEdit}
+                      />
+
                       <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                         <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                         {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4681,16 +4940,23 @@ const EditProductPanel = ({
                 </div>
 
                 {/* Image Management */}
-                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
-                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
-                      <FiUpload className="w-3 h-3 sm:w-4 sm:h-4" />
+                <div className={`bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200 ${hasVariants ? 'opacity-70 ring-1 ring-amber-200' : ''}`}>
+                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center justify-between gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
+                        <FiUpload className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Product Images</span>
                     </div>
-                    <span>Product Images</span>
+                    {hasVariants && (
+                      <span className="text-[10px] sm:text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200 shadow-sm">
+                        ⚠️ Disabled: Images will be managed per variant below
+                      </span>
+                    )}
                   </label>
 
                   {/* Image Upload */}
-                  <div className="border-2 border-dashed border-emerald-300 rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 text-center hover:border-emerald-400 transition-colors bg-white mb-4 sm:mb-6">
+                  <div className={`border-2 border-dashed border-emerald-300 rounded-lg sm:rounded-xl p-4 sm:p-6 md:p-8 text-center transition-all bg-white mb-4 sm:mb-6 ${hasVariants ? 'border-gray-200 bg-gray-50/50 cursor-not-allowed' : 'hover:border-emerald-400 cursor-pointer'}`}>
                     <input
                       type="file"
                       accept="image/*"
@@ -4698,31 +4964,31 @@ const EditProductPanel = ({
                       onChange={(e) => handleImageSelect(e.target.files)}
                       className="hidden"
                       id="image-upload-edit"
-                      disabled={!canEdit}
+                      disabled={!canEdit || hasVariants}
                     />
                     <label
-                      htmlFor="image-upload-edit"
-                      className="cursor-pointer flex flex-col items-center justify-center"
+                      htmlFor={hasVariants ? "" : "image-upload-edit"}
+                      className={`${hasVariants ? 'cursor-not-allowed' : 'cursor-pointer'} flex flex-col items-center justify-center`}
                     >
-                      <div className="text-emerald-400 mb-3 sm:mb-4">
+                      <div className={`${hasVariants ? 'text-gray-300' : 'text-emerald-400'} mb-3 sm:mb-4`}>
                         <FiUpload className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 mx-auto" />
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-700 mb-1.5 sm:mb-2 font-semibold">
-                        Click to upload product images
+                      <p className={`text-xs sm:text-sm mb-1.5 sm:mb-2 font-semibold ${hasVariants ? 'text-gray-400' : 'text-gray-700'}`}>
+                        {hasVariants ? "Product Images are disabled for variants" : "Click to upload product images"}
                       </p>
                       <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-                        PNG, JPG, WEBP up to 10MB
+                        {hasVariants ? "Please upload images for each variant combination in the configuration section below." : "PNG, JPG, WEBP up to 10MB"}
                       </p>
                       <button
                         type="button"
-                        className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 text-xs sm:text-sm font-semibold transition-all"
+                        className={`px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-xs sm:text-sm font-semibold transition-all ${hasVariants ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 shadow-sm'}`}
                         onClick={(e) => {
                           e.preventDefault();
-                          document.getElementById("image-upload-edit").click();
+                          if (!hasVariants) document.getElementById("image-upload-edit").click();
                         }}
-                        disabled={!canEdit}
+                        disabled={!canEdit || hasVariants}
                       >
-                        Choose Files
+                        {hasVariants ? "Disabled for Variants" : "Choose Files"}
                       </button>
                     </label>
                   </div>
@@ -4970,6 +5236,72 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     } catch (error) {
       console.error("Error fetching target audience options:", error);
     }
+  };
+
+  const handleVariantImageUpload = async (productIndex, metalId, diamondId, sizeId, files) => {
+    if (!files || files.length === 0) return;
+
+    const formDataObj = new FormData();
+    files.forEach(file => formDataObj.append('images', file));
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await axios.post(`${API_URL}/upload-images`, formDataObj, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        const newUrls = response.data.data.images.map(img => img.url);
+        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+
+        setProducts(prev => {
+          const updated = [...prev];
+          const product = { ...updated[productIndex] };
+          const currentImages = product.variantPricing?.[key]?.variant_images || [];
+          
+          product.variantPricing = {
+            ...(product.variantPricing || {}),
+            [key]: {
+              ...(product.variantPricing?.[key] || {}),
+              variant_images: [...currentImages, ...newUrls].slice(0, 10)
+            }
+          };
+          updated[productIndex] = product;
+          return updated;
+        });
+        alert(`✅ ${newUrls.length} image(s) uploaded!`);
+      }
+    } catch (error) {
+      console.error('Variant image upload error:', error);
+      alert('❌ Error uploading variant images');
+    }
+  };
+
+  const removeVariantImage = (productIndex, metalId, diamondId, sizeId, index) => {
+    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+
+    setProducts(prev => {
+      const updated = [...prev];
+      const product = { ...updated[productIndex] };
+      const updatedPricing = { ...(product.variantPricing || {}) };
+      
+      if (updatedPricing[key]) {
+        const images = [...(updatedPricing[key].variant_images || [])];
+        images.splice(index, 1);
+        updatedPricing[key] = {
+          ...updatedPricing[key],
+          variant_images: images
+        };
+      }
+      
+      product.variantPricing = updatedPricing;
+      updated[productIndex] = product;
+      return updated;
+    });
   };
 
   const checkSlugUniqueness = async (slug, productId = null) => {
@@ -5857,6 +6189,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
             }
@@ -5919,6 +6252,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
             }
@@ -6332,14 +6666,21 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             </div>
 
             {/* Image Upload Section */}
-            <div className="mb-6 sm:mb-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <span>🖼️</span>
-                Product Images
+            <div className={`mb-6 sm:mb-8 ${ (product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'opacity-70 bg-gray-50 p-4 rounded-xl border-2 border-amber-100' : ''}`}>
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span>🖼️</span>
+                  Product Images
+                </div>
+                {(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) && (
+                  <span className="text-[10px] sm:text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-200">
+                    ⚠️ Disabled: Use Variant Images Below
+                  </span>
+                )}
               </label>
 
               {/* File Upload Input */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-green-400 transition-colors bg-gray-50">
+              <div className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-all ${(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'border-gray-200 bg-gray-50/50 cursor-not-allowed' : 'border-gray-300 hover:border-green-400 bg-gray-50 cursor-pointer'}`}>
                 <input
                   type="file"
                   accept="image/*"
@@ -6352,12 +6693,13 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   }}
                   className="hidden"
                   id={`image-upload-${product.id}`}
+                  disabled={(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes)}
                 />
                 <label
-                  htmlFor={`image-upload-${product.id}`}
-                  className="cursor-pointer flex flex-col items-center justify-center"
+                  htmlFor={(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? "" : `image-upload-${product.id}`}
+                  className={(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'cursor-not-allowed' : 'cursor-pointer' + " flex flex-col items-center justify-center"}
                 >
-                  <div className="text-gray-400 mb-2">
+                  <div className={(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'text-gray-300' : 'text-gray-400' + " mb-2"}>
                     <svg
                       className="w-16 h-16 mx-auto"
                       fill="none"
@@ -6372,26 +6714,29 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       />
                     </svg>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1 font-medium">
-                    Click to upload product images
+                  <p className={`text-sm mb-1 font-medium ${(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? "Product Images are disabled for variants" : "Click to upload product images"}
                   </p>
                   <p className="text-xs text-gray-500">
-                    PNG, JPG, WEBP up to 10MB
+                    {(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? "Please upload images for each variant combination in the configuration section below." : "PNG, JPG, WEBP up to 10MB"}
                   </p>
                   <button
                     type="button"
-                    className="mt-3 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                    className={`mt-3 px-4 py-2 text-sm rounded-lg transition-colors ${(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      document
-                        .getElementById(`image-upload-${product.id}`)
-                        .click();
+                      if (!(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes))
+                        document
+                          .getElementById(`image-upload-${product.id}`)
+                          .click();
                     }}
+                    disabled={(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes)}
                   >
-                    Choose Files
+                    {(product.hasMetalChoice || product.hasDiamondChoice || product.configureSizes) ? "Disabled" : "Choose Files"}
                   </button>
                 </label>
               </div>
+            </div>
 
               {/* Image Previews */}
               {product.imageUrls.length > 0 && (
@@ -6478,8 +6823,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                   </div>
                 </div>
               )}
-            </div>
-
+            
             {/* Variant Configuration */}
             <div className="mt-6 p-4 bg-white border-2 border-green-300 rounded-lg">
               <h5 className="font-bold text-lg mb-4 text-green-800 flex items-center gap-2">
@@ -6609,9 +6953,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 product.configureSizes) && (
                   <div className="mt-4">
                     {(product.selectedMetalOptions.length > 0 || product.selectedDiamondOptions.length > 0 || (product.configureSizes && Object.values(product.selectedSizes).some(v => v))) && (
-                      <h6 className="font-bold mb-3 text-gray-800">
-                        📐 Configure Variants:
-                      </h6>
+                      <div className="mb-4">
+                        <h6 className="font-bold text-gray-800">
+                          📐 Configure Variants:
+                        </h6>
+                        <p className="text-[10px] sm:text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 mt-1 flex items-center gap-1.5 font-medium">
+                          <span>💡</span>
+                          Tip: Upload images for each variant below to show different images for each metal/diamond/size combination.
+                        </p>
+                      </div>
                     )}
 
                     {/* Size Only (No Metal/Diamond) */}
@@ -6650,6 +7000,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                 {isSelected && (
                                   <div className="mt-4 space-y-4">
+                                    <VariantImageUpload
+                                      productId={product.id}
+                                      metalId={null}
+                                      diamondId={null}
+                                      sizeId={sizeOpt.id}
+                                      imageUrls={pricing.variant_images}
+                                      onImageUpload={(files) => handleVariantImageUpload(index, null, null, sizeOpt.id, files)}
+                                      onImageRemove={(idx) => removeVariantImage(index, null, null, sizeOpt.id, idx)}
+                                    />
                                     <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                       <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                       {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -6778,6 +7137,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                         {isSelected && (
                                           <div className="mt-4 space-y-4">
+                                            <VariantImageUpload
+                                              productId={product.id}
+                                              metalId={metalId}
+                                              diamondId={null}
+                                              sizeId={sizeOpt.id}
+                                              imageUrls={pricing.variant_images}
+                                              onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, sizeOpt.id, files)}
+                                              onImageRemove={(idx) => removeVariantImage(index, metalId, null, sizeOpt.id, idx)}
+                                            />
                                             <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                               <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                               {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -6832,6 +7200,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               </div>
                             ) : (
                               <div className="mt-4 space-y-4">
+                                <VariantImageUpload
+                                  productId={product.id}
+                                  metalId={metalId}
+                                  diamondId={null}
+                                  sizeId={null}
+                                  imageUrls={product.variantPricing[`${metalId}-none-none`]?.variant_images}
+                                  onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, null, files)}
+                                  onImageRemove={(idx) => removeVariantImage(index, metalId, null, null, idx)}
+                                />
                                 <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                                   <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                   {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -6974,6 +7351,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                           {isSelected && (
                                             <div className="mt-4 space-y-4">
+                                              <VariantImageUpload
+                                                productId={product.id}
+                                                metalId={metalId}
+                                                diamondId={diamondId}
+                                                sizeId={sizeOpt.id}
+                                                imageUrls={pricing.variant_images}
+                                                onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, sizeOpt.id, files)}
+                                                onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, sizeOpt.id, idx)}
+                                              />
                                               <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                 <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                                 {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -7029,6 +7415,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               ) : (
                                 <div className="mt-4 space-y-4">
                                   <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <VariantImageUpload
+                                      productId={product.id}
+                                      metalId={metalId}
+                                      diamondId={diamondId}
+                                      sizeId={null}
+                                      imageUrls={product.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
+                                      onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, null, files)}
+                                      onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, null, idx)}
+                                    />
                                     <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                     {FILE_TYPE_OPTIONS.map((fileOpt) => (
                                       <label
