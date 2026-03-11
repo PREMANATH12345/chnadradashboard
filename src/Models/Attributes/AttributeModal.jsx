@@ -52,7 +52,9 @@ const OptionItem = ({
                 ? "e.g., 14KT Yellow Gold"
                 : attributeType === "diamond"
                   ? "e.g., GH-SI Quality"
-                  : "e.g., Size 5"
+                  : attributeType === "weight"
+                    ? "e.g., 2g or 4g"
+                    : "e.g., Size 5"
             }
             required
           />

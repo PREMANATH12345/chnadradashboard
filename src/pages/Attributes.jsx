@@ -25,6 +25,7 @@ const Attributes = ({ onBack }) => {
       name: "Diamond Quality",
     },
     size: { id: null, options: [], type: "size", name: "Size" },
+    weight: { id: null, options: [], type: "weight", name: "Weight" },
   });
   const [filteredAttributes, setFilteredAttributes] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -74,6 +75,7 @@ const Attributes = ({ onBack }) => {
           name: "Diamond Quality",
         },
         size: { id: null, options: [], type: "size", name: "Size" },
+        weight: { id: null, options: [], type: "weight", name: "Weight" },
       };
 
       // Process attributes and fetch their options
@@ -123,7 +125,7 @@ const Attributes = ({ onBack }) => {
 
   const applyFiltersAndSearch = () => {
     // Convert attributes object to array for filtering
-    const attributeTypes = ["metal", "diamond", "size"];
+    const attributeTypes = ["metal", "diamond", "size", "weight"];
     let filtered = attributeTypes.map((type) => {
       const attr = attributes[type];
       return {
@@ -244,6 +246,8 @@ const Attributes = ({ onBack }) => {
         return <Gem className="w-5 h-5 text-emerald-500" />;
       case "size":
         return <Ruler className="w-5 h-5 text-emerald-500" />;
+      case "weight":
+        return <Sparkles className="w-5 h-5 text-emerald-500" />;
       default:
         return <Sparkles className="w-5 h-5 text-emerald-500" />;
     }
@@ -268,6 +272,12 @@ const Attributes = ({ onBack }) => {
           bg: "bg-purple-50",
           text: "text-purple-700",
           border: "border-purple-200",
+        };
+      case "weight":
+        return {
+          bg: "bg-amber-50",
+          text: "text-amber-700",
+          border: "border-amber-200",
         };
       default:
         return {

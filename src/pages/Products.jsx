@@ -259,6 +259,30 @@ const FilePricingInput = ({
   );
 };
 
+const VariantWeightSelector = ({ hasWeightChoice, weightOptionId, onChange, weightOptions, disabled }) => {
+  if (!hasWeightChoice) return null;
+  return (
+    <div className="mt-4 p-3 bg-white rounded-lg border border-amber-200">
+      <label className="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">
+        ⚖️ Weight Category
+      </label>
+      <select
+        value={weightOptionId || ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+        disabled={disabled}
+      >
+        <option value="">Select Weight</option>
+        {weightOptions?.map((wt) => (
+          <option key={wt.id} value={wt.id}>
+            {wt.option_name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 const VariantImageUpload = ({
   productId,
   metalId,
@@ -3153,6 +3177,8 @@ const EditProductPanel = ({
       metalSizeConfig: productDetails.metalSizeConfig || {},
       diamondSizeConfig: productDetails.diamondSizeConfig || {},
       configureSizes: !!productDetails.configureSizes || (productDetails.selectedSizes && Object.keys(productDetails.selectedSizes).length > 0),
+      hasWeightChoice: !!productDetails.hasWeightChoice || !!productDetails.selectedWeightOptions?.length,
+      selectedWeightOptions: productDetails.selectedWeightOptions || [],
     };
   });
 
@@ -3502,6 +3528,7 @@ const EditProductPanel = ({
         metal: { id: null, options: [] },
         diamond: { id: null, options: [] },
         size: { id: null, options: [] },
+        weight: { id: null, options: [] },
       };
 
       if (attributesRes.data.success) {
@@ -3637,6 +3664,18 @@ const EditProductPanel = ({
       }
 
       return updated;
+    });
+  };
+
+  const updateVariantWeight = (metalId, diamondId, sizeId, weightOptionId) => {
+    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+    setFormData(prev => {
+      const updatedPricing = { ...prev.variantPricing };
+      updatedPricing[key] = {
+        ...(updatedPricing[key] || {}),
+        weight_option_id: weightOptionId
+      };
+      return { ...prev, variantPricing: updatedPricing };
     });
   };
 
@@ -3937,6 +3976,8 @@ const EditProductPanel = ({
         metalSizeConfig: formData.metalSizeConfig,
         diamondSizeConfig: formData.diamondSizeConfig,
         configureSizes: formData.configureSizes,
+        hasWeightChoice: formData.hasWeightChoice,
+        selectedWeightOptions: formData.selectedWeightOptions,
       };
 
       const response = await axios.post(
@@ -3992,6 +4033,7 @@ const EditProductPanel = ({
             end_product_price: parseFloat(pricing.end_product_price) || null,
             end_product_discount: parseFloat(pricing.end_product_discount) || null,
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+            weight_option_id: pricing.weight_option_id || null,
             variant_images: pricing.variant_images || [],
             files: mappedFiles
           });
@@ -4031,6 +4073,7 @@ const EditProductPanel = ({
               end_product_price: parseFloat(pricing.end_product_price) || null,
               end_product_discount: parseFloat(pricing.end_product_discount) || null,
               end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              weight_option_id: pricing.weight_option_id || null,
               variant_images: pricing.variant_images || [],
               files: mappedFiles
             });
@@ -4072,7 +4115,7 @@ const EditProductPanel = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
         {/* Choice of Metal */}
         <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
           <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
@@ -4166,11 +4209,27 @@ const EditProductPanel = ({
                 ? "✅ Size configuration is active"
                 : "Check this to configure pricing for individual sizes"}
           </p>
-          {!canEdit && (
-            <p className="text-xs text-amber-600 mt-2">
-              ⚠️ Cannot edit approved/rejected products
-            </p>
-          )}
+        </div>
+
+        {/* Weight Info */}
+        <div className="border-2 border-amber-300 rounded p-2 sm:p-3 bg-amber-50">
+          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+            <input
+              type="checkbox"
+              checked={formData.hasWeightChoice || false}
+              onChange={() => setFormData(prev => ({ ...prev, hasWeightChoice: !prev.hasWeightChoice }))}
+              className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600"
+              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
+            />
+            <h6 className="font-bold text-sm sm:text-base">
+              ⚖️ Choice of Weight
+            </h6>
+          </label>
+          <p className="text-xs text-gray-600">
+            {formData.hasWeightChoice
+              ? "✅ Weight selection is active for variants"
+              : "Check this to enable weight selection for individual variants"}
+          </p>
         </div>
       </div>
 
@@ -4216,6 +4275,14 @@ const EditProductPanel = ({
                           imageUrls={pricing.variant_images}
                           onImageUpload={(files) => handleVariantImageUpload(null, null, sizeOpt.id, files)}
                           onImageRemove={(idx) => removeVariantImage(null, null, sizeOpt.id, idx)}
+                          disabled={!canEdit}
+                        />
+
+                        <VariantWeightSelector
+                          hasWeightChoice={formData.hasWeightChoice}
+                          weightOptionId={pricing.weight_option_id}
+                          onChange={(val) => updateVariantWeight(null, null, sizeOpt.id, val)}
+                          weightOptions={categoryData?.attributes?.weight?.options}
                           disabled={!canEdit}
                         />
 
@@ -4335,6 +4402,14 @@ const EditProductPanel = ({
                                 disabled={!canEdit}
                               />
 
+                              <VariantWeightSelector
+                                hasWeightChoice={formData.hasWeightChoice}
+                                weightOptionId={pricing.weight_option_id}
+                                onChange={(val) => updateVariantWeight(metalId, null, sizeOpt.id, val)}
+                                weightOptions={categoryData?.attributes?.weight?.options}
+                                disabled={!canEdit}
+                              />
+
                               <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
                                 <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                 {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4397,6 +4472,14 @@ const EditProductPanel = ({
                       imageUrls={formData.variantPricing[`${metalId}-none-none`]?.variant_images}
                       onImageUpload={(files) => handleVariantImageUpload(metalId, null, null, files)}
                       onImageRemove={(idx) => removeVariantImage(metalId, null, null, idx)}
+                      disabled={!canEdit}
+                    />
+
+                    <VariantWeightSelector
+                      hasWeightChoice={formData.hasWeightChoice}
+                      weightOptionId={formData.variantPricing[`${metalId}-none-none`]?.weight_option_id}
+                      onChange={(val) => updateVariantWeight(metalId, null, null, val)}
+                      weightOptions={categoryData?.attributes?.weight?.options}
                       disabled={!canEdit}
                     />
 
@@ -4523,6 +4606,14 @@ const EditProductPanel = ({
                                   disabled={!canEdit}
                                 />
 
+                                <VariantWeightSelector
+                                  hasWeightChoice={formData.hasWeightChoice}
+                                  weightOptionId={pricing.weight_option_id}
+                                  onChange={(val) => updateVariantWeight(metalId, diamondId, sizeOpt.id, val)}
+                                  weightOptions={categoryData?.attributes?.weight?.options}
+                                  disabled={!canEdit}
+                                />
+
                                 <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
                                   <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                   {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -4585,6 +4676,14 @@ const EditProductPanel = ({
                         imageUrls={formData.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
                         onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, null, files)}
                         onImageRemove={(idx) => removeVariantImage(metalId, diamondId, null, idx)}
+                        disabled={!canEdit}
+                      />
+
+                      <VariantWeightSelector
+                        hasWeightChoice={formData.hasWeightChoice}
+                        weightOptionId={formData.variantPricing[`${metalId}-${diamondId}-none`]?.weight_option_id}
+                        onChange={(val) => updateVariantWeight(metalId, diamondId, null, val)}
+                        weightOptions={categoryData?.attributes?.weight?.options}
                         disabled={!canEdit}
                       />
 
@@ -5353,6 +5452,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
         metal: { id: null, options: [] },
         diamond: { id: null, options: [] },
         size: { id: null, options: [] },
+        weight: { id: null, options: [] },
       };
 
       if (attributesRes.data.success) {
@@ -5428,6 +5528,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       selectedSizes: {},
       variantPricing: {},
       configureSizes: false,
+      hasWeightChoice: false,
+      selectedWeightOptions: [],
     };
 
     setProducts([...products, newProduct]);
@@ -5859,6 +5961,21 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
+  const updateVariantWeight = (productId, metalId, diamondId, sizeId, weightOptionId) => {
+    setProducts(prev => prev.map(p => {
+      if (p.id === productId) {
+        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+        const updatedPricing = { ...(p.variantPricing || {}) };
+        updatedPricing[key] = {
+          ...(updatedPricing[key] || {}),
+          weight_option_id: weightOptionId
+        };
+        return { ...p, variantPricing: updatedPricing };
+      }
+      return p;
+    }));
+  };
+
   const updateFilePrice = (
     productId,
     metalId,
@@ -6124,6 +6241,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           selectedDiamondOptions: product.selectedDiamondOptions,
           selectedSizes: product.selectedSizes,
           variantPricing: product.variantPricing,
+          hasWeightChoice: product.hasWeightChoice,
+          selectedWeightOptions: product.selectedWeightOptions,
         };
 
         const status = isVendor ? "pending" : "approved";
@@ -6189,6 +6308,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                weight_option_id: pricing.weight_option_id || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
@@ -6252,6 +6372,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+                weight_option_id: pricing.weight_option_id || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
@@ -6840,7 +6961,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 {/* Choice of Metal */}
                 <div className="border-2 border-gray-200 rounded p-3">
                   <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
@@ -6936,13 +7057,36 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                       className="w-5 h-5 text-emerald-600"
                     />
                     <span className="font-bold text-gray-800">
-                      📏 Configure Sizes with Pricing
+                      📏 Configure Sizes
                     </span>
                   </label>
                   <p className="text-xs text-gray-600">
                     {product.hasMetalChoice || product.hasDiamondChoice
-                      ? `✅ Size configuration is active (required for variants) - You can configure ${product.hasMetalChoice && !product.hasDiamondChoice ? "Metal + Sizes" : product.hasDiamondChoice && !product.hasMetalChoice ? "Diamond + Sizes" : "Metal + Diamond + Sizes"}`
-                      : "You can select sizes only, or configure with metal/diamond options"}
+                      ? `✅ Size configuration is active`
+                      : "Configure pricing for individual sizes"}
+                  </p>
+                </div>
+
+                {/* Weight Info */}
+                <div className="border-2 border-amber-300 rounded p-3 bg-amber-50">
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={product.hasWeightChoice || false}
+                      disabled={product.price && product.price.toString().trim() !== ""}
+                      onChange={() => {
+                        setProducts(products.map(p => p.id === product.id ? { ...p, hasWeightChoice: !p.hasWeightChoice, selectedWeightOptions: [] } : p));
+                      }}
+                      className="w-5 h-5 text-amber-600"
+                    />
+                    <span className="font-bold text-gray-800">
+                      ⚖️ Choice of Weight
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-600">
+                    {product.hasWeightChoice
+                      ? "✅ Weight choice is active"
+                      : "Enable weight selection for variants"}
                   </p>
                 </div>
               </div>
@@ -7008,6 +7152,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                       imageUrls={pricing.variant_images}
                                       onImageUpload={(files) => handleVariantImageUpload(index, null, null, sizeOpt.id, files)}
                                       onImageRemove={(idx) => removeVariantImage(index, null, null, sizeOpt.id, idx)}
+                                    />
+                                    <VariantWeightSelector
+                                      hasWeightChoice={product.hasWeightChoice}
+                                      weightOptionId={pricing.weight_option_id}
+                                      onChange={(val) => updateVariantWeight(product.id, null, null, sizeOpt.id, val)}
+                                      weightOptions={categoryData?.attributes?.weight?.options}
                                     />
                                     <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                       <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
@@ -7146,6 +7296,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                               onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, sizeOpt.id, files)}
                                               onImageRemove={(idx) => removeVariantImage(index, metalId, null, sizeOpt.id, idx)}
                                             />
+                                            <VariantWeightSelector
+                                              hasWeightChoice={product.hasWeightChoice}
+                                              weightOptionId={pricing.weight_option_id}
+                                              onChange={(val) => updateVariantWeight(product.id, metalId, null, sizeOpt.id, val)}
+                                              weightOptions={categoryData?.attributes?.weight?.options}
+                                            />
                                             <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                               <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                               {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -7208,6 +7364,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                   imageUrls={product.variantPricing[`${metalId}-none-none`]?.variant_images}
                                   onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, null, files)}
                                   onImageRemove={(idx) => removeVariantImage(index, metalId, null, null, idx)}
+                                />
+                                <VariantWeightSelector
+                                  hasWeightChoice={product.hasWeightChoice}
+                                  weightOptionId={product.variantPricing[`${metalId}-none-none`]?.weight_option_id}
+                                  onChange={(val) => updateVariantWeight(product.id, metalId, null, null, val)}
+                                  weightOptions={categoryData?.attributes?.weight?.options}
                                 />
                                 <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
                                   <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
@@ -7360,6 +7522,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                                 onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, sizeOpt.id, files)}
                                                 onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, sizeOpt.id, idx)}
                                               />
+                                              <VariantWeightSelector
+                                                hasWeightChoice={product.hasWeightChoice}
+                                                weightOptionId={pricing.weight_option_id}
+                                                onChange={(val) => updateVariantWeight(product.id, metalId, diamondId, sizeOpt.id, val)}
+                                                weightOptions={categoryData?.attributes?.weight?.options}
+                                              />
                                               <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                 <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                                 {FILE_TYPE_OPTIONS.map((fileOpt) => (
@@ -7423,6 +7591,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                       imageUrls={product.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
                                       onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, null, files)}
                                       onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, null, idx)}
+                                    />
+                                    <VariantWeightSelector
+                                      hasWeightChoice={product.hasWeightChoice}
+                                      weightOptionId={product.variantPricing[`${metalId}-${diamondId}-none`]?.weight_option_id}
+                                      onChange={(val) => updateVariantWeight(product.id, metalId, diamondId, null, val)}
+                                      weightOptions={categoryData?.attributes?.weight?.options}
                                     />
                                     <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
                                     {FILE_TYPE_OPTIONS.map((fileOpt) => (
