@@ -679,6 +679,8 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
       const attributes = {
         metal: { id: null, options: [] },
         diamond: { id: null, options: [] },
+        size: { id: null, options: [] },
+        weight: { id: null, options: [] },
       };
 
       if (attributesRes.data.success) {
@@ -4033,7 +4035,7 @@ const EditProductPanel = ({
             end_product_price: parseFloat(pricing.end_product_price) || null,
             end_product_discount: parseFloat(pricing.end_product_discount) || null,
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-            weight_option_id: pricing.weight_option_id || null,
+            weight_option_id: parseInt(pricing.weight_option_id) || null,
             variant_images: pricing.variant_images || [],
             files: mappedFiles
           });
@@ -4073,7 +4075,7 @@ const EditProductPanel = ({
               end_product_price: parseFloat(pricing.end_product_price) || null,
               end_product_discount: parseFloat(pricing.end_product_discount) || null,
               end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-              weight_option_id: pricing.weight_option_id || null,
+              weight_option_id: parseInt(pricing.weight_option_id) || null,
               variant_images: pricing.variant_images || [],
               files: mappedFiles
             });
@@ -6308,7 +6310,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-                weight_option_id: pricing.weight_option_id || null,
+                weight_option_id: parseInt(pricing.weight_option_id) || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
@@ -6372,7 +6374,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-                weight_option_id: pricing.weight_option_id || null,
+                weight_option_id: parseInt(pricing.weight_option_id) || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
               });
