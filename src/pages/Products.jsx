@@ -3181,6 +3181,8 @@ const EditProductPanel = ({
       configureSizes: !!productDetails.configureSizes || (productDetails.selectedSizes && Object.keys(productDetails.selectedSizes).length > 0),
       hasWeightChoice: !!productDetails.hasWeightChoice || !!productDetails.selectedWeightOptions?.length,
       selectedWeightOptions: productDetails.selectedWeightOptions || [],
+      is_hide_on_lotusjewel: productDetails.is_hide_on_lotusjewel || 0,
+      Lotusjewel_direct_price: product.Lotusjewel_direct_price || productDetails.Lotusjewel_direct_price || "",
     };
   });
 
@@ -3390,7 +3392,9 @@ const EditProductPanel = ({
         selectedSizes: details.selectedSizes || {},
         configureSizes: !!details.configureSizes || (details.selectedSizes && Object.keys(details.selectedSizes).length > 0),
         metalSizeConfig: newMetalSizeConfig,
-        diamondSizeConfig: newDiamondSizeConfig
+        diamondSizeConfig: newDiamondSizeConfig,
+        is_hide_on_lotusjewel: details.is_hide_on_lotusjewel || 0,
+        Lotusjewel_direct_price: product.Lotusjewel_direct_price || details.Lotusjewel_direct_price || ""
       };
     });
   }, [product.id, product.product_details]);
@@ -3980,6 +3984,8 @@ const EditProductPanel = ({
         configureSizes: formData.configureSizes,
         hasWeightChoice: formData.hasWeightChoice,
         selectedWeightOptions: formData.selectedWeightOptions,
+        is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel,
+        Lotusjewel_direct_price: formData.Lotusjewel_direct_price,
       };
 
       const response = await axios.post(
@@ -3990,6 +3996,7 @@ const EditProductPanel = ({
           name: formData.name,
           slug: formData.slug,
           product_details: productDetails,
+          Lotusjewel_direct_price: formData.is_hide_on_lotusjewel === 1 ? parseFloat(formData.Lotusjewel_direct_price) : null,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -4037,7 +4044,8 @@ const EditProductPanel = ({
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
             weight_option_id: parseInt(pricing.weight_option_id) || null,
             variant_images: pricing.variant_images || [],
-            files: mappedFiles
+            files: mappedFiles,
+            is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
           });
         }
 
@@ -4077,7 +4085,8 @@ const EditProductPanel = ({
               end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
               weight_option_id: parseInt(pricing.weight_option_id) || null,
               variant_images: pricing.variant_images || [],
-              files: mappedFiles
+              files: mappedFiles,
+              is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
             });
           }
         }
@@ -4238,6 +4247,61 @@ const EditProductPanel = ({
       {/* Size & Pricing Configuration */}
       {!(formData.price && formData.price.toString().trim() !== "") && (formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
         <div className="mt-3 sm:mt-4">
+          <div className="mt-4 mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+            <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="text-lg">🏪</span>
+              Want to display variant for this product in the lotusjewel?
+            </label>
+            <div className="flex gap-6 mb-4">
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="radio"
+                  name={`edit-displayOnLotusjewel`}
+                  value="0"
+                  checked={formData.is_hide_on_lotusjewel === 0}
+                  onChange={() => setFormData(prev => ({ ...prev, is_hide_on_lotusjewel: 0 }))}
+                  className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                  disabled={!canEdit}
+                />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">Yes, display variants</span>
+              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="radio"
+                  name={`edit-displayOnLotusjewel`}
+                  value="1"
+                  checked={formData.is_hide_on_lotusjewel === 1}
+                  onChange={() => setFormData(prev => ({ ...prev, is_hide_on_lotusjewel: 1 }))}
+                  className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                  disabled={!canEdit}
+                />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants</span>
+              </label>
+            </div>
+            
+            {formData.is_hide_on_lotusjewel === 1 && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span>💰</span>
+                  Lotusjewel Direct Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                  <input
+                    type="number"
+                    value={formData.Lotusjewel_direct_price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, Lotusjewel_direct_price: e.target.value }))}
+                    placeholder="Enter direct price for lotusjewel"
+                    className="w-full pl-8 pr-4 py-2.5 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    disabled={!canEdit}
+                  />
+                </div>
+                <p className="text-[10px] text-blue-600 mt-1.5 italic">
+                  * This price will be shown on Lotusjewel instead of individual variant prices.
+                </p>
+              </div>
+            )}
+          </div>
           {(formData.selectedMetalOptions.length > 0 || formData.selectedDiamondOptions.length > 0 || (formData.configureSizes && Object.values(formData.selectedSizes).some(v => v))) && (
             <h6 className="font-bold mb-2 sm:mb-3 text-sm sm:text-base">
               📐 Configure Variants:
@@ -5532,6 +5596,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       configureSizes: false,
       hasWeightChoice: false,
       selectedWeightOptions: [],
+      is_hide_on_lotusjewel: 0,
+      Lotusjewel_direct_price: "",
     };
 
     setProducts([...products, newProduct]);
@@ -6245,6 +6311,8 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           variantPricing: product.variantPricing,
           hasWeightChoice: product.hasWeightChoice,
           selectedWeightOptions: product.selectedWeightOptions,
+          is_hide_on_lotusjewel: product.is_hide_on_lotusjewel,
+          Lotusjewel_direct_price: product.Lotusjewel_direct_price,
         };
 
         const status = isVendor ? "pending" : "approved";
@@ -6260,6 +6328,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               name: product.name,
               slug: product.slug,
               product_details: JSON.stringify(productDetails),
+              Lotusjewel_direct_price: product.is_hide_on_lotusjewel === 1 ? parseFloat(product.Lotusjewel_direct_price) : null,
               vendor_id: vendorId,
               status: status,
               created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -6313,6 +6382,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 weight_option_id: parseInt(pricing.weight_option_id) || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
+                is_hide_on_lotusjewel: product.is_hide_on_lotusjewel || 0,
               });
             }
           }
@@ -6377,6 +6447,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 weight_option_id: parseInt(pricing.weight_option_id) || null,
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
+                is_hide_on_lotusjewel: product.is_hide_on_lotusjewel || 0,
               });
             }
           }
@@ -7103,6 +7174,58 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                         <h6 className="font-bold text-gray-800">
                           📐 Configure Variants:
                         </h6>
+                        <div className="mt-4 mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+                          <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                            <span className="text-lg">🏪</span>
+                            Want to display variant for this product in the lotusjewel?
+                          </label>
+                          <div className="flex gap-6 mb-4">
+                            <label className="flex items-center gap-2.5 cursor-pointer group">
+                              <input
+                                type="radio"
+                                name={`displayOnLotusjewel-${product.id}`}
+                                value="0"
+                                checked={product.is_hide_on_lotusjewel === 0}
+                                onChange={() => updateProduct(product.id, "is_hide_on_lotusjewel", 0)}
+                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                              />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">Yes, display variants</span>
+                            </label>
+                            <label className="flex items-center gap-2.5 cursor-pointer group">
+                              <input
+                                type="radio"
+                                name={`displayOnLotusjewel-${product.id}`}
+                                value="1"
+                                checked={product.is_hide_on_lotusjewel === 1}
+                                onChange={() => updateProduct(product.id, "is_hide_on_lotusjewel", 1)}
+                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                              />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants</span>
+                            </label>
+                          </div>
+                          
+                          {product.is_hide_on_lotusjewel === 1 && (
+                            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <label className="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                <span>💰</span>
+                                Lotusjewel Direct Price
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                                <input
+                                  type="number"
+                                  value={product.Lotusjewel_direct_price}
+                                  onChange={(e) => updateProduct(product.id, "Lotusjewel_direct_price", e.target.value)}
+                                  placeholder="Enter direct price for lotusjewel"
+                                  className="w-full pl-8 pr-4 py-2.5 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                />
+                              </div>
+                              <p className="text-[10px] text-blue-600 mt-1.5 italic">
+                                * This price will be shown on Lotusjewel instead of individual variant prices.
+                              </p>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-[10px] sm:text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 mt-1 flex items-center gap-1.5 font-medium">
                           <span>💡</span>
                           Tip: Upload images for each variant below to show different images for each metal/diamond/size combination.
