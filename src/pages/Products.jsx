@@ -259,26 +259,50 @@ const FilePricingInput = ({
   );
 };
 
-const VariantWeightSelector = ({ hasWeightChoice, weightOptionId, onChange, weightOptions, disabled }) => {
+// WeightRows: renders weight options as checkboxes, each with its own file pricing section
+// Props:
+//   hasWeightChoice - bool, show this section?
+//   weightOptions   - array of {id, option_name}
+//   selectedWeights - object { weightId: true/false }
+//   onToggleWeight  - fn(weightId) called when checkbox toggled
+//   renderFilesForWeight - fn(weightId) => JSX with the file pricing section
+//   disabled
+const WeightRows = ({
+  hasWeightChoice,
+  weightOptions,
+  selectedWeights = {},
+  onToggleWeight,
+  renderFilesForWeight,
+  disabled = false,
+}) => {
   if (!hasWeightChoice) return null;
   return (
-    <div className="mt-4 p-3 bg-white rounded-lg border border-amber-200">
-      <label className="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">
-        ⚖️ Weight Category
-      </label>
-      <select
-        value={weightOptionId || ""}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-        disabled={disabled}
-      >
-        <option value="">Select Weight</option>
-        {weightOptions?.map((wt) => (
-          <option key={wt.id} value={wt.id}>
-            {wt.option_name}
-          </option>
-        ))}
-      </select>
+    <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+      <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-3">⚖️ Select Weight(s)</p>
+      <div className="space-y-2">
+        {(weightOptions || []).map((wt) => {
+          const isChecked = !!selectedWeights[wt.id];
+          return (
+            <div key={wt.id} className="border-2 border-amber-100 rounded-lg bg-white overflow-hidden">
+              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-amber-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => !disabled && onToggleWeight(wt.id)}
+                  disabled={disabled}
+                  className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
+                />
+                <span className="font-bold text-gray-800">⚖️ {wt.option_name}</span>
+              </label>
+              {isChecked && (
+                <div className="px-4 pb-4">
+                  {renderFilesForWeight(wt.id)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -288,13 +312,14 @@ const VariantImageUpload = ({
   metalId,
   diamondId,
   sizeId,
+  weightId,
   imageUrls = [],
   onImageUpload,
   onImageRemove,
   disabled = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const inputId = `variant-images-${productId}-${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+  const inputId = `variant-images-${productId}-${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-${weightId || "none"}`;
 
   return (
     <div className="mt-4 p-4 bg-white border-2 border-dashed border-emerald-200 rounded-xl">
@@ -3401,7 +3426,7 @@ const EditProductPanel = ({
 
   const hasVariants = formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes;
 
-  const handleVariantImageUpload = async (metalId, diamondId, sizeId, files) => {
+  const handleVariantImageUpload = async (metalId, diamondId, sizeId, weightId, files) => {
     if (!files || files.length === 0) return;
 
     const formDataObj = new FormData();
@@ -3419,7 +3444,9 @@ const EditProductPanel = ({
 
       if (response.data.success) {
         const newUrls = response.data.data.images.map(img => img.url);
-        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+        const key = weightId 
+          ? `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-${weightId}`
+          : `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-none`;
 
         setFormData(prev => {
           const currentImages = prev.variantPricing[key]?.variant_images || [];
@@ -3442,8 +3469,10 @@ const EditProductPanel = ({
     }
   };
 
-  const removeVariantImage = (metalId, diamondId, sizeId, index) => {
-    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+  const removeVariantImage = (metalId, diamondId, sizeId, weightId, index) => {
+    const key = weightId 
+      ? `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-${weightId}`
+      : `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-none`;
 
     setFormData(prev => {
       const updatedPricing = { ...prev.variantPricing };
@@ -3673,23 +3702,31 @@ const EditProductPanel = ({
     });
   };
 
-  const updateVariantWeight = (metalId, diamondId, sizeId, weightOptionId) => {
-    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+  // Toggle a weight checkbox for a given metal/diamond/size combo
+  const toggleWeight = (metalId, diamondId, sizeId, weightId) => {
+    const weightKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`;
     setFormData(prev => {
+      const currentPricing = prev.variantPricing[weightKey] || {};
+      const isSelecting = !currentPricing.selected;
       const updatedPricing = { ...prev.variantPricing };
-      updatedPricing[key] = {
-        ...(updatedPricing[key] || {}),
-        weight_option_id: weightOptionId
+      updatedPricing[weightKey] = {
+        ...currentPricing,
+        selected: isSelecting,
+        ...(isSelecting && (!currentPricing.files || currentPricing.files.length === 0)
+          ? { files: [{ file_type: 'stl_file', price: null }] }
+          : {}),
       };
       return { ...prev, variantPricing: updatedPricing };
     });
   };
 
-  const updateFilePrice = (metalId, diamondId, sizeId, fileType, price) => {
+  const updateFilePrice = (metalId, diamondId, sizeId, fileType, price, weightId) => {
     setFormData((prev) => {
-      const key = sizeId
-        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-        : `${metalId || "none"}-${diamondId || "none"}-none`;
+      const key = weightId
+        ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+        : (sizeId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+          : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
       const current = prev.variantPricing[key] || {};
       const currentFiles = current.files || [];
@@ -3698,7 +3735,6 @@ const EditProductPanel = ({
         f.file_type === fileType ? { ...f, price: price } : f
       );
 
-      // If the file type doesn't exist, add it (e.g., for STL which is mandatory)
       if (!updatedFiles.some((f) => f.file_type === fileType)) {
         updatedFiles.push({ file_type: fileType, price: price });
       }
@@ -3713,11 +3749,13 @@ const EditProductPanel = ({
     });
   };
 
-  const updateFileDescription = (metalId, diamondId, sizeId, fileType, description) => {
+  const updateFileDescription = (metalId, diamondId, sizeId, fileType, description, weightId) => {
     setFormData((prev) => {
-      const key = sizeId
-        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-        : `${metalId || "none"}-${diamondId || "none"}-none`;
+      const key = weightId
+        ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+        : (sizeId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+          : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
       const current = prev.variantPricing[key] || {};
       const currentFiles = current.files || [];
@@ -3749,83 +3787,66 @@ const EditProductPanel = ({
     });
   };
 
-  const updateFileLink = (metalId, diamondId, sizeId, fileType, link) => {
+  const updateFileLink = (metalId, diamondId, sizeId, fileType, link, weightId) => {
     setFormData((prev) => {
-      const key = sizeId
-        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-        : `${metalId || "none"}-${diamondId || "none"}-none`;
+      const key = weightId
+        ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+        : (sizeId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+          : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
       const current = prev.variantPricing[key] || {};
       const currentFiles = current.files || [];
 
       const updatedFiles = currentFiles.map((f) =>
         f.file_type === fileType
-          ? {
-            ...f,
-            stl_file_link: link,
-            file_path: link ? null : f.file_path, // Clear file_path if link is provided
-            file_name: link ? null : f.file_name, // Clear file_name if link is provided
-            file_size: link ? null : f.file_size // Clear file_size if link is provided
-          }
+          ? { ...f, stl_file_link: link, file_path: link ? null : f.file_path, file_name: link ? null : f.file_name, file_size: link ? null : f.file_size }
           : f
       );
 
       if (!updatedFiles.some((f) => f.file_type === fileType)) {
-        updatedFiles.push({
-          file_type: fileType,
-          stl_file_link: link
-        });
+        updatedFiles.push({ file_type: fileType, stl_file_link: link });
       }
 
       return {
         ...prev,
-        variantPricing: {
-          ...prev.variantPricing,
-          [key]: { ...current, files: updatedFiles },
-        },
+        variantPricing: { ...prev.variantPricing, [key]: { ...current, files: updatedFiles } },
       };
     });
   };
 
 
-  const toggleVariantFileType = (metalId, diamondId, sizeId, fileType) => {
+  const toggleVariantFileType = (metalId, diamondId, sizeId, fileType, weightId) => {
     if (fileType === "stl_file") {
       alert("STL File is mandatory and cannot be removed");
       return;
     }
 
     setFormData((prev) => {
-      const key = sizeId
-        ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-        : `${metalId || "none"}-${diamondId || "none"}-none`;
+      const key = weightId
+        ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+        : (sizeId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+          : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
       const current = prev.variantPricing[key] || {};
       const currentFiles = current.files || [];
-
       const fileExists = currentFiles.some((f) => f.file_type === fileType);
-
       const newFiles = fileExists
         ? currentFiles.filter((f) => f.file_type !== fileType)
         : [...currentFiles, { file_type: fileType, price: null }];
 
       return {
         ...prev,
-        variantPricing: {
-          ...prev.variantPricing,
-          [key]: {
-            ...current,
-            files: newFiles,
-          },
-        },
+        variantPricing: { ...prev.variantPricing, [key]: { ...current, files: newFiles } },
       };
     });
   };
 
 
-  const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file) => {
+  const handlePdfFileSelect = async (metalId, diamondId, sizeId, fileType, file, weightId) => {
     if (!file) return;
 
-    // ✅ START UPLOAD STATE
     setIsPdfUploading(true);
     setPdfUploadProgress(0);
     setCurrentUploadingFile(file.name);
@@ -3837,21 +3858,17 @@ const EditProductPanel = ({
 
     try {
       const response = await axios.post(`${API_URL}/upload-pdf`, formDataObj, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        // ✅ TRACK PROGRESS
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setPdfUploadProgress(percentCompleted);
         }
       });
 
       if (response.data.success) {
-        const fileKey = `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
+        const fileKey = weightId
+          ? `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}-${fileType}`
+          : `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-none-${fileType}`;
 
         setUploadedPdfFiles(prev => ({
           ...prev,
@@ -3863,41 +3880,26 @@ const EditProductPanel = ({
         }));
 
         setFormData(prev => {
-          const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
+          const variantKey = weightId
+            ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+            : (sizeId
+              ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+              : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
           const current = prev.variantPricing[variantKey] || {};
-          const currentFiles = current.files || [];
-
-          const updatedFiles = currentFiles.map(f =>
+          const updatedFiles = (current.files || []).map(f =>
             f.file_type === fileType
-              ? {
-                ...f,
-                file_path: response.data.data.file_path,
-                file_name: response.data.data.file_name,
-                file_size: response.data.data.file_size,
-                link: null // Clear link if file is uploaded
-              }
+              ? { ...f, file_path: response.data.data.file_path, file_name: response.data.data.file_name, file_size: response.data.data.file_size, link: null }
               : f
           );
-
-          return {
-            ...prev,
-            variantPricing: {
-              ...prev.variantPricing,
-              [variantKey]: {
-                ...current,
-                files: updatedFiles
-              }
-            }
-          };
+          return { ...prev, variantPricing: { ...prev.variantPricing, [variantKey]: { ...current, files: updatedFiles } } };
         });
 
-        alert('✅ File uploaded successfully!');
+        alert('\u2705 File uploaded successfully!');
       }
     } catch (error) {
       console.error('PDF upload error:', error);
-      alert('❌ Error uploading file: ' + (error.response?.data?.message || error.message));
+      alert('\u274c Error uploading file: ' + (error.response?.data?.message || error.message));
     } finally {
-      // ✅ END UPLOAD STATE
       setIsPdfUploading(false);
       setPdfUploadProgress(0);
       setCurrentUploadingFile("");
@@ -3952,14 +3954,18 @@ const EditProductPanel = ({
       }
 
       let currentDetails = product.product_details;
-      if (typeof currentDetails === 'string') {
-        try {
-          currentDetails = JSON.parse(currentDetails);
-        } catch (e) {
-          console.error('Error parsing currentDetails in handleSave:', e);
-          currentDetails = {};
+      try {
+        while (typeof currentDetails === 'string') {
+          const parsed = JSON.parse(currentDetails);
+          if (parsed === null || (typeof parsed !== 'object' && typeof parsed !== 'string')) break;
+          currentDetails = parsed;
+          if (typeof parsed !== 'string') break;
         }
+      } catch (e) {
+        console.error('Error parsing currentDetails in handleSave:', e);
+        currentDetails = {};
       }
+      if (!currentDetails || typeof currentDetails !== 'object') currentDetails = {};
 
       const productDetails = {
         ...currentDetails,
@@ -3995,7 +4001,7 @@ const EditProductPanel = ({
           category_id: formData.category_id,
           name: formData.name,
           slug: formData.slug,
-          product_details: productDetails,
+          product_details: JSON.stringify(productDetails),
           Lotusjewel_direct_price: formData.is_hide_on_lotusjewel === 1 ? parseFloat(formData.Lotusjewel_direct_price) : null,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -4051,19 +4057,21 @@ const EditProductPanel = ({
 
         // Process variants without sizes
         for (const [key, pricing] of Object.entries(formData.variantPricing)) {
-          if (key.endsWith('-none')) {
-            const [metalPart, diamondPart, sizePart] = key.split('-');
+          const parts = key.split('-');
+          const metalPart = parts[0];
+          const diamondPart = parts[1];
+          const sizePart = parts[2];
+          
+          if (sizePart !== 'none') continue;
 
-            if (sizePart !== 'none') continue;
+          const files = Array.isArray(pricing.files) ? pricing.files : [];
+          if (files.length === 0) continue;
 
-            const files = Array.isArray(pricing.files) ? pricing.files : [];
-            if (files.length === 0) continue;
+          const mappedFiles = files.filter(f => f.file_type).map(f => {
+            const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+            const uploadedFile = uploadedPdfFiles[fileKey];
 
-            const mappedFiles = files.filter(f => f.file_type).map(f => {
-              const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
-              const uploadedFile = uploadedPdfFiles[fileKey];
-
-              return {
+            return {
                 file_type: f.file_type,
                 price: f.price,
                 file_path: uploadedFile?.file_path || f.file_path || null,
@@ -4088,7 +4096,6 @@ const EditProductPanel = ({
               files: mappedFiles,
               is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
             });
-          }
         }
 
         if (variants.length > 0) {
@@ -4108,6 +4115,79 @@ const EditProductPanel = ({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Renders file options + pricing inputs for a specific weight option
+  // weightId: the weight option id being rendered (required)
+  // metalId, diamondId, sizeId: the combo context
+  const makeWeightFileSection = (metalId, diamondId, sizeId, weightId) => {
+    const wKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`;
+    const wPricing = formData.variantPricing[wKey] || {};
+    const wFiles = wPricing.files || [];
+    const defaultStl = wFiles.length === 0 ? [{ file_type: 'stl_file', price: null }] : wFiles;
+    const files = wFiles.length > 0 ? wFiles : defaultStl;
+
+    return (
+      <div className="space-y-4">
+        {/* NEW: Per-Weight Images */}
+        <VariantImageUpload
+          productId={formData.id}
+          metalId={metalId}
+          diamondId={diamondId}
+          sizeId={sizeId}
+          weightId={weightId}
+          imageUrls={wPricing.variant_images || []}
+          onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, sizeId, weightId, files)}
+          onImageRemove={(idx) => removeVariantImage(metalId, diamondId, sizeId, weightId, idx)}
+          disabled={!canEdit}
+        />
+
+        <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+          {FILE_TYPE_OPTIONS.map((fileOpt) => (
+            <label
+              key={fileOpt.value}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${files.some((f) => f.file_type === fileOpt.value) || fileOpt.value === 'stl_file'
+                ? 'bg-green-100 border-green-300 text-green-800'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-green-300'}`}
+            >
+              <input
+                type="checkbox"
+                checked={files.some((f) => f.file_type === fileOpt.value) || fileOpt.value === 'stl_file'}
+                disabled={fileOpt.value === 'stl_file' || !canEdit}
+                onChange={() => toggleVariantFileType(metalId, diamondId, sizeId, fileOpt.value, weightId)}
+                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+              />
+              <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {FILE_TYPE_OPTIONS.map((fileOpt) => {
+            const filePricing = files.find((f) => f.file_type === fileOpt.value);
+            if (!filePricing && fileOpt.value !== 'stl_file') return null;
+            const uploadKey = `${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}-${fileOpt.value}`;
+            return (
+              <FilePricingInput
+                key={fileOpt.value}
+                productId={product.id}
+                metalId={metalId}
+                diamondId={diamondId}
+                sizeId={sizeId}
+                fileOption={fileOpt}
+                pricing={filePricing || { file_type: fileOpt.value }}
+                existingFile={uploadedPdfFiles[uploadKey] || filePricing}
+                onPriceChange={(value) => updateFilePrice(metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onLinkChange={(value) => updateFileLink(metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, sizeId, fileOpt.value, file, weightId)}
+                disabled={!canEdit}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const renderVariantConfiguration = () => (
@@ -4333,71 +4413,62 @@ const EditProductPanel = ({
 
                     {isSelected && (
                       <div className="mt-4 space-y-4">
-                        <VariantImageUpload
-                          productId={product.id}
-                          metalId={null}
-                          diamondId={null}
-                          sizeId={sizeOpt.id}
-                          imageUrls={pricing.variant_images}
-                          onImageUpload={(files) => handleVariantImageUpload(null, null, sizeOpt.id, files)}
-                          onImageRemove={(idx) => removeVariantImage(null, null, sizeOpt.id, idx)}
-                          disabled={!canEdit}
-                        />
+                        {!formData.hasWeightChoice && (
+                          <VariantImageUpload
+                            productId={product.id}
+                            metalId={null}
+                            diamondId={null}
+                            sizeId={sizeOpt.id}
+                            weightId={null}
+                            imageUrls={pricing.variant_images}
+                            onImageUpload={(files) => handleVariantImageUpload(null, null, sizeOpt.id, null, files)}
+                            onImageRemove={(idx) => removeVariantImage(null, null, sizeOpt.id, null, idx)}
+                            disabled={!canEdit}
+                          />
+                        )}
 
-                        <VariantWeightSelector
+                        <WeightRows
                           hasWeightChoice={formData.hasWeightChoice}
-                          weightOptionId={pricing.weight_option_id}
-                          onChange={(val) => updateVariantWeight(null, null, sizeOpt.id, val)}
                           weightOptions={categoryData?.attributes?.weight?.options}
+                          selectedWeights={
+                            Object.fromEntries(
+                              Object.keys(formData.variantPricing)
+                                .filter(k => k.startsWith(`none-none-${sizeOpt.id}-`) && formData.variantPricing[k]?.selected)
+                                .map(k => [k.split('-')[3], true])
+                            )
+                          }
+                          onToggleWeight={(wId) => toggleWeight(null, null, sizeOpt.id, wId)}
+                          renderFilesForWeight={(wId) => makeWeightFileSection(null, null, sizeOpt.id, wId)}
                           disabled={!canEdit}
                         />
 
-                        <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                          {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                            <label
-                              key={fileOpt.value}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                ? "bg-green-100 border-green-300 text-green-800"
-                                : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                disabled={fileOpt.value === "stl_file" || !canEdit}
-                                onChange={() => toggleVariantFileType(null, null, sizeOpt.id, fileOpt.value)}
-                                className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                              />
-                              <span className="text-xs font-bold whitespace-nowrap">
-                                {fileOpt.emoji} {fileOpt.label}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                        <div className="space-y-4">
-                          {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                            const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                            if (!filePricing && fileOpt.value !== "stl_file") return null;
-                            return (
-                              <FilePricingInput
-                                key={fileOpt.value}
-                                productId={product.id}
-                                metalId={null}
-                                diamondId={null}
-                                sizeId={sizeOpt.id}
-                                fileOption={fileOpt}
-                                pricing={filePricing || { file_type: fileOpt.value }}
-                                existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
-                                onPriceChange={(value) => updateFilePrice(null, null, sizeOpt.id, fileOpt.value, value)}
-                                onDescriptionChange={(value) => updateFileDescription(null, null, sizeOpt.id, fileOpt.value, value)}
-                                onLinkChange={(value) => updateFileLink(null, null, sizeOpt.id, fileOpt.value, value)}
-                                onFileUpload={(file) => handlePdfFileSelect(null, null, sizeOpt.id, fileOpt.value, file)}
-                                disabled={!canEdit}
-                              />
-                            );
-                          })}
-                        </div>
+                        {!formData.hasWeightChoice && (
+                          <>
+                            <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                              {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                  <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file" || !canEdit} onChange={() => toggleVariantFileType(null, null, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                  <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="space-y-4">
+                              {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                return (
+                                  <FilePricingInput key={fileOpt.value} productId={product.id} metalId={null} diamondId={null} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-none-${fileOpt.value}`] || filePricing}
+                                    onPriceChange={(value) => updateFilePrice(null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                    onDescriptionChange={(value) => updateFileDescription(null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                    onLinkChange={(value) => updateFileLink(null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                    onFileUpload={(file) => handlePdfFileSelect(null, null, sizeOpt.id, fileOpt.value, file, null)}
+                                    disabled={!canEdit} />
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4457,71 +4528,61 @@ const EditProductPanel = ({
 
                           {isSelected && (
                             <div className="mt-4 space-y-4">
-                              <VariantImageUpload
-                                productId={product.id}
-                                metalId={metalId}
-                                diamondId={null}
-                                sizeId={sizeOpt.id}
-                                imageUrls={pricing.variant_images}
-                                onImageUpload={(files) => handleVariantImageUpload(metalId, null, sizeOpt.id, files)}
-                                onImageRemove={(idx) => removeVariantImage(metalId, null, sizeOpt.id, idx)}
-                                disabled={!canEdit}
-                              />
+                              {!formData.hasWeightChoice && (
+                                <VariantImageUpload
+                                  productId={product.id}
+                                  metalId={metalId}
+                                  diamondId={null}
+                                  sizeId={sizeOpt.id}
+                                  weightId={null}
+                                  imageUrls={pricing.variant_images}
+                                  onImageUpload={(files) => handleVariantImageUpload(metalId, null, sizeOpt.id, null, files)}
+                                  onImageRemove={(idx) => removeVariantImage(metalId, null, sizeOpt.id, null, idx)}
+                                  disabled={!canEdit}
+                                />
+                              )}
 
-                              <VariantWeightSelector
+                              <WeightRows
                                 hasWeightChoice={formData.hasWeightChoice}
-                                weightOptionId={pricing.weight_option_id}
-                                onChange={(val) => updateVariantWeight(metalId, null, sizeOpt.id, val)}
                                 weightOptions={categoryData?.attributes?.weight?.options}
+                                selectedWeights={
+                                  Object.fromEntries(
+                                    Object.keys(formData.variantPricing)
+                                      .filter(k => k.startsWith(`${metalId}-none-${sizeOpt.id}-`) && formData.variantPricing[k]?.selected)
+                                      .map(k => [k.split('-')[3], true])
+                                  )
+                                }
+                                onToggleWeight={(wId) => toggleWeight(metalId, null, sizeOpt.id, wId)}
+                                renderFilesForWeight={(wId) => makeWeightFileSection(metalId, null, sizeOpt.id, wId)}
                                 disabled={!canEdit}
                               />
-
-                              <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
-                                <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                  <label
-                                    key={fileOpt.value}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                      ? "bg-green-100 border-green-300 text-green-800"
-                                      : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                      }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                      disabled={fileOpt.value === "stl_file" || !canEdit}
-                                      onChange={() => toggleVariantFileType(metalId, null, sizeOpt.id, fileOpt.value)}
-                                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                    />
-                                    <span className="text-xs font-bold whitespace-nowrap">
-                                      {fileOpt.emoji} {fileOpt.label}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                              <div className="space-y-4">
-                                {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                  const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                  if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                  return (
-                                    <FilePricingInput
-                                      key={fileOpt.value}
-                                      productId={product.id}
-                                      metalId={metalId}
-                                      diamondId={null}
-                                      sizeId={sizeOpt.id}
-                                      fileOption={fileOpt}
-                                      pricing={filePricing || { file_type: fileOpt.value }}
-                                      existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
-                                      onPriceChange={(value) => updateFilePrice(metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                      onDescriptionChange={(value) => updateFileDescription(metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                      onLinkChange={(value) => updateFileLink(metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                      onFileUpload={(file) => handlePdfFileSelect(metalId, null, sizeOpt.id, fileOpt.value, file)}
-                                      disabled={!canEdit}
-                                    />
-                                  );
-                                })}
-                              </div>
+                              {!formData.hasWeightChoice && (
+                                <>
+                                  <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                                    <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                    {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                      <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                        <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file" || !canEdit} onChange={() => toggleVariantFileType(metalId, null, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                        <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <div className="space-y-4">
+                                    {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                      const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                      if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                      return (
+                                        <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={null} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-none-${fileOpt.value}`] || filePricing}
+                                          onPriceChange={(value) => updateFilePrice(metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                          onDescriptionChange={(value) => updateFileDescription(metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                          onLinkChange={(value) => updateFileLink(metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                          onFileUpload={(file) => handlePdfFileSelect(metalId, null, sizeOpt.id, fileOpt.value, file, null)}
+                                          disabled={!canEdit} />
+                                      );
+                                    })}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -4530,73 +4591,65 @@ const EditProductPanel = ({
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
-                    <VariantImageUpload
-                      productId={product.id}
-                      metalId={metalId}
-                      diamondId={null}
-                      sizeId={null}
-                      imageUrls={formData.variantPricing[`${metalId}-none-none`]?.variant_images}
-                      onImageUpload={(files) => handleVariantImageUpload(metalId, null, null, files)}
-                      onImageRemove={(idx) => removeVariantImage(metalId, null, null, idx)}
-                      disabled={!canEdit}
-                    />
+                    {!formData.hasWeightChoice && (
+                      <VariantImageUpload
+                        productId={product.id}
+                        metalId={metalId}
+                        diamondId={null}
+                        sizeId={null}
+                        weightId={null}
+                        imageUrls={formData.variantPricing[`${metalId}-none-none-none`]?.variant_images}
+                        onImageUpload={(files) => handleVariantImageUpload(metalId, null, null, null, files)}
+                        onImageRemove={(idx) => removeVariantImage(metalId, null, null, null, idx)}
+                        disabled={!canEdit}
+                      />
+                    )}
 
-                    <VariantWeightSelector
+                    <WeightRows
                       hasWeightChoice={formData.hasWeightChoice}
-                      weightOptionId={formData.variantPricing[`${metalId}-none-none`]?.weight_option_id}
-                      onChange={(val) => updateVariantWeight(metalId, null, null, val)}
                       weightOptions={categoryData?.attributes?.weight?.options}
+                      selectedWeights={
+                        Object.fromEntries(
+                          Object.keys(formData.variantPricing)
+                            .filter(k => k.startsWith(`${metalId}-none-none-`) && formData.variantPricing[k]?.selected)
+                            .map(k => [k.split('-')[3], true])
+                        )
+                      }
+                      onToggleWeight={(wId) => toggleWeight(metalId, null, null, wId)}
+                      renderFilesForWeight={(wId) => makeWeightFileSection(metalId, null, null, wId)}
                       disabled={!canEdit}
                     />
-
-                    <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                      <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                      {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                        <label
-                          key={fileOpt.value}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${formData.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                            ? "bg-green-100 border-green-300 text-green-800"
-                            : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                            }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                            disabled={fileOpt.value === "stl_file" || !canEdit}
-                            onChange={() => toggleVariantFileType(metalId, null, null, fileOpt.value)}
-                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                          />
-                          <span className="text-xs font-bold whitespace-nowrap">
-                            {fileOpt.emoji} {fileOpt.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="space-y-4">
-                      {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                        const directKey = `${metalId}-none-none`;
-                        const pricing = formData.variantPricing[directKey] || {};
-                        const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                        if (!filePricing && fileOpt.value !== "stl_file") return null;
-                        return (
-                          <FilePricingInput
-                            key={fileOpt.value}
-                            productId={product.id}
-                            metalId={metalId}
-                            diamondId={null}
-                            sizeId={null}
-                            fileOption={fileOpt}
-                            pricing={filePricing || { file_type: fileOpt.value }}
-                            existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-none-${fileOpt.value}`] || filePricing}
-                            onPriceChange={(value) => updateFilePrice(metalId, null, null, fileOpt.value, value)}
-                            onDescriptionChange={(value) => updateFileDescription(metalId, null, null, fileOpt.value, value)}
-                            onLinkChange={(value) => updateFileLink(metalId, null, null, fileOpt.value, value)}
-                            onFileUpload={(file) => handlePdfFileSelect(metalId, null, null, fileOpt.value, file)}
-                            disabled={!canEdit}
-                          />
-                        );
-                      })}
-                    </div>
+                    {!formData.hasWeightChoice && (() => {
+                      const directKey = `${metalId}-none-none-none`;
+                      const directPricing = formData.variantPricing[directKey] || formData.variantPricing[`${metalId}-none-none`] || {};
+                      return (
+                        <>
+                          <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                            {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                              <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                <input type="checkbox" checked={directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file" || !canEdit} onChange={() => toggleVariantFileType(metalId, null, null, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="space-y-4">
+                            {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                              const filePricing = directPricing.files?.find((f) => f.file_type === fileOpt.value);
+                              if (!filePricing && fileOpt.value !== "stl_file") return null;
+                              return (
+                                <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={null} sizeId={null} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-none-none-${fileOpt.value}`] || filePricing}
+                                  onPriceChange={(value) => updateFilePrice(metalId, null, null, fileOpt.value, value, null)}
+                                  onDescriptionChange={(value) => updateFileDescription(metalId, null, null, fileOpt.value, value, null)}
+                                  onLinkChange={(value) => updateFileLink(metalId, null, null, fileOpt.value, value, null)}
+                                  onFileUpload={(file) => handlePdfFileSelect(metalId, null, null, fileOpt.value, file, null)}
+                                  disabled={!canEdit} />
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -4661,71 +4714,61 @@ const EditProductPanel = ({
 
                             {isSelected && (
                               <div className="mt-4 space-y-4">
-                                <VariantImageUpload
-                                  productId={product.id}
-                                  metalId={metalId}
-                                  diamondId={diamondId}
-                                  sizeId={sizeOpt.id}
-                                  imageUrls={pricing.variant_images}
-                                  onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, sizeOpt.id, files)}
-                                  onImageRemove={(idx) => removeVariantImage(metalId, diamondId, sizeOpt.id, idx)}
-                                  disabled={!canEdit}
-                                />
+                                {!formData.hasWeightChoice && (
+                                  <VariantImageUpload
+                                    productId={product.id}
+                                    metalId={metalId}
+                                    diamondId={diamondId}
+                                    sizeId={sizeOpt.id}
+                                    weightId={null}
+                                    imageUrls={pricing.variant_images}
+                                    onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, sizeOpt.id, null, files)}
+                                    onImageRemove={(idx) => removeVariantImage(metalId, diamondId, sizeOpt.id, null, idx)}
+                                    disabled={!canEdit}
+                                  />
+                                )}
 
-                                <VariantWeightSelector
+                                <WeightRows
                                   hasWeightChoice={formData.hasWeightChoice}
-                                  weightOptionId={pricing.weight_option_id}
-                                  onChange={(val) => updateVariantWeight(metalId, diamondId, sizeOpt.id, val)}
                                   weightOptions={categoryData?.attributes?.weight?.options}
+                                  selectedWeights={
+                                    Object.fromEntries(
+                                      Object.keys(formData.variantPricing)
+                                        .filter(k => k.startsWith(`${metalId}-${diamondId}-${sizeOpt.id}-`) && formData.variantPricing[k]?.selected)
+                                        .map(k => [k.split('-')[3], true])
+                                    )
+                                  }
+                                  onToggleWeight={(wId) => toggleWeight(metalId, diamondId, sizeOpt.id, wId)}
+                                  renderFilesForWeight={(wId) => makeWeightFileSection(metalId, diamondId, sizeOpt.id, wId)}
                                   disabled={!canEdit}
                                 />
-
-                                <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
-                                  <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                  {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                    <label
-                                      key={fileOpt.value}
-                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                        ? "bg-green-100 border-green-300 text-green-800"
-                                        : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                        }`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                        disabled={fileOpt.value === "stl_file" || !canEdit}
-                                        onChange={() => toggleVariantFileType(metalId, diamondId, sizeOpt.id, fileOpt.value)}
-                                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                      />
-                                      <span className="text-xs font-bold whitespace-nowrap">
-                                        {fileOpt.emoji} {fileOpt.label}
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                                <div className="space-y-4">
-                                  {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                    const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                    if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                    return (
-                                      <FilePricingInput
-                                        key={fileOpt.value}
-                                        productId={product.id}
-                                        metalId={metalId}
-                                        diamondId={diamondId}
-                                        sizeId={sizeOpt.id}
-                                        fileOption={fileOpt}
-                                        pricing={filePricing || { file_type: fileOpt.value }}
-                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOpt.value}`] || filePricing}
-                                        onPriceChange={(value) => updateFilePrice(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                        onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                        onLinkChange={(value) => updateFileLink(metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                        onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, sizeOpt.id, fileOpt.value, file)}
-                                        disabled={!canEdit}
-                                      />
-                                    );
-                                  })}
-                                </div>
+                                {!formData.hasWeightChoice && (
+                                  <>
+                                    <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                                      <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                      {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                        <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                          <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file" || !canEdit} onChange={() => toggleVariantFileType(metalId, diamondId, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                          <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                    <div className="space-y-4">
+                                      {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                        const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                        if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                        return (
+                                          <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={diamondId} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-none-${fileOpt.value}`] || filePricing}
+                                            onPriceChange={(value) => updateFilePrice(metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                            onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                            onLinkChange={(value) => updateFileLink(metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                            onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, sizeOpt.id, fileOpt.value, file, null)}
+                                            disabled={!canEdit} />
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
@@ -4734,73 +4777,65 @@ const EditProductPanel = ({
                     </div>
                   ) : (
                     <div className="mt-4 space-y-4">
-                      <VariantImageUpload
-                        productId={product.id}
-                        metalId={metalId}
-                        diamondId={diamondId}
-                        sizeId={null}
-                        imageUrls={formData.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
-                        onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, null, files)}
-                        onImageRemove={(idx) => removeVariantImage(metalId, diamondId, null, idx)}
-                        disabled={!canEdit}
-                      />
+                      {!formData.hasWeightChoice && (
+                        <VariantImageUpload
+                          productId={product.id}
+                          metalId={metalId}
+                          diamondId={diamondId}
+                          sizeId={null}
+                          weightId={null}
+                          imageUrls={formData.variantPricing[`${metalId}-${diamondId}-none-none`]?.variant_images}
+                          onImageUpload={(files) => handleVariantImageUpload(metalId, diamondId, null, null, files)}
+                          onImageRemove={(idx) => removeVariantImage(metalId, diamondId, null, null, idx)}
+                          disabled={!canEdit}
+                        />
+                      )}
 
-                      <VariantWeightSelector
+                      <WeightRows
                         hasWeightChoice={formData.hasWeightChoice}
-                        weightOptionId={formData.variantPricing[`${metalId}-${diamondId}-none`]?.weight_option_id}
-                        onChange={(val) => updateVariantWeight(metalId, diamondId, null, val)}
                         weightOptions={categoryData?.attributes?.weight?.options}
+                        selectedWeights={
+                          Object.fromEntries(
+                            Object.keys(formData.variantPricing)
+                              .filter(k => k.startsWith(`${metalId}-${diamondId}-none-`) && formData.variantPricing[k]?.selected)
+                              .map(k => [k.split('-')[3], true])
+                          )
+                        }
+                        onToggleWeight={(wId) => toggleWeight(metalId, diamondId, null, wId)}
+                        renderFilesForWeight={(wId) => makeWeightFileSection(metalId, diamondId, null, wId)}
                         disabled={!canEdit}
                       />
-
-                      <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                        <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                        {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                          <label
-                            key={fileOpt.value}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${formData.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                              ? "bg-green-100 border-green-300 text-green-800"
-                              : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                              }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                              disabled={fileOpt.value === "stl_file" || !canEdit}
-                              onChange={() => toggleVariantFileType(metalId, diamondId, null, fileOpt.value)}
-                              className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                            />
-                            <span className="text-xs font-bold whitespace-nowrap">
-                              {fileOpt.emoji} {fileOpt.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="space-y-4">
-                        {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                          const directKey = `${metalId}-${diamondId}-none`;
-                          const pricing = formData.variantPricing[directKey] || {};
-                          const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                          if (!filePricing && fileOpt.value !== "stl_file") return null;
-                          return (
-                            <FilePricingInput
-                              key={fileOpt.value}
-                              productId={product.id}
-                              metalId={metalId}
-                              diamondId={diamondId}
-                              sizeId={null}
-                              fileOption={fileOpt}
-                              pricing={filePricing || { file_type: fileOpt.value }}
-                              existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-${fileOpt.value}`] || filePricing}
-                              onPriceChange={(value) => updateFilePrice(metalId, diamondId, null, fileOpt.value, value)}
-                              onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, null, fileOpt.value, value)}
-                              onLinkChange={(value) => updateFileLink(metalId, diamondId, null, fileOpt.value, value)}
-                              onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, null, fileOpt.value, file)}
-                              disabled={!canEdit}
-                            />
-                          );
-                        })}
-                      </div>
+                      {!formData.hasWeightChoice && (() => {
+                        const directKey = `${metalId}-${diamondId}-none-none`;
+                        const directPricing = formData.variantPricing[directKey] || formData.variantPricing[`${metalId}-${diamondId}-none`] || {};
+                        return (
+                          <>
+                            <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                              <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                              {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                  <input type="checkbox" checked={directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file" || !canEdit} onChange={() => toggleVariantFileType(metalId, diamondId, null, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                  <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="space-y-4">
+                              {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                const filePricing = directPricing.files?.find((f) => f.file_type === fileOpt.value);
+                                if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                return (
+                                  <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={diamondId} sizeId={null} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-none-${fileOpt.value}`] || filePricing}
+                                    onPriceChange={(value) => updateFilePrice(metalId, diamondId, null, fileOpt.value, value, null)}
+                                    onDescriptionChange={(value) => updateFileDescription(metalId, diamondId, null, fileOpt.value, value, null)}
+                                    onLinkChange={(value) => updateFileLink(metalId, diamondId, null, fileOpt.value, value, null)}
+                                    onFileUpload={(file) => handlePdfFileSelect(metalId, diamondId, null, fileOpt.value, file, null)}
+                                    disabled={!canEdit} />
+                                );
+                              })}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -5403,7 +5438,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     }
   };
 
-  const handleVariantImageUpload = async (productIndex, metalId, diamondId, sizeId, files) => {
+  const handleVariantImageUpload = async (productIndex, metalId, diamondId, sizeId, weightId, files) => {
     if (!files || files.length === 0) return;
 
     const formDataObj = new FormData();
@@ -5421,7 +5456,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
       if (response.data.success) {
         const newUrls = response.data.data.images.map(img => img.url);
-        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+        const key = weightId 
+          ? `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-${weightId}`
+          : `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-none`;
 
         setProducts(prev => {
           const updated = [...prev];
@@ -5446,8 +5483,10 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     }
   };
 
-  const removeVariantImage = (productIndex, metalId, diamondId, sizeId, index) => {
-    const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
+  const removeVariantImage = (productIndex, metalId, diamondId, sizeId, weightId, index) => {
+    const key = weightId 
+      ? `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-${weightId}`
+      : `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}-none`;
 
     setProducts(prev => {
       const updated = [...prev];
@@ -5729,7 +5768,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
-  const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file) => {
+  const handlePdfFileSelect = async (productId, metalId, diamondId, sizeId, fileType, file, weightId) => {
     if (!file) return;
 
     setIsPdfUploading(true);
@@ -5756,7 +5795,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       });
 
       if (response.data.success) {
-        const fileKey = `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${fileType}`;
+        const fileKey = weightId 
+          ? `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}-${fileType}`
+          : (sizeId 
+            ? `${productId}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none-${fileType}`
+            : `${productId}-${metalId || 'none'}-${diamondId || 'none'}-none-none-${fileType}`);
 
         setUploadedPdfFiles(prev => ({
           ...prev,
@@ -5769,7 +5812,12 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
         setProducts(products.map(p => {
           if (p.id === productId) {
-            const variantKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}`;
+            const variantKey = weightId
+              ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+              : (sizeId
+                ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+                : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
+
             const current = p.variantPricing[variantKey] || {};
             const currentFiles = current.files || [];
 
@@ -5783,6 +5831,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 }
                 : f
             );
+
+            if (!updatedFiles.some(f => f.file_type === fileType)) {
+              updatedFiles.push({
+                file_type: fileType,
+                file_path: response.data.data.file_path,
+                file_name: response.data.data.file_name,
+                file_size: response.data.data.file_size
+              });
+            }
 
             return {
               ...p,
@@ -5808,6 +5865,60 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
       setPdfUploadProgress(0);
       setCurrentUploadingFile("");
     }
+  };
+
+  const makeWeightFileSectionForAdd = (product, metalId, diamondId, sizeId, weightId) => {
+    const key = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`;
+    const pricing = product.variantPricing[key] || {};
+    const productIndex = products.findIndex(p => p.id === product.id);
+
+    return (
+      <div className="mt-4 border-l-4 border-green-500 pl-4 py-2 bg-green-50/50 rounded-r-lg shadow-sm">
+        {/* NEW: Per-Weight Images */}
+        <VariantImageUpload
+          productId={product.id}
+          metalId={metalId}
+          diamondId={diamondId}
+          sizeId={sizeId}
+          weightId={weightId}
+          imageUrls={pricing.variant_images || []}
+          onImageUpload={(files) => handleVariantImageUpload(productIndex, metalId, diamondId, sizeId, weightId, files)}
+          onImageRemove={(idx) => removeVariantImage(productIndex, metalId, diamondId, sizeId, weightId, idx)}
+        />
+
+        <div className="flex flex-wrap gap-3 p-3 mt-4 bg-white rounded-lg border border-gray-200">
+          <p className="w-full text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Upload Required Files for this weight:</p>
+          {FILE_TYPE_OPTIONS.map((fileOpt) => (
+            <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+              <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeId, fileOpt.value, weightId)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+              <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="mt-4 space-y-4">
+          {FILE_TYPE_OPTIONS.map((fileOpt) => {
+            const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+            if (!filePricing && fileOpt.value !== "stl_file") return null;
+            return (
+              <FilePricingInput
+                key={fileOpt.value}
+                productId={product.id}
+                metalId={metalId}
+                diamondId={diamondId}
+                sizeId={sizeId}
+                fileOption={fileOpt}
+                pricing={filePricing || { file_type: fileOpt.value }}
+                existingFile={uploadedPdfFiles[`${product.id}-${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}-${fileOpt.value}`]}
+                onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeId, fileOpt.value, value, weightId)}
+                onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeId, fileOpt.value, file, weightId)}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const handleImageSelect = (productId, files) => {
@@ -6029,14 +6140,20 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
-  const updateVariantWeight = (productId, metalId, diamondId, sizeId, weightOptionId) => {
+  // Toggle a weight checkbox for Add Products panel
+  const toggleWeightForProduct = (productId, metalId, diamondId, sizeId, weightId) => {
     setProducts(prev => prev.map(p => {
       if (p.id === productId) {
-        const key = `${metalId || "none"}-${diamondId || "none"}-${sizeId || "none"}`;
-        const updatedPricing = { ...(p.variantPricing || {}) };
-        updatedPricing[key] = {
-          ...(updatedPricing[key] || {}),
-          weight_option_id: weightOptionId
+        const weightKey = `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`;
+        const currentPricing = p.variantPricing[weightKey] || {};
+        const isSelecting = !currentPricing.selected;
+        const updatedPricing = { ...p.variantPricing };
+        updatedPricing[weightKey] = {
+          ...currentPricing,
+          selected: isSelecting,
+          ...(isSelecting && (!currentPricing.files || currentPricing.files.length === 0)
+            ? { files: [{ file_type: 'stl_file', price: null }] }
+            : {}),
         };
         return { ...p, variantPricing: updatedPricing };
       }
@@ -6044,194 +6161,98 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     }));
   };
 
-  const updateFilePrice = (
-    productId,
-    metalId,
-    diamondId,
-    sizeId,
-    fileType,
-    price
-  ) => {
-    setProducts(
-      products.map((p) => {
-        if (p.id === productId) {
-          const key = sizeId
-            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-            : `${metalId || "none"}-${diamondId || "none"}-none`;
+  const updateFilePrice = (productId, metalId, diamondId, sizeId, fileType, price, weightId) => {
+    setProducts(products.map((p) => {
+      if (p.id === productId) {
+        const key = weightId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+          : (sizeId
+            ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+            : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
-          const current = p.variantPricing[key] || {};
-          const currentFiles = current.files || [];
+        const current = p.variantPricing[key] || {};
+        const currentFiles = current.files || [];
+        const updatedFiles = currentFiles.map((f) => f.file_type === fileType ? { ...f, price: price } : f);
+        if (!updatedFiles.some((f) => f.file_type === fileType)) updatedFiles.push({ file_type: fileType, price: price });
 
-          const updatedFiles = currentFiles.map((f) =>
-            f.file_type === fileType ? { ...f, price: price } : f
-          );
-
-          if (!updatedFiles.some((f) => f.file_type === fileType)) {
-            updatedFiles.push({ file_type: fileType, price: price });
-          }
-
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [key]: {
-                ...current,
-                files: updatedFiles,
-              },
-            },
-          };
-        }
-        return p;
-      })
-    );
+        return { ...p, variantPricing: { ...p.variantPricing, [key]: { ...current, files: updatedFiles } } };
+      }
+      return p;
+    }));
   };
 
-  const updateFileDescription = (
-    productId,
-    metalId,
-    diamondId,
-    sizeId,
-    fileType,
-    description
-  ) => {
-    setProducts(
-      products.map((p) => {
-        if (p.id === productId) {
-          const key = sizeId
-            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-            : `${metalId || "none"}-${diamondId || "none"}-none`;
+  const updateFileDescription = (productId, metalId, diamondId, sizeId, fileType, description, weightId) => {
+    setProducts(products.map((p) => {
+      if (p.id === productId) {
+        const key = weightId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+          : (sizeId
+            ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+            : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
-          const current = p.variantPricing[key] || {};
-          const currentFiles = current.files || [];
-
-          const updatedFiles = currentFiles.map((f) => {
-            if (f.file_type === fileType) {
-              if (fileType === "stl_file") return { ...f, stl_file_description: description };
-              if (fileType === "cam_product") return { ...f, cam_product_description: description };
-              if (fileType === "rubber_mold") return { ...f, rubber_mold_description: description };
-            }
-            return f;
-          });
-
-          if (!updatedFiles.some((f) => f.file_type === fileType)) {
-            const newFile = { file_type: fileType };
-            if (fileType === "stl_file") newFile.stl_file_description = description;
-            if (fileType === "cam_product") newFile.cam_product_description = description;
-            if (fileType === "rubber_mold") newFile.rubber_mold_description = description;
-            updatedFiles.push(newFile);
+        const current = p.variantPricing[key] || {};
+        const currentFiles = current.files || [];
+        const updatedFiles = currentFiles.map((f) => {
+          if (f.file_type === fileType) {
+            if (fileType === "stl_file") return { ...f, stl_file_description: description };
+            if (fileType === "cam_product") return { ...f, cam_product_description: description };
+            if (fileType === "rubber_mold") return { ...f, rubber_mold_description: description };
           }
-
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [key]: {
-                ...current,
-                files: updatedFiles,
-              },
-            },
-          };
+          return f;
+        });
+        if (!updatedFiles.some((f) => f.file_type === fileType)) {
+          const newFile = { file_type: fileType };
+          if (fileType === "stl_file") newFile.stl_file_description = description;
+          if (fileType === "cam_product") newFile.cam_product_description = description;
+          if (fileType === "rubber_mold") newFile.rubber_mold_description = description;
+          updatedFiles.push(newFile);
         }
-        return p;
-      })
-    );
+        return { ...p, variantPricing: { ...p.variantPricing, [key]: { ...current, files: updatedFiles } } };
+      }
+      return p;
+    }));
   };
 
-  const updateFileLink = (
-    productId,
-    metalId,
-    diamondId,
-    sizeId,
-    fileType,
-    link
-  ) => {
-    setProducts(
-      products.map((p) => {
-        if (p.id === productId) {
-          const key = sizeId
-            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-            : `${metalId || "none"}-${diamondId || "none"}-none`;
+  const updateFileLink = (productId, metalId, diamondId, sizeId, fileType, link, weightId) => {
+    setProducts(products.map((p) => {
+      if (p.id === productId) {
+        const key = weightId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+          : (sizeId
+            ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+            : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
-          const current = p.variantPricing[key] || {};
-          const currentFiles = current.files || [];
-
-          const updatedFiles = currentFiles.map((f) =>
-            f.file_type === fileType
-              ? {
-                ...f,
-                stl_file_link: link,
-                file_path: link ? null : f.file_path,
-                file_name: link ? null : f.file_name,
-                file_size: link ? null : f.file_size
-              }
-              : f
-          );
-
-          if (!updatedFiles.some((f) => f.file_type === fileType)) {
-            updatedFiles.push({
-              file_type: fileType,
-              stl_file_link: link
-            });
-          }
-
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [key]: {
-                ...current,
-                files: updatedFiles,
-              },
-            },
-          };
-        }
-        return p;
-      })
-    );
+        const current = p.variantPricing[key] || {};
+        const currentFiles = current.files || [];
+        const updatedFiles = currentFiles.map((f) => f.file_type === fileType ? { ...f, stl_file_link: link, file_path: link ? null : f.file_path, file_name: link ? null : f.file_name, file_size: link ? null : f.file_size } : f);
+        if (!updatedFiles.some((f) => f.file_type === fileType)) updatedFiles.push({ file_type: fileType, stl_file_link: link });
+        return { ...p, variantPricing: { ...p.variantPricing, [key]: { ...current, files: updatedFiles } } };
+      }
+      return p;
+    }));
   };
 
-  const toggleVariantFileType = (
-    productId,
-    metalId,
-    diamondId,
-    sizeId,
-    fileType
-  ) => {
+  const toggleVariantFileType = (productId, metalId, diamondId, sizeId, fileType, weightId) => {
     if (fileType === "stl_file") {
       alert("STL File is mandatory and cannot be removed");
       return;
     }
+    setProducts(products.map((p) => {
+      if (p.id === productId) {
+        const key = weightId
+          ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId || 'none'}-${weightId}`
+          : (sizeId
+            ? `${metalId || 'none'}-${diamondId || 'none'}-${sizeId}-none`
+            : `${metalId || 'none'}-${diamondId || 'none'}-none-none`);
 
-    setProducts(
-      products.map((p) => {
-        if (p.id === productId) {
-          const key = sizeId
-            ? `${metalId || "none"}-${diamondId || "none"}-${sizeId}`
-            : `${metalId || "none"}-${diamondId || "none"}-none`;
-
-          const current = p.variantPricing[key] || {};
-          const currentFiles = current.files || [];
-
-          const fileExists = currentFiles.some((f) => f.file_type === fileType);
-
-          const newFiles = fileExists
-            ? currentFiles.filter((f) => f.file_type !== fileType)
-            : [...currentFiles, { file_type: fileType, price: null }];
-
-          return {
-            ...p,
-            variantPricing: {
-              ...p.variantPricing,
-              [key]: {
-                ...current,
-                files: newFiles,
-              },
-            },
-          };
-        }
-        return p;
-      })
-    );
+        const current = p.variantPricing[key] || {};
+        const currentFiles = current.files || [];
+        const fileExists = currentFiles.some((f) => f.file_type === fileType);
+        const newFiles = fileExists ? currentFiles.filter((f) => f.file_type !== fileType) : [...currentFiles, { file_type: fileType, price: null }];
+        return { ...p, variantPricing: { ...p.variantPricing, [key]: { ...current, files: newFiles } } };
+      }
+      return p;
+    }));
   };
 
   const saveProducts = async () => {
@@ -6341,74 +6362,18 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
           const productDbId = productRes.data.insertId;
           const variants = [];
 
-          if (product.selectedSizes && typeof product.selectedSizes === "object") {
-            for (const [key, isSelected] of Object.entries(product.selectedSizes)) {
-              if (!isSelected) continue;
-
-              const pricing = product.variantPricing?.[key];
-              if (!pricing) continue;
-
-              const [metalPart, diamondPart, sizePart] = key.split("-");
-
-              if (sizePart === "none") continue;
-
-              const files = Array.isArray(pricing.files) ? pricing.files : [];
-              if (files.length === 0) continue;
-
-              const mappedFiles = files.map((f) => {
-                const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
-                const uploadedFile = uploadedPdfFiles[fileKey];
-
-                return {
-                  file_type: f.file_type,
-                  price: f.price,
-                  file_path: uploadedFile?.file_path || null,
-                  file_name: uploadedFile?.file_name || null,
-                  file_size: uploadedFile?.file_size || null,
-                  stl_file_description: f.stl_file_description || null,
-                  cam_product_description: f.cam_product_description || null,
-                  rubber_mold_description: f.rubber_mold_description || null,
-                  stl_file_link: f.stl_file_link || null,
-                };
-              });
-
-              variants.push({
-                metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
-                diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
-                size_option_id: parseInt(sizePart),
-                end_product_price: parseFloat(pricing.end_product_price) || null,
-                end_product_discount: parseFloat(pricing.end_product_discount) || null,
-                end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-                weight_option_id: parseInt(pricing.weight_option_id) || null,
-                variant_images: pricing.variant_images || [],
-                files: mappedFiles,
-                is_hide_on_lotusjewel: product.is_hide_on_lotusjewel || 0,
-              });
-            }
-          }
-
           if (product.variantPricing && typeof product.variantPricing === "object") {
             for (const [key, pricing] of Object.entries(product.variantPricing)) {
-              if (!key.endsWith("-none")) continue;
+              if (product.hasWeightChoice && !pricing.selected) continue;
 
-              const [metalPart, diamondPart, sizePart] = key.split("-");
+              const [metalPart, diamondPart, sizePart, weightPart] = key.split("-");
 
-              if (sizePart !== "none") continue;
-
-              if (diamondPart === "none" && product.hasDiamondChoice && product.selectedDiamondOptions.length > 0) {
-                continue;
+              if (product.hasDiamondChoice && product.selectedDiamondOptions.length > 0 && diamondPart === "none") {
+                 continue;
               }
 
-              if (metalPart !== "none" && product.hasMetalChoice) {
-                if (!product.selectedMetalOptions.includes(parseInt(metalPart))) {
-                  continue;
-                }
-              }
-
-              if (diamondPart !== "none" && product.hasDiamondChoice) {
-                if (!product.selectedDiamondOptions.includes(parseInt(diamondPart))) {
-                  continue;
-                }
+              if (product.hasMetalChoice && product.selectedMetalOptions.length > 0 && metalPart === "none") {
+                 continue;
               }
 
               if (product.hasMetalChoice && product.hasDiamondChoice) {
@@ -6421,7 +6386,9 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               if (files.length === 0) continue;
 
               const mappedFiles = files.map((f) => {
-                const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+                const fileKey = product.hasWeightChoice 
+                   ? `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${weightPart}-${f.file_type}`
+                   : `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
                 const uploadedFile = uploadedPdfFiles[fileKey];
 
                 return {
@@ -6440,11 +6407,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               variants.push({
                 metal_option_id: metalPart === "none" ? null : parseInt(metalPart),
                 diamond_option_id: diamondPart === "none" ? null : parseInt(diamondPart),
-                size_option_id: null,
+                size_option_id: sizePart === "none" ? null : parseInt(sizePart),
                 end_product_price: parseFloat(pricing.end_product_price) || null,
                 end_product_discount: parseFloat(pricing.end_product_discount) || null,
                 end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-                weight_option_id: parseInt(pricing.weight_option_id) || null,
+                weight_option_id: weightPart === "none" ? null : parseInt(weightPart),
                 variant_images: pricing.variant_images || [],
                 files: mappedFiles,
                 is_hide_on_lotusjewel: product.is_hide_on_lotusjewel || 0,
@@ -6623,15 +6590,15 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 >
                   <span>📦</span>
                   <span>Product {index + 1}</span>
-                  <button
+                  <span
                     onClick={(e) => {
                       e.stopPropagation();
                       removeProduct(product.id);
                     }}
-                    className="text-gray-400 hover:text-red-500 ml-1"
+                    className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
                   >
                     ×
-                  </button>
+                  </span>
                 </button>
               ))}
             </nav>
@@ -7269,66 +7236,57 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                 {isSelected && (
                                   <div className="mt-4 space-y-4">
-                                    <VariantImageUpload
-                                      productId={product.id}
-                                      metalId={null}
-                                      diamondId={null}
-                                      sizeId={sizeOpt.id}
-                                      imageUrls={pricing.variant_images}
-                                      onImageUpload={(files) => handleVariantImageUpload(index, null, null, sizeOpt.id, files)}
-                                      onImageRemove={(idx) => removeVariantImage(index, null, null, sizeOpt.id, idx)}
-                                    />
-                                    <VariantWeightSelector
+                                    {!product.hasWeightChoice && (
+                                      <VariantImageUpload
+                                        productId={product.id}
+                                        metalId={null}
+                                        diamondId={null}
+                                        sizeId={sizeOpt.id}
+                                        weightId={null}
+                                        imageUrls={pricing.variant_images}
+                                        onImageUpload={(files) => handleVariantImageUpload(index, null, null, sizeOpt.id, null, files)}
+                                        onImageRemove={(idx) => removeVariantImage(index, null, null, sizeOpt.id, null, idx)}
+                                      />
+                                    )}
+                                    <WeightRows
                                       hasWeightChoice={product.hasWeightChoice}
-                                      weightOptionId={pricing.weight_option_id}
-                                      onChange={(val) => updateVariantWeight(product.id, null, null, sizeOpt.id, val)}
                                       weightOptions={categoryData?.attributes?.weight?.options}
+                                      selectedWeights={
+                                        Object.fromEntries(
+                                          Object.keys(product.variantPricing)
+                                            .filter(k => k.startsWith(`none-none-${sizeOpt.id}-`) && product.variantPricing[k]?.selected)
+                                            .map(k => [k.split('-')[3], true])
+                                        )
+                                      }
+                                      onToggleWeight={(wId) => toggleWeightForProduct(product.id, null, null, sizeOpt.id, wId)}
+                                      renderFilesForWeight={(wId) => makeWeightFileSectionForAdd(product, null, null, sizeOpt.id, wId)}
                                     />
-                                    <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                      <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                      {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                        <label
-                                          key={fileOpt.value}
-                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                            ? "bg-green-100 border-green-300 text-green-800"
-                                            : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                            }`}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                            disabled={fileOpt.value === "stl_file"}
-                                            onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileOpt.value)}
-                                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                          />
-                                          <span className="text-xs font-bold whitespace-nowrap">
-                                            {fileOpt.emoji} {fileOpt.label}
-                                          </span>
-                                        </label>
-                                      ))}
-                                    </div>
-                                    <div className="space-y-4">
-                                      {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                        const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                        if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                        return (
-                                          <FilePricingInput
-                                            key={fileOpt.value}
-                                            productId={product.id}
-                                            metalId={null}
-                                            diamondId={null}
-                                            sizeId={sizeOpt.id}
-                                            fileOption={fileOpt}
-                                            pricing={filePricing || { file_type: fileOpt.value }}
-                                            existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-${fileOpt.value}`]}
-                                            onPriceChange={(value) => updateFilePrice(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
-                                            onDescriptionChange={(value) => updateFileDescription(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
-                                            onLinkChange={(value) => updateFileLink(product.id, null, null, sizeOpt.id, fileOpt.value, value)}
-                                            onFileUpload={(file) => handlePdfFileSelect(product.id, null, null, sizeOpt.id, fileOpt.value, file)}
-                                          />
-                                        );
-                                      })}
-                                    </div>
+                                    {!product.hasWeightChoice && (
+                                      <>
+                                        <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                          <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                          {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                            <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                              <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, null, null, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                              <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                        <div className="space-y-4">
+                                          {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                            const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                            if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                            return (
+                                              <FilePricingInput key={fileOpt.value} productId={product.id} metalId={null} diamondId={null} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-none-none-${sizeOpt.id}-none-${fileOpt.value}`]}
+                                                onPriceChange={(value) => updateFilePrice(product.id, null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                onDescriptionChange={(value) => updateFileDescription(product.id, null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                onLinkChange={(value) => updateFileLink(product.id, null, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                onFileUpload={(file) => handlePdfFileSelect(product.id, null, null, sizeOpt.id, fileOpt.value, file, null)} />
+                                            );
+                                          })}
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -7412,66 +7370,57 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                         {isSelected && (
                                           <div className="mt-4 space-y-4">
-                                            <VariantImageUpload
-                                              productId={product.id}
-                                              metalId={metalId}
-                                              diamondId={null}
-                                              sizeId={sizeOpt.id}
-                                              imageUrls={pricing.variant_images}
-                                              onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, sizeOpt.id, files)}
-                                              onImageRemove={(idx) => removeVariantImage(index, metalId, null, sizeOpt.id, idx)}
-                                            />
-                                            <VariantWeightSelector
+                                            {!product.hasWeightChoice && (
+                                              <VariantImageUpload
+                                                productId={product.id}
+                                                metalId={metalId}
+                                                diamondId={null}
+                                                sizeId={sizeOpt.id}
+                                                weightId={null}
+                                                imageUrls={pricing.variant_images}
+                                                onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, sizeOpt.id, null, files)}
+                                                onImageRemove={(idx) => removeVariantImage(index, metalId, null, sizeOpt.id, null, idx)}
+                                              />
+                                            )}
+                                            <WeightRows
                                               hasWeightChoice={product.hasWeightChoice}
-                                              weightOptionId={pricing.weight_option_id}
-                                              onChange={(val) => updateVariantWeight(product.id, metalId, null, sizeOpt.id, val)}
                                               weightOptions={categoryData?.attributes?.weight?.options}
+                                              selectedWeights={
+                                                Object.fromEntries(
+                                                  Object.keys(product.variantPricing)
+                                                    .filter(k => k.startsWith(`${metalId}-none-${sizeOpt.id}-`) && product.variantPricing[k]?.selected)
+                                                    .map(k => [k.split('-')[3], true])
+                                                )
+                                              }
+                                              onToggleWeight={(wId) => toggleWeightForProduct(product.id, metalId, null, sizeOpt.id, wId)}
+                                              renderFilesForWeight={(wId) => makeWeightFileSectionForAdd(product, metalId, null, sizeOpt.id, wId)}
                                             />
-                                            <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                              <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                              {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                                <label
-                                                  key={fileOpt.value}
-                                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                                    ? "bg-green-100 border-green-300 text-green-800"
-                                                    : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                                    }`}
-                                                >
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                                    disabled={fileOpt.value === "stl_file"}
-                                                    onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileOpt.value)}
-                                                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                                  />
-                                                  <span className="text-xs font-bold whitespace-nowrap">
-                                                    {fileOpt.emoji} {fileOpt.label}
-                                                  </span>
-                                                </label>
-                                              ))}
-                                            </div>
-                                            <div className="space-y-4">
-                                              {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                                const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                                if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                                return (
-                                                  <FilePricingInput
-                                                    key={fileOpt.value}
-                                                    productId={product.id}
-                                                    metalId={metalId}
-                                                    diamondId={null}
-                                                    sizeId={sizeOpt.id}
-                                                    fileOption={fileOpt}
-                                                    pricing={filePricing || { file_type: fileOpt.value }}
-                                                    existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-${fileOpt.value}`]}
-                                                    onPriceChange={(value) => updateFilePrice(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                                    onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                                    onLinkChange={(value) => updateFileLink(product.id, metalId, null, sizeOpt.id, fileOpt.value, value)}
-                                                    onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, fileOpt.value, file)}
-                                                  />
-                                                );
-                                              })}
-                                            </div>
+                                            {!product.hasWeightChoice && (
+                                              <>
+                                                <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                  <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                                  {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                                    <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                                      <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, metalId, null, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                                      <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                                <div className="space-y-4">
+                                                  {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                                    const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                                    if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                                    return (
+                                                      <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={null} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${sizeOpt.id}-none-${fileOpt.value}`]}
+                                                        onPriceChange={(value) => updateFilePrice(product.id, metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                        onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                        onLinkChange={(value) => updateFileLink(product.id, metalId, null, sizeOpt.id, fileOpt.value, value, null)}
+                                                        onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, sizeOpt.id, fileOpt.value, file, null)} />
+                                                    );
+                                                  })}
+                                                </div>
+                                              </>
+                                            )}
                                           </div>
                                         )}
                                       </div>
@@ -7481,67 +7430,61 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               </div>
                             ) : (
                               <div className="mt-4 space-y-4">
-                                <VariantImageUpload
-                                  productId={product.id}
-                                  metalId={metalId}
-                                  diamondId={null}
-                                  sizeId={null}
-                                  imageUrls={product.variantPricing[`${metalId}-none-none`]?.variant_images}
-                                  onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, null, files)}
-                                  onImageRemove={(idx) => removeVariantImage(index, metalId, null, null, idx)}
-                                />
-                                <VariantWeightSelector
+                                {!product.hasWeightChoice && (
+                                  <VariantImageUpload
+                                    productId={product.id}
+                                    metalId={metalId}
+                                    diamondId={null}
+                                    sizeId={null}
+                                    weightId={null}
+                                    imageUrls={product.variantPricing[`${metalId}-none-none-none`]?.variant_images}
+                                    onImageUpload={(files) => handleVariantImageUpload(index, metalId, null, null, null, files)}
+                                    onImageRemove={(idx) => removeVariantImage(index, metalId, null, null, null, idx)}
+                                  />
+                                )}
+                                <WeightRows
                                   hasWeightChoice={product.hasWeightChoice}
-                                  weightOptionId={product.variantPricing[`${metalId}-none-none`]?.weight_option_id}
-                                  onChange={(val) => updateVariantWeight(product.id, metalId, null, null, val)}
                                   weightOptions={categoryData?.attributes?.weight?.options}
+                                  selectedWeights={
+                                    Object.fromEntries(
+                                      Object.keys(product.variantPricing)
+                                        .filter(k => k.startsWith(`${metalId}-none-none-`) && product.variantPricing[k]?.selected)
+                                        .map(k => [k.split('-')[3], true])
+                                    )
+                                  }
+                                  onToggleWeight={(wId) => toggleWeightForProduct(product.id, metalId, null, null, wId)}
+                                  renderFilesForWeight={(wId) => makeWeightFileSectionForAdd(product, metalId, null, null, wId)}
                                 />
-                                <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                                  <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                  {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                    <label
-                                      key={fileOpt.value}
-                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${product.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                        ? "bg-green-100 border-green-300 text-green-800"
-                                        : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                        }`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={product.variantPricing[`${metalId}-none-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                        disabled={fileOpt.value === "stl_file"}
-                                        onChange={() => toggleVariantFileType(product.id, metalId, null, null, fileOpt.value)}
-                                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                      />
-                                      <span className="text-xs font-bold whitespace-nowrap">
-                                        {fileOpt.emoji} {fileOpt.label}
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
-                                <div className="space-y-4">
-                                  {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                    const pricing = product.variantPricing[`${metalId}-none-none`] || {};
-                                    const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                    if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                    return (
-                                      <FilePricingInput
-                                        key={fileOpt.value}
-                                        productId={product.id}
-                                        metalId={metalId}
-                                        diamondId={null}
-                                        sizeId={null}
-                                        fileOption={fileOpt}
-                                        pricing={filePricing || { file_type: fileOpt.value }}
-                                        existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-${fileOpt.value}`]}
-                                        onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, fileOpt.value, value)}
-                                        onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, fileOpt.value, value)}
-                                        onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, fileOpt.value, value)}
-                                        onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, null, fileOpt.value, file)}
-                                      />
-                                    );
-                                  })}
-                                </div>
+                                {!product.hasWeightChoice && (() => {
+                                  const directKey = `${metalId}-none-none-none`;
+                                  const directPricing = product.variantPricing[directKey] || product.variantPricing[`${metalId}-none-none`] || {};
+                                  return (
+                                    <>
+                                      <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                        <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                        {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                          <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                            <input type="checkbox" checked={directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, metalId, null, null, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                            <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                      <div className="space-y-4">
+                                        {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                          const filePricing = directPricing.files?.find((f) => f.file_type === fileOpt.value);
+                                          if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                          return (
+                                            <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={null} sizeId={null} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-none-none-none-${fileOpt.value}`]}
+                                              onPriceChange={(value) => updateFilePrice(product.id, metalId, null, null, fileOpt.value, value, null)}
+                                              onDescriptionChange={(value) => updateFileDescription(product.id, metalId, null, null, fileOpt.value, value, null)}
+                                              onLinkChange={(value) => updateFileLink(product.id, metalId, null, null, fileOpt.value, value, null)}
+                                              onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, null, null, fileOpt.value, file, null)} />
+                                          );
+                                        })}
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
@@ -7638,66 +7581,57 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                                           {isSelected && (
                                             <div className="mt-4 space-y-4">
-                                              <VariantImageUpload
-                                                productId={product.id}
-                                                metalId={metalId}
-                                                diamondId={diamondId}
-                                                sizeId={sizeOpt.id}
-                                                imageUrls={pricing.variant_images}
-                                                onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, sizeOpt.id, files)}
-                                                onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, sizeOpt.id, idx)}
-                                              />
-                                              <VariantWeightSelector
+                                              {!product.hasWeightChoice && (
+                                                <VariantImageUpload
+                                                  productId={product.id}
+                                                  metalId={metalId}
+                                                  diamondId={diamondId}
+                                                  sizeId={sizeOpt.id}
+                                                  weightId={null}
+                                                  imageUrls={pricing.variant_images}
+                                                  onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, sizeOpt.id, null, files)}
+                                                  onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, sizeOpt.id, null, idx)}
+                                                />
+                                              )}
+                                              <WeightRows
                                                 hasWeightChoice={product.hasWeightChoice}
-                                                weightOptionId={pricing.weight_option_id}
-                                                onChange={(val) => updateVariantWeight(product.id, metalId, diamondId, sizeOpt.id, val)}
                                                 weightOptions={categoryData?.attributes?.weight?.options}
+                                                selectedWeights={
+                                                  Object.fromEntries(
+                                                    Object.keys(product.variantPricing)
+                                                      .filter(k => k.startsWith(`${metalId}-${diamondId}-${sizeOpt.id}-`) && product.variantPricing[k]?.selected)
+                                                      .map(k => [k.split('-')[3], true])
+                                                  )
+                                                }
+                                                onToggleWeight={(wId) => toggleWeightForProduct(product.id, metalId, diamondId, sizeOpt.id, wId)}
+                                                renderFilesForWeight={(wId) => makeWeightFileSectionForAdd(product, metalId, diamondId, sizeOpt.id, wId)}
                                               />
-                                              <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                                <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                                {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                                  <label
-                                                    key={fileOpt.value}
-                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                                      ? "bg-green-100 border-green-300 text-green-800"
-                                                      : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                                      }`}
-                                                  >
-                                                    <input
-                                                      type="checkbox"
-                                                      checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                                      disabled={fileOpt.value === "stl_file"}
-                                                      onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value)}
-                                                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                                    />
-                                                    <span className="text-xs font-bold whitespace-nowrap">
-                                                      {fileOpt.emoji} {fileOpt.label}
-                                                    </span>
-                                                  </label>
-                                                ))}
-                                              </div>
-                                              <div className="space-y-4">
-                                                {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                                  const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                                  if (!filePricing && fileOpt.value !== "stl_file") return null;
-                                                  return (
-                                                    <FilePricingInput
-                                                      key={fileOpt.value}
-                                                      productId={product.id}
-                                                      metalId={metalId}
-                                                      diamondId={diamondId}
-                                                      sizeId={sizeOpt.id}
-                                                      fileOption={fileOpt}
-                                                      pricing={filePricing || { file_type: fileOpt.value }}
-                                                      existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-${fileOpt.value}`]}
-                                                      onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                                      onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                                      onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value)}
-                                                      onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, file)}
-                                                    />
-                                                  );
-                                                })}
-                                              </div>
+                                              {!product.hasWeightChoice && (
+                                                <>
+                                                  <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                    <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                                    {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                                      <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                                        <input type="checkbox" checked={pricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                                        <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                                      </label>
+                                                    ))}
+                                                  </div>
+                                                  <div className="space-y-4">
+                                                    {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                                      const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
+                                                      if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                                      return (
+                                                        <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={diamondId} sizeId={sizeOpt.id} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-${sizeOpt.id}-none-${fileOpt.value}`]}
+                                                          onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                                          onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                                          onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, value, null)}
+                                                          onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, sizeOpt.id, fileOpt.value, file, null)} />
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </>
+                                              )}
                                             </div>
                                           )}
                                         </div>
@@ -7708,65 +7642,61 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                               ) : (
                                 <div className="mt-4 space-y-4">
                                   <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                                    <VariantImageUpload
-                                      productId={product.id}
-                                      metalId={metalId}
-                                      diamondId={diamondId}
-                                      sizeId={null}
-                                      imageUrls={product.variantPricing[`${metalId}-${diamondId}-none`]?.variant_images}
-                                      onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, null, files)}
-                                      onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, null, idx)}
-                                    />
-                                    <VariantWeightSelector
+                                    {!product.hasWeightChoice && (
+                                      <VariantImageUpload
+                                        productId={product.id}
+                                        metalId={metalId}
+                                        diamondId={diamondId}
+                                        sizeId={null}
+                                        weightId={null}
+                                        imageUrls={product.variantPricing[`${metalId}-${diamondId}-none-none`]?.variant_images}
+                                        onImageUpload={(files) => handleVariantImageUpload(index, metalId, diamondId, null, null, files)}
+                                        onImageRemove={(idx) => removeVariantImage(index, metalId, diamondId, null, null, idx)}
+                                      />
+                                    )}
+                                    <WeightRows
                                       hasWeightChoice={product.hasWeightChoice}
-                                      weightOptionId={product.variantPricing[`${metalId}-${diamondId}-none`]?.weight_option_id}
-                                      onChange={(val) => updateVariantWeight(product.id, metalId, diamondId, null, val)}
                                       weightOptions={categoryData?.attributes?.weight?.options}
+                                      selectedWeights={
+                                        Object.fromEntries(
+                                          Object.keys(product.variantPricing)
+                                            .filter(k => k.startsWith(`${metalId}-${diamondId}-none-`) && product.variantPricing[k]?.selected)
+                                            .map(k => [k.split('-')[3], true])
+                                        )
+                                      }
+                                      onToggleWeight={(wId) => toggleWeightForProduct(product.id, metalId, diamondId, null, wId)}
+                                      renderFilesForWeight={(wId) => makeWeightFileSectionForAdd(product, metalId, diamondId, null, wId)}
                                     />
-                                    <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
-                                    {FILE_TYPE_OPTIONS.map((fileOpt) => (
-                                      <label
-                                        key={fileOpt.value}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"
-                                          ? "bg-green-100 border-green-300 text-green-800"
-                                          : "bg-white border-gray-300 text-gray-600 hover:border-green-300"
-                                          }`}
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={product.variantPricing[`${metalId}-${diamondId}-none`]?.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"}
-                                          disabled={fileOpt.value === "stl_file"}
-                                          onChange={() => toggleVariantFileType(product.id, metalId, diamondId, null, fileOpt.value)}
-                                          className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                                        />
-                                        <span className="text-xs font-bold whitespace-nowrap">
-                                          {fileOpt.emoji} {fileOpt.label}
-                                        </span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                  <div className="space-y-4">
-                                    {FILE_TYPE_OPTIONS.map((fileOpt) => {
-                                      const pricing = product.variantPricing[`${metalId}-${diamondId}-none`] || {};
-                                      const filePricing = pricing.files?.find((f) => f.file_type === fileOpt.value);
-                                      if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                    {!product.hasWeightChoice && (() => {
+                                      const directKey = `${metalId}-${diamondId}-none-none`;
+                                      const directPricing = product.variantPricing[directKey] || product.variantPricing[`${metalId}-${diamondId}-none`] || {};
                                       return (
-                                        <FilePricingInput
-                                          key={fileOpt.value}
-                                          productId={product.id}
-                                          metalId={metalId}
-                                          diamondId={diamondId}
-                                          sizeId={null}
-                                          fileOption={fileOpt}
-                                          pricing={filePricing || { file_type: fileOpt.value }}
-                                          existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-${fileOpt.value}`]}
-                                          onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, fileOpt.value, value)}
-                                          onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, fileOpt.value, value)}
-                                          onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, fileOpt.value, value)}
-                                          onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, null, fileOpt.value, file)}
-                                        />
+                                        <>
+                                          <div className="flex flex-wrap gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                            <p className="w-full text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Available File Options:</p>
+                                            {FILE_TYPE_OPTIONS.map((fileOpt) => (
+                                              <label key={fileOpt.value} className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all cursor-pointer ${directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-300 text-gray-600 hover:border-green-300"}`}>
+                                                <input type="checkbox" checked={directPricing.files?.some((f) => f.file_type === fileOpt.value) || fileOpt.value === "stl_file"} disabled={fileOpt.value === "stl_file"} onChange={() => toggleVariantFileType(product.id, metalId, diamondId, null, fileOpt.value, null)} className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                                                <span className="text-xs font-bold whitespace-nowrap">{fileOpt.emoji} {fileOpt.label}</span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                          <div className="space-y-4">
+                                            {FILE_TYPE_OPTIONS.map((fileOpt) => {
+                                              const filePricing = directPricing.files?.find((f) => f.file_type === fileOpt.value);
+                                              if (!filePricing && fileOpt.value !== "stl_file") return null;
+                                              return (
+                                                <FilePricingInput key={fileOpt.value} productId={product.id} metalId={metalId} diamondId={diamondId} sizeId={null} fileOption={fileOpt} pricing={filePricing || { file_type: fileOpt.value }} existingFile={uploadedPdfFiles[`${product.id}-${metalId}-${diamondId}-none-none-${fileOpt.value}`]}
+                                                  onPriceChange={(value) => updateFilePrice(product.id, metalId, diamondId, null, fileOpt.value, value, null)}
+                                                  onDescriptionChange={(value) => updateFileDescription(product.id, metalId, diamondId, null, fileOpt.value, value, null)}
+                                                  onLinkChange={(value) => updateFileLink(product.id, metalId, diamondId, null, fileOpt.value, value, null)}
+                                                  onFileUpload={(file) => handlePdfFileSelect(product.id, metalId, diamondId, null, fileOpt.value, file, null)} />
+                                              );
+                                            })}
+                                          </div>
+                                        </>
                                       );
-                                    })}
+                                    })()}
                                   </div>
                                 </div>
                               )}
