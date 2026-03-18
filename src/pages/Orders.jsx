@@ -361,11 +361,17 @@ const Orders = () => {
                         <td className="px-4 py-3">
                           <div className="text-sm font-semibold text-blue-700">{getProductTitleHeader(row)}</div>
                           <div className="text-xs text-gray-600 space-y-0.5 mt-1 border-l-2 border-gray-200 pl-2">
-                            <p>Metal: <span className="font-semibold">{prod.metal_name || "N/A"}</span></p>
-                            <p>Diamond: <span className="font-semibold">{prod.diamond_name || "N/A"}</span></p>
-                            <p>Weight: <span className="font-semibold">{prod.weight_name || prod.Weight_name || "N/A"}</span></p>
-                            <p>Size: <span className="font-semibold">{prod.size_name || "N/A"}</span></p>
-                          </div>
+                          <p>Metal: <span className="font-semibold">{prod.metal_name || "N/A"}</span></p>
+                          <p>Diamond: <span className="font-semibold">{prod.diamond_name || "N/A"}</span></p>
+                          <p>Weight: <span className="font-semibold">{prod.weight_name || prod.Weight_name || "N/A"}</span></p>
+                          <p>Size: <span className="font-semibold">
+                            {prod.size_name
+                              ? `${prod.size_name}${prod.size_mm ? ` (${prod.size_mm}mm)` : ''}`
+                              : prod.no_size_selected
+                                ? "No Size"
+                                : prod.requested_size || "N/A"}
+                          </span></p>
+                        </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500">{formatDate(row.created_at)}</td>
                       </tr>

@@ -4008,26 +4008,14 @@ const EditProductPanel = ({
       );
 
       if (response.data.success) {
-        const variants = [];
+       const variants = [];
 
-        // Process variants with sizes
-        for (const [key, isSelected] of Object.entries(formData.selectedSizes)) {
-          if (!isSelected) continue;
-
-          const pricing = formData.variantPricing[key];
-          if (!pricing) continue;
-
-          const [metalPart, diamondPart, sizePart] = key.split("-");
-
-          if (sizePart === 'none') continue;
-
+        const buildMappedFiles = (pricing, metalPart, diamondPart, sizePart, weightPart) => {
           const files = Array.isArray(pricing.files) ? pricing.files : [];
-          if (files.length === 0) continue;
-
-          const mappedFiles = files.filter(f => f.file_type).map(f => {
-            const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${f.file_type}`;
+          if (files.length === 0) return [];
+          return files.filter(f => f.file_type).map(f => {
+            const fileKey = `${product.id}-${metalPart}-${diamondPart}-${sizePart}-${weightPart}-${f.file_type}`;
             const uploadedFile = uploadedPdfFiles[fileKey];
-
             return {
               file_type: f.file_type,
               price: f.price,
@@ -4040,15 +4028,71 @@ const EditProductPanel = ({
               stl_file_link: f.stl_file_link || null,
             };
           });
+        };
 
+        for (const [key, pricing] of Object.entries(formData.variantPricing)) {
+          const parts = key.split('-');
+          const metalPart   = parts[0] || 'none';
+          const diamondPart = parts[1] || 'none';
+          const sizePart    = parts[2] || 'none';
+          const weightPart  = parts[3] || 'none';
+
+          // WEIGHT variants — only include if explicitly selected
+          if (weightPart !== 'none') {
+            if (!pricing.selected) continue;
+            const mappedFiles = buildMappedFiles(pricing, metalPart, diamondPart, sizePart, weightPart);
+            if (mappedFiles.length === 0) continue;
+            variants.push({
+              metal_option_id:   metalPart   === 'none' ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+              size_option_id:    sizePart    === 'none' ? null : parseInt(sizePart),
+              weight_option_id:  parseInt(weightPart),
+              end_product_price: parseFloat(pricing.end_product_price) || null,
+              end_product_discount: parseFloat(pricing.end_product_discount) || null,
+              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              variant_images: pricing.variant_images || [],
+              files: mappedFiles,
+              is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
+            });
+            continue;
+          }
+
+          // SIZE-based variants (no weight)
+          if (sizePart !== 'none') {
+            const sizeKey3 = `${metalPart}-${diamondPart}-${sizePart}`;
+            const isSelected = formData.selectedSizes[sizeKey3] || formData.selectedSizes[key];
+            if (!isSelected) continue;
+            const mappedFiles = buildMappedFiles(pricing, metalPart, diamondPart, sizePart, 'none');
+            if (mappedFiles.length === 0) continue;
+            variants.push({
+              metal_option_id:   metalPart   === 'none' ? null : parseInt(metalPart),
+              diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
+              size_option_id:    parseInt(sizePart),
+              weight_option_id:  null,
+              end_product_price: parseFloat(pricing.end_product_price) || null,
+              end_product_discount: parseFloat(pricing.end_product_discount) || null,
+              end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
+              variant_images: pricing.variant_images || [],
+              files: mappedFiles,
+              is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
+            });
+            continue;
+          }
+
+          // NO-SIZE, NO-WEIGHT variants (metal-only or metal+diamond)
+          const mappedFiles = buildMappedFiles(pricing, metalPart, diamondPart, 'none', 'none');
+          if (mappedFiles.length === 0) continue;
+          if (metalPart === 'none' && diamondPart === 'none') {
+            if (!mappedFiles.some(f => f.price !== null && f.price !== undefined)) continue;
+          }
           variants.push({
-            metal_option_id: metalPart === 'none' ? null : parseInt(metalPart),
+            metal_option_id:   metalPart   === 'none' ? null : parseInt(metalPart),
             diamond_option_id: diamondPart === 'none' ? null : parseInt(diamondPart),
-            size_option_id: parseInt(sizePart),
+            size_option_id:    null,
+            weight_option_id:  null,
             end_product_price: parseFloat(pricing.end_product_price) || null,
             end_product_discount: parseFloat(pricing.end_product_discount) || null,
             end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-            weight_option_id: parseInt(pricing.weight_option_id) || null,
             variant_images: pricing.variant_images || [],
             files: mappedFiles,
             is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
@@ -4061,6 +4105,7 @@ const EditProductPanel = ({
           const metalPart = parts[0];
           const diamondPart = parts[1];
           const sizePart = parts[2];
+          const weightPart = parts[3];
           
           if (sizePart !== 'none') continue;
 
@@ -4068,7 +4113,7 @@ const EditProductPanel = ({
           if (files.length === 0) continue;
 
           const mappedFiles = files.filter(f => f.file_type).map(f => {
-            const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${f.file_type}`;
+            const fileKey = `${product.id}-${metalPart}-${diamondPart}-none-${weightPart}-${f.file_type}`;
             const uploadedFile = uploadedPdfFiles[fileKey];
 
             return {
@@ -4091,7 +4136,7 @@ const EditProductPanel = ({
               end_product_price: parseFloat(pricing.end_product_price) || null,
               end_product_discount: parseFloat(pricing.end_product_discount) || null,
               end_product_discount_percentage: parseInt(pricing.end_product_discount_percentage) || null,
-              weight_option_id: parseInt(pricing.weight_option_id) || null,
+              weight_option_id: weightPart && weightPart !== 'none' ? parseInt(weightPart) : (parseInt(pricing.weight_option_id) || null),
               variant_images: pricing.variant_images || [],
               files: mappedFiles,
               is_hide_on_lotusjewel: formData.is_hide_on_lotusjewel || 0,
