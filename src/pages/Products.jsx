@@ -3206,7 +3206,7 @@ const EditProductPanel = ({
       configureSizes: !!productDetails.configureSizes || (productDetails.selectedSizes && Object.keys(productDetails.selectedSizes).length > 0),
       hasWeightChoice: !!productDetails.hasWeightChoice || !!productDetails.selectedWeightOptions?.length,
       selectedWeightOptions: productDetails.selectedWeightOptions || [],
-      is_hide_on_lotusjewel: productDetails.is_hide_on_lotusjewel || 0,
+      is_hide_on_lotusjewel: product.is_hide_lotusjewel_direct_price || productDetails.is_hide_on_lotusjewel || 0,
       Lotusjewel_direct_price: product.Lotusjewel_direct_price || productDetails.Lotusjewel_direct_price || "",
     };
   });
@@ -3995,15 +3995,16 @@ const EditProductPanel = ({
       };
 
       const response = await axios.post(
-        `${API_URL}/products/update`,
-        {
-          product_id: product.id,
-          category_id: formData.category_id,
-          name: formData.name,
-          slug: formData.slug,
-          product_details: JSON.stringify(productDetails),
-          Lotusjewel_direct_price: formData.is_hide_on_lotusjewel === 1 ? parseFloat(formData.Lotusjewel_direct_price) : null,
-        },
+      `${API_URL}/products/update`,
+      {
+        product_id: product.id,
+        category_id: formData.category_id,
+        name: formData.name,
+        slug: formData.slug,
+        product_details: JSON.stringify(productDetails),
+        Lotusjewel_direct_price: formData.Lotusjewel_direct_price ? parseFloat(formData.Lotusjewel_direct_price) : null,
+        is_hide_lotusjewel_direct_price: formData.is_hide_on_lotusjewel === 1 ? 1 : 0,
+      },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -4400,7 +4401,7 @@ const EditProductPanel = ({
                   className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
                   disabled={!canEdit}
                 />
-                <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants</span>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants (show direct price)</span>
               </label>
             </div>
             
@@ -6390,15 +6391,16 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             action: "insert",
             table: "products",
             data: {
-              category_id: selectedCategoryId,
-              name: product.name,
-              slug: product.slug,
-              product_details: JSON.stringify(productDetails),
-              Lotusjewel_direct_price: product.is_hide_on_lotusjewel === 1 ? parseFloat(product.Lotusjewel_direct_price) : null,
-              vendor_id: vendorId,
-              status: status,
-              created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-            },
+            category_id: selectedCategoryId,
+            name: product.name,
+            slug: product.slug,
+            product_details: JSON.stringify(productDetails),
+            Lotusjewel_direct_price: product.Lotusjewel_direct_price ? parseFloat(product.Lotusjewel_direct_price) : null,
+            is_hide_lotusjewel_direct_price: product.is_hide_on_lotusjewel === 1 ? 1 : 0,
+            vendor_id: vendorId,
+            status: status,
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          },
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -7212,7 +7214,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                                 onChange={() => updateProduct(product.id, "is_hide_on_lotusjewel", 1)}
                                 className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-gray-300"
                               />
-                              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants</span>
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">No, hide variants (show direct price)</span>
                             </label>
                           </div>
                           
