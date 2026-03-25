@@ -5745,41 +5745,59 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
     );
   };
 
+  const generateUniqueSlug = async (baseSlug) => {
+    const exists = await checkSlugUniqueness(baseSlug);
+    if (!exists) return baseSlug;
+
+    let counter = 1;
+    while (true) {
+      const candidate = `${baseSlug}-${counter}`;
+      const candidateExists = await checkSlugUniqueness(candidate);
+      if (!candidateExists) return candidate;
+      counter++;
+    }
+  };
+
   const updateProduct = async (id, field, value) => {
+    if (field === "name") {
+      const baseSlug = value
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+      const uniqueSlug = await generateUniqueSlug(baseSlug);
+
+      setProducts(
+        products.map((p) => {
+          if (p.id === id) {
+            return { ...p, [field]: value, slug: uniqueSlug };
+          }
+          return p;
+        })
+      );
+
+      setSlugErrors((prev) => ({ ...prev, [id]: "" }));
+      return;
+    }
+
+    if (field === "slug") {
+      const uniqueSlug = await generateUniqueSlug(value);
+      setProducts(
+        products.map((p) => {
+          if (p.id === id) {
+            return { ...p, slug: uniqueSlug };
+          }
+          return p;
+        })
+      );
+      setSlugErrors((prev) => ({ ...prev, [id]: "" }));
+      return;
+    }
+
     setProducts(
       products.map((p) => {
         if (p.id === id) {
-          const updated = { ...p, [field]: value };
-
-          if (field === "name") {
-            const newSlug = value
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^a-z0-9-]/g, "");
-            updated.slug = newSlug;
-
-            checkSlugUniqueness(newSlug).then((exists) => {
-              setSlugErrors((prev) => ({
-                ...prev,
-                [id]: exists
-                  ? "This slug already exists. Please create a unique one."
-                  : "",
-              }));
-            });
-          }
-
-          if (field === "slug") {
-            checkSlugUniqueness(value).then((exists) => {
-              setSlugErrors((prev) => ({
-                ...prev,
-                [id]: exists
-                  ? "This slug already exists. Please create a unique one."
-                  : "",
-              }));
-            });
-          }
-
-          return updated;
+          return { ...p, [field]: value };
         }
         return p;
       })
