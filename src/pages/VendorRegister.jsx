@@ -443,10 +443,10 @@ const VendorRegister = () => {
                             <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
                             <span className="truncate">{vendor.full_name || vendor.name || 'No name provided'}</span>
                           </div>
-                          {vendor.phone && (
+                          {(vendor.contact_number || vendor.phone) && (
                             <div className="flex items-center text-sm text-gray-600">
                               <Phone className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                              <span>{vendor.phone}</span>
+                              <span>{vendor.contact_number || vendor.phone}</span>
                             </div>
                           )}
                           {(vendor.city || vendor.state) && (
@@ -559,7 +559,7 @@ const VendorRegister = () => {
                                   <Phone className="w-3 h-3" />
                                   Phone
                                 </div>
-                                <div className="font-medium text-gray-900">{selectedVendor.phone || 'N/A'}</div>
+                                <div className="font-medium text-gray-900">{selectedVendor.contact_number || selectedVendor.phone || 'N/A'}</div>
                               </div>
                             </div>
                           </div>

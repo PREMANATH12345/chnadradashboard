@@ -1260,6 +1260,30 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
 
                 {/* Right Column - Pricing & Variants */}
                 <div className="space-y-6">
+
+                  {/* Lotusjewel Direct Price */}
+                  {(viewProductDetails.Lotusjewel_direct_price || viewProductDetails.product_details?.Lotusjewel_direct_price) && (
+                    <div className="bg-white rounded-xl p-5 border border-blue-200 shadow-sm">
+                      <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="text-blue-600">🏪</span>
+                        Lotusjewel Direct Price
+                      </h4>
+                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                        <div>
+                          <p className="text-sm text-blue-700 font-medium">
+                            Price shown on Lotusjewel instead of individual variant prices
+                          </p>
+                          <p className="text-xs text-blue-500 mt-1">
+                            Variants are hidden on Lotusjewel
+                          </p>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-700 ml-4">
+                          ₹{Number(viewProductDetails.Lotusjewel_direct_price || viewProductDetails.product_details?.Lotusjewel_direct_price).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Variant Configuration Display */}
                   <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-5 border border-emerald-200">
                     <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2">
@@ -1267,13 +1291,11 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                       Variant Configuration
                     </h4>
 
-                    {/* Show variant type */}
                     <div className="space-y-3">
                       {viewProductDetails.product_details.hasMetalChoice && (
                         <div className="bg-white rounded-lg p-3 border border-emerald-200">
                           <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <span>🔩</span>
-                            Metal Options
+                            <span>🔩</span> Metal Options
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {viewProductDetails.product_details.selectedMetalOptions?.map((optId) => {
@@ -1291,8 +1313,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                       {viewProductDetails.product_details.hasDiamondChoice && (
                         <div className="bg-white rounded-lg p-3 border border-emerald-200">
                           <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <span>💎</span>
-                            Diamond Options
+                            <span>💎</span> Diamond Options
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {viewProductDetails.product_details.selectedDiamondOptions?.map((optId) => {
@@ -1307,29 +1328,71 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </div>
                       )}
 
-                      {/* Size Configuration */}
+                      {/* Size Configuration - show actual names */}
                       {viewProductDetails.product_details.selectedSizes &&
-                        Object.keys(viewProductDetails.product_details.selectedSizes).length > 0 && (
+                        Object.keys(viewProductDetails.product_details.selectedSizes).some(k => viewProductDetails.product_details.selectedSizes[k]) && (
                           <div className="bg-white rounded-lg p-3 border border-emerald-200">
                             <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                              <span>📏</span>
-                              Sizes Configured
+                              <span>📏</span> Sizes Configured
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {Object.entries(viewProductDetails.product_details.selectedSizes)
                                 .filter(([_, isSelected]) => isSelected)
-                                .map(([sizeKey]) => (
-                                  <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                    {sizeKey.split('-').filter(part => part !== 'none').join(' + ')}
-                                  </span>
-                                ))}
+                                .map(([sizeKey]) => {
+                                  const parts = sizeKey.split('-');
+                                  const sizePart = parts[2];
+                                  if (!sizePart || sizePart === 'none') return null;
+                                  const sizeOption = categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(sizePart));
+                                  const metalOption = parts[0] !== 'none' ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(parts[0])) : null;
+                                  const diamondOption = parts[1] !== 'none' ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(parts[1])) : null;
+                                  return (
+                                    <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                      {[metalOption?.option_name, diamondOption?.option_name, sizeOption?.option_name].filter(Boolean).join(' + ')}
+                                    </span>
+                                  );
+                                })}
                             </div>
                           </div>
                         )}
+
+                      {/* Weight Options */}
+                      {viewProductDetails.product_details.hasWeightChoice && (() => {
+                        // Collect all selected weight IDs from variantPricing keys
+                        const selectedWeightIds = new Set();
+                        Object.entries(viewProductDetails.product_details.variantPricing || {}).forEach(([key, pricing]) => {
+                          const parts = key.split('-');
+                          const weightPart = parts[3];
+                          if (weightPart && weightPart !== 'none' && pricing.selected) {
+                            selectedWeightIds.add(parseInt(weightPart));
+                          }
+                        });
+
+                        return (
+                          <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                            <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                              <span>⚖️</span> Weight Options
+                            </p>
+                            {selectedWeightIds.size > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {[...selectedWeightIds].map(wId => {
+                                  const weightOption = categoryData?.attributes?.weight?.options?.find(o => o.id === wId);
+                                  return (
+                                    <span key={wId} className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                                      {weightOption?.option_name || `Weight ID: ${wId}`}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500 italic">Weight choice enabled (no weights selected yet)</span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
-                  {/* Variant Pricing Details - FIXED VERSION */}
+                  {/* Variant Pricing Details */}
                   {viewProductDetails.product_details.variantPricing &&
                     Object.keys(viewProductDetails.product_details.variantPricing).length > 0 && (
                       <div className="bg-white rounded-xl p-5 border border-gray-200">
@@ -1340,72 +1403,55 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         <div className="space-y-4 max-h-96 overflow-y-auto">
                           {Object.entries(viewProductDetails.product_details.variantPricing)
                             .filter(([key, pricing]) => {
-                              const [metalPart, diamondPart, sizePart] = key.split('-');
+                                const parts = key.split('-');
+                                const weightPart = parts[3];
 
-                              // ✅ FIX 1: Skip metal-only variants if diamond options are selected
-                              if (diamondPart === 'none' &&
-                                viewProductDetails.product_details.hasDiamondChoice &&
-                                viewProductDetails.product_details.selectedDiamondOptions?.length > 0) {
-                                return false;
-                              }
-
-                              // ✅ FIX 2: Skip if metal not in selected options
-                              if (metalPart !== 'none' &&
-                                viewProductDetails.product_details.hasMetalChoice &&
-                                !viewProductDetails.product_details.selectedMetalOptions?.includes(parseInt(metalPart))) {
-                                return false;
-                              }
-
-                              // ✅ FIX 3: Skip if diamond not in selected options
-                              if (diamondPart !== 'none' &&
-                                viewProductDetails.product_details.hasDiamondChoice &&
-                                !viewProductDetails.product_details.selectedDiamondOptions?.includes(parseInt(diamondPart))) {
-                                return false;
-                              }
-
-                              // ✅ FIX 4: When both metal+diamond are selected, skip incomplete combos
-                              if (viewProductDetails.product_details.hasMetalChoice &&
-                                viewProductDetails.product_details.hasDiamondChoice &&
-                                sizePart === 'none') {
-                                // Must have both metal AND diamond
-                                if (metalPart === 'none' || diamondPart === 'none') {
-                                  return false;
+                                if (viewProductDetails.product_details.hasWeightChoice) {
+                                  // Only show weight-based variants that are selected
+                                  if (!weightPart || weightPart === 'none') return false;
+                                  if (!pricing.selected) return false;
+                                } else {
+                                  // No weight choice - skip keys that have a real weight part
+                                  if (weightPart && weightPart !== 'none') return false;
                                 }
-                              }
 
-                              // ✅ FIX 5: Skip if size not in selected sizes
-                              if (sizePart !== 'none' &&
-                                viewProductDetails.product_details.selectedSizes &&
-                                !viewProductDetails.product_details.selectedSizes[key]) {
-                                return false;
-                              }
+                                const files = pricing.files || [];
+                                if (files.length === 0) return false;
 
-                              return true;
-                            })
+                                return files.some(f =>
+                                  f.file_type && (
+                                    (f.price !== null && f.price !== undefined && f.price !== '') ||
+                                    f.file_name || f.stl_file_link
+                                  )
+                                );
+                              })
                             .map(([key, pricing]) => {
-                              const [metal, diamond, size] = key.split('-');
+                              const [metal, diamond, size, weight] = key.split('-');
 
-                              // Get actual names
                               const metalName = metal !== 'none'
-                                ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(metal))?.option_name || metal
+                                ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(metal))?.option_name || `Metal ${metal}`
                                 : null;
                               const diamondName = diamond !== 'none'
-                                ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(diamond))?.option_name || diamond
+                                ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(diamond))?.option_name || `Diamond ${diamond}`
                                 : null;
                               const sizeName = size !== 'none'
-                                ? categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(size))?.option_name || size
+                                ? categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(size))?.option_name || `Size ${size}`
                                 : null;
+                              const weightName = weight && weight !== 'none'
+                                ? categoryData?.attributes?.weight?.options?.find(o => o.id === parseInt(weight))?.option_name || `Weight ${weight}`
+                                : null;
+
+                              const variantTitle = [
+                                metalName && `🔩 ${metalName}`,
+                                diamondName && `💎 ${diamondName}`,
+                                sizeName && `📏 ${sizeName}`,
+                                weightName && `⚖️ ${weightName}`,
+                              ].filter(Boolean).join(' + ') || 'Base Product';
 
                               return (
                                 <div key={key} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                  {/* Variant Header */}
                                   <div className="font-medium text-gray-800 mb-3 pb-2 border-b border-gray-200">
-                                    {metalName && <span className="text-emerald-600">Metal: {metalName}</span>}
-                                    {diamondName && <span className="text-purple-600 ml-2">Diamond: {diamondName}</span>}
-                                    {sizeName && <span className="text-blue-600 ml-2">Size: {sizeName}</span>}
-                                    {metal === 'none' && diamond === 'none' && size === 'none' && (
-                                      <span className="text-gray-600">Base Product</span>
-                                    )}
+                                    {variantTitle}
                                   </div>
 
                                   {/* File Types & Prices */}
@@ -1420,12 +1466,30 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                                             {file.file_type === 'rubber_mold' && <span className="text-lg">🔧</span>}
                                             {file.file_type === 'casting_model' && <span className="text-lg">🏭</span>}
                                             {file.file_type === 'finished_product' && <span className="text-lg">✨</span>}
-                                            <span className="text-sm font-medium text-gray-700">
-                                              {file.file_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                            </span>
+                                            <div>
+                                              <span className="text-sm font-medium text-gray-700">
+                                                {file.file_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                              </span>
+                                              {(file.stl_file_description || file.cam_product_description || file.rubber_mold_description) && (
+                                                <p className="text-xs text-gray-500">
+                                                  {file.stl_file_description || file.cam_product_description || file.rubber_mold_description}
+                                                </p>
+                                              )}
+                                              {file.file_name && (
+                                                <p className="text-xs text-blue-600 flex items-center gap-1">
+                                                  <FiFileText className="w-3 h-3" /> {file.file_name}
+                                                </p>
+                                              )}
+                                              {file.stl_file_link && (
+                                                <a href={file.stl_file_link} target="_blank" rel="noopener noreferrer"
+                                                  className="text-xs text-blue-500 underline flex items-center gap-1">
+                                                  <FiLink className="w-3 h-3" /> View Link
+                                                </a>
+                                              )}
+                                            </div>
                                           </div>
                                           <div className="text-right">
-                                            {file.price !== null && file.price !== undefined ? (
+                                            {file.price !== null && file.price !== undefined && file.price !== '' ? (
                                               <span className="text-sm font-bold text-emerald-700">
                                                 ₹{Number(file.price).toLocaleString()}
                                               </span>
@@ -1435,44 +1499,25 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                                           </div>
                                         </div>
                                       ))}
-
-                                      {/* Show uploaded files */}
-                                      {pricing.files.some(f => f.file_name) && (
-                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                          <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Uploaded Files:</p>
-                                          {pricing.files
-                                            .filter(f => f.file_name)
-                                            .map((file, idx) => (
-                                              <div key={idx} className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded mb-1">
-                                                <FiFileText className="w-3 h-3" />
-                                                <span className="font-medium truncate">{file.file_name}</span>
-                                                {file.file_size && (
-                                                  <span className="text-gray-500 ml-auto">
-                                                    {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                                                  </span>
-                                                )}
-                                              </div>
-                                            ))}
-                                        </div>
-                                      )}
                                     </div>
                                   )}
 
-                                  {/* End Product Pricing if exists */}
-                                  {(pricing.end_product_price || pricing.end_product_discount) && (
+                                  {/* Variant Images */}
+                                  {pricing.variant_images?.length > 0 && (
                                     <div className="mt-3 pt-3 border-t border-gray-200">
-                                      <p className="text-xs font-semibold text-gray-600 uppercase mb-2">End Product:</p>
-                                      <div className="flex items-center gap-3">
-                                        {pricing.end_product_price && (
-                                          <span className="text-sm font-bold text-gray-800">
-                                            ₹{Number(pricing.end_product_price).toLocaleString()}
-                                          </span>
-                                        )}
-                                        {pricing.end_product_discount && (
-                                          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
-                                            {pricing.end_product_discount_percentage}% OFF
-                                          </span>
-                                        )}
+                                      <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Variant Images:</p>
+                                      <div className="flex gap-2 flex-wrap">
+                                        {pricing.variant_images.map((img, idx) => (
+                                          <img
+                                            key={idx}
+                                            src={`${BASE_URL}${img}`}
+                                            alt={`Variant ${idx + 1}`}
+                                            className="w-14 h-14 object-cover rounded-lg border border-gray-200"
+                                            onError={(e) => {
+                                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56"%3E%3Crect fill="%23f3f4f6" width="56" height="56"/%3E%3C/svg%3E';
+                                            }}
+                                          />
+                                        ))}
                                       </div>
                                     </div>
                                   )}
@@ -1492,10 +1537,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {viewProductDetails.product_details.featured.map((feature, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200"
-                          >
+                          <span key={idx} className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200">
                             {feature}
                           </span>
                         ))}
@@ -1512,16 +1554,14 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {viewProductDetails.product_details.gender.map((gender, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
-                          >
+                          <span key={idx} className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200">
                             {gender}
                           </span>
                         ))}
                       </div>
                     </div>
                   )}
+
                 </div>
               </div>
             </div>
@@ -1589,54 +1629,63 @@ const ProductsDashboard = ({
   }, []);
 
   const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/doAll`,
-        { action: "get", table: "products", where: { is_deleted: 0 } },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    const isVendor = userRole === "vendor";
+    const vendorId = user?.vendor_id || user?.id;
 
-      if (response.data.success) {
-        const products = response.data.data || [];
-        const featured = products.filter((p) => {
-          try {
-            const details =
-              typeof p.product_details === "string"
-                ? JSON.parse(p.product_details)
-                : p.product_details || {};
-            return details.featured && details.featured.length > 0;
-          } catch {
-            return false;
-          }
-        }).length;
+    // ✅ For vendors, filter by vendor_id from the start
+    const whereClause = isVendor
+      ? { is_deleted: 0, vendor_id: vendorId }
+      : { is_deleted: 0 };
 
-        const user = JSON.parse(localStorage.getItem("user"));
-        const isVendor = userRole === "vendor";
+    const response = await axios.post(
+      `${API_URL}/doAll`,
+      { action: "get", table: "products", where: whereClause },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-        const filteredProducts = isVendor
-          ? products.filter(
-            (p) => p.vendor_id === user?.id && p.status === "approved"
-          )
-          : products.filter((p) => p.status === "approved");
+    if (response.data.success) {
+      const products = response.data.data || [];
 
-        const pending = isVendor
-          ? products.filter(
-            (p) => p.vendor_id === user?.id && p.status === "pending"
-          ).length
-          : products.filter((p) => p.status === "pending").length;
+      // Total = all vendor's products regardless of status
+      const totalProducts = products.length;
 
-        setStats({
-          totalProducts: filteredProducts.length,
-          activeProducts: filteredProducts.length,
-          featuredProducts: featured,
-          lowStock: 0,
-          pendingProducts: pending,
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
+      // Pending = vendor's pending products
+      const pendingProducts = products.filter(
+        (p) => p.status === "pending"
+      ).length;
+
+      // Active = vendor's approved products
+      const activeProducts = products.filter(
+        (p) => p.status === "approved"
+      ).length;
+
+      // Featured = vendor's products that have featured tags
+      const featuredProducts = products.filter((p) => {
+        try {
+          const details =
+            typeof p.product_details === "string"
+              ? JSON.parse(p.product_details)
+              : p.product_details || {};
+          return details.featured && details.featured.length > 0;
+        } catch {
+          return false;
+        }
+      }).length;
+
+      setStats({
+        totalProducts,
+        activeProducts,
+        featuredProducts,
+        lowStock: 0,
+        pendingProducts,
+      });
     }
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+  }
   };
 
   return (
@@ -2135,6 +2184,8 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
   const [visibilityModal, setVisibilityModal] = useState(null);
+  const [vendorDetailPanel, setVendorDetailPanel] = useState(null);
+  const [viewCategoryData, setViewCategoryData] = useState(null);
 
 
   // Fetch vendors when component mounts (for admin only)
@@ -2143,6 +2194,34 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
       fetchVendors();
     }
   }, [userRole]);
+
+
+  // Fetch category attributes for vendor detail view
+useEffect(() => {
+  const fetchAttributes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/attributes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.success) {
+        const attributes = {
+          metal: { id: null, options: [] },
+          diamond: { id: null, options: [] },
+          size: { id: null, options: [] },
+          weight: { id: null, options: [] },
+        };
+        res.data.data.forEach((attr) => {
+          attributes[attr.type] = { id: attr.id, options: attr.options };
+        });
+        setViewCategoryData({ attributes });
+      }
+    } catch (e) {
+      console.error("Error fetching attributes:", e);
+    }
+  };
+  fetchAttributes();
+}, []);
 
 
   const token = localStorage.getItem('token');
@@ -2671,6 +2750,7 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
                       onDelete={handleDelete}
                       onToggleVisibility={handleToggleVisibility}
                       onViewImages={setImagePopup}
+                      onViewDetails={setVendorDetailPanel}
                       canEditDelete={canEditDelete(product)}
                       userRole={userRole}
                     />
@@ -2696,6 +2776,14 @@ const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
           }}
           categories={categories}
           userRole={userRole}
+        />
+      )}
+
+      {vendorDetailPanel && (
+        <VendorProductDetailPanel
+          product={vendorDetailPanel}
+          onClose={() => setVendorDetailPanel(null)}
+          categoryData={viewCategoryData}
         />
       )}
 
@@ -2783,6 +2871,7 @@ const ProductCard = ({
   onDelete,
   onToggleVisibility,
   onViewImages,
+  onViewDetails,
   canEditDelete,
   userRole,
 }) => {
@@ -3062,6 +3151,16 @@ const ProductCard = ({
               </div>
             )}
           </div>
+        )}
+        {/* View Details Button for Vendors */}
+        {userRole === "vendor" && (
+          <button
+            onClick={() => onViewDetails(product)}
+            className="mt-3 w-full py-2 bg-gradient-to-r from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 text-emerald-700 rounded-lg text-xs font-semibold border border-emerald-200 flex items-center justify-center gap-2 transition-all"
+          >
+            <FiEye className="w-3.5 h-3.5" />
+            View Full Details
+          </button>
         )}
       </div>
     </div>
@@ -8330,5 +8429,531 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
   );
 };
 
+const VendorProductDetailPanel = ({ product, onClose, categoryData }) => {
+  const [activeTab, setActiveTab] = useState("basic");
+
+  let productDetails = product.product_details;
+  if (typeof productDetails === "string") {
+    try { productDetails = JSON.parse(productDetails); } 
+    catch (e) { productDetails = {}; }
+  }
+
+  const images = productDetails?.images || [];
+  const variantPricing = productDetails?.variantPricing || {};
+
+  // Collect all variant images
+  const allVariantImages = [];
+  Object.entries(variantPricing).forEach(([key, pricing]) => {
+    const imgs = pricing.variant_images || [];
+    imgs.forEach(img => {
+      if (!allVariantImages.includes(img)) allVariantImages.push(img);
+    });
+  });
+
+  const statusConfig = {
+    pending: { color: "bg-amber-100 text-amber-800 border-amber-300", icon: "⏳", label: "Pending Approval" },
+    approved: { color: "bg-emerald-100 text-emerald-800 border-emerald-300", icon: "✅", label: "Approved" },
+    rejected: { color: "bg-red-100 text-red-800 border-red-300", icon: "❌", label: "Rejected" },
+  };
+  const statusInfo = statusConfig[product.status] || statusConfig.pending;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={onClose}
+      />
+
+      {/* Sliding Panel */}
+      <div className="fixed inset-y-0 right-0 w-full md:w-[780px] lg:w-[900px] bg-white shadow-2xl z-50 flex flex-col">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-emerald-600 to-green-600 text-white">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <FiArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold truncate max-w-xs sm:max-w-md">
+                {product.name}
+              </h2>
+              <p className="text-xs text-emerald-100">Product Details</p>
+            </div>
+          </div>
+          {/* Status Badge */}
+          <div className={`px-3 py-1.5 rounded-full text-xs font-bold border ${statusInfo.color}`}>
+            {statusInfo.icon} {statusInfo.label}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b bg-white">
+          <nav className="flex overflow-x-auto px-4">
+            {[
+              { id: "basic", label: "Basic Info", icon: "📝" },
+              { id: "images", label: "Images", icon: "🖼️" },
+              { id: "variants", label: "Variants & Pricing", icon: "⚙️" },
+              { id: "status", label: "Status", icon: "📋" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "border-emerald-500 text-emerald-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
+          
+          {/* BASIC INFO TAB */}
+          {activeTab === "basic" && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiInfo className="text-emerald-600" /> Basic Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Product Name</p>
+                    <p className="font-semibold text-gray-900">{product.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Slug / URL</p>
+                    <p className="font-semibold text-gray-900 break-all">{product.slug}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Category</p>
+                    <p className="font-semibold text-gray-900">{productDetails.category || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Created On</p>
+                    <p className="font-semibold text-gray-900">
+                      {new Date(product.created_at).toLocaleDateString("en-IN", {
+                        day: "2-digit", month: "short", year: "numeric"
+                      })}
+                    </p>
+                  </div>
+                  {productDetails.price && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Direct Price</p>
+                      <p className="font-bold text-emerald-700 text-lg">₹{Number(productDetails.price).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {product.Lotusjewel_direct_price && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Lotusjewel Price</p>
+                      <p className="font-bold text-blue-700 text-lg">₹{Number(product.Lotusjewel_direct_price).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+
+                {productDetails.description && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Description</p>
+                    <p className="text-gray-700 leading-relaxed">{productDetails.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Featured Tags */}
+              {productDetails.featured?.length > 0 && (
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <FiStar className="text-amber-500" /> Featured Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {productDetails.featured.map((tag, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-amber-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Target Audience */}
+              {productDetails.gender?.length > 0 && (
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <FiUsers className="text-blue-500" /> Target Audience
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {productDetails.gender.map((g, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200">
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* IMAGES TAB */}
+          {activeTab === "images" && (
+            <div className="space-y-4">
+              {/* Product Images */}
+              {images.length > 0 && (
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <FiImage className="text-emerald-600" /> Product Images ({images.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                        <img
+                          src={`${BASE_URL}${img}`}
+                          alt={`Product ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3C/svg%3E';
+                          }}
+                        />
+                        <div className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                          {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Variant Images */}
+              {allVariantImages.length > 0 && (
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <FiImage className="text-blue-600" /> Variant Images ({allVariantImages.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {allVariantImages.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                        <img
+                          src={`${BASE_URL}${img}`}
+                          alt={`Variant ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {images.length === 0 && allVariantImages.length === 0 && (
+                <div className="bg-white rounded-xl p-10 border border-gray-200 text-center">
+                  <FiImage className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No images uploaded yet</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VARIANTS & PRICING TAB */}
+          {activeTab === "variants" && (
+            <div className="space-y-4">
+              {/* Variant Config Summary */}
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiSettings className="text-emerald-600" /> Variant Configuration
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {productDetails.hasMetalChoice && (
+                    <span className="px-3 py-2 bg-emerald-50 text-emerald-800 rounded-lg text-sm font-medium border border-emerald-200 flex items-center gap-2">
+                      🔩 Metal Choice Active
+                    </span>
+                  )}
+                  {productDetails.hasDiamondChoice && (
+                    <span className="px-3 py-2 bg-purple-50 text-purple-800 rounded-lg text-sm font-medium border border-purple-200 flex items-center gap-2">
+                      💎 Diamond Choice Active
+                    </span>
+                  )}
+                  {(productDetails.configureSizes || 
+                    (productDetails.selectedSizes && Object.values(productDetails.selectedSizes).some(v => v === true))
+                  ) && (
+                    <span className="px-3 py-2 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium border border-blue-200 flex items-center gap-2">
+                      📏 Size Configuration Active
+                    </span>
+                  )}
+                  {productDetails.hasWeightChoice && (
+                    <span className="px-3 py-2 bg-amber-50 text-amber-800 rounded-lg text-sm font-medium border border-amber-200 flex items-center gap-2">
+                      ⚖️ Weight Choice Active
+                    </span>
+                  )}
+                  {!productDetails.hasMetalChoice && 
+                  !productDetails.hasDiamondChoice && 
+                  !productDetails.configureSizes && 
+                  !(productDetails.selectedSizes && Object.values(productDetails.selectedSizes).some(v => v === true)) && (
+                    <span className="px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm border border-gray-200">
+                      No variant configuration
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Variant Pricing Details */}
+              {Object.keys(variantPricing).length > 0 ? (
+                <div className="space-y-3">
+                  {Object.entries(variantPricing)
+                    .filter(([key, pricing]) => {
+                      const parts = key.split("-");
+                      const weightPart = parts[3];
+
+                      // If hasWeightChoice is active, only show variants that have a weight part AND are selected
+                      if (productDetails.hasWeightChoice) {
+                        if (!weightPart || weightPart === "none" || weightPart === undefined) return false;
+                        if (!pricing.selected) return false;
+                      } else {
+                        // If no weight choice, skip any key that accidentally has a 4th part
+                        if (weightPart && weightPart !== "none" && weightPart !== undefined) return false;
+                      }
+
+                      const files = pricing.files || [];
+                      if (files.length === 0) return false;
+
+                      // Must have at least one file with meaningful data
+                      const hasValidFile = files.some(f =>
+                        f.file_type && (
+                          (f.price !== null && f.price !== undefined && f.price !== "") ||
+                          f.file_name ||
+                          f.stl_file_link
+                        )
+                      );
+                      return hasValidFile;
+                    })
+                    .map(([key, pricing]) => {
+                      const files = pricing.files || [];
+
+                      const [metalPart, diamondPart, sizePart, weightPart] = key.split("-");
+
+                      const getLabel = (part, type) => {
+                        if (!part || part === "none") return null;
+                        const opt = categoryData?.attributes?.[type]?.options?.find(
+                          o => o.id === parseInt(part)
+                        );
+                        return opt?.option_name || `${type} ${part}`;
+                      };
+
+                      const metalLabel = getLabel(metalPart, "metal");
+                      const diamondLabel = getLabel(diamondPart, "diamond");
+                      const sizeLabel = getLabel(sizePart, "size");
+                      const weightLabel = getLabel(weightPart, "weight");
+
+                      const variantTitle = [
+                        metalLabel && `🔩 ${metalLabel}`,
+                        diamondLabel && `💎 ${diamondLabel}`,
+                        sizeLabel && `📏 ${sizeLabel}`,
+                        weightLabel && `⚖️ ${weightLabel}`,
+                      ].filter(Boolean).join(" + ") || "Base Variant";
+
+                      return (
+                        <div key={key} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                          <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                            <p className="font-bold text-gray-800 text-sm">{variantTitle}</p>
+                          </div>
+                          <div className="p-4 space-y-2">
+                            {files.map((file, idx) => {
+                              const fileIcons = {
+                                stl_file: "📄",
+                                cam_product: "⚙️",
+                                rubber_mold: "🔧",
+                                casting_model: "🏭",
+                                finished_product: "✨",
+                              };
+                              const fileLabels = {
+                                stl_file: "STL File",
+                                cam_product: "CAM Product",
+                                rubber_mold: "Rubber Mold",
+                                casting_model: "Casting Model",
+                                finished_product: "Finished Product",
+                              };
+
+                              return (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xl">{fileIcons[file.file_type] || "📁"}</span>
+                                    <div>
+                                      <p className="text-sm font-semibold text-gray-800">
+                                        {fileLabels[file.file_type] || file.file_type}
+                                      </p>
+                                      {/* Description */}
+                                      {(file.stl_file_description || file.cam_product_description || file.rubber_mold_description) && (
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                          {file.stl_file_description || file.cam_product_description || file.rubber_mold_description}
+                                        </p>
+                                      )}
+                                      {/* File name */}
+                                      {file.file_name && (
+                                        <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                                          <FiFileText className="w-3 h-3" />
+                                          {file.file_name}
+                                          {file.file_size && (
+                                            <span className="text-gray-400 ml-1">
+                                              ({(file.file_size / 1024 / 1024).toFixed(2)} MB)
+                                            </span>
+                                          )}
+                                        </p>
+                                      )}
+                                      {/* Link */}
+                                      {file.stl_file_link && (
+                                        <a
+                                          href={file.stl_file_link}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-500 underline flex items-center gap-1 mt-0.5"
+                                        >
+                                          <FiLink className="w-3 h-3" /> View Link
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    {file.price !== null && file.price !== undefined && file.price !== "" ? (
+                                      <span className="text-sm font-bold text-emerald-700">
+                                        ₹{Number(file.price).toLocaleString()}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-400 italic">On Enquiry</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {/* Variant images preview */}
+                            {pricing.variant_images?.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <p className="text-xs text-gray-500 mb-2 font-semibold">Variant Images:</p>
+                                <div className="flex gap-2 flex-wrap">
+                                  {pricing.variant_images.map((img, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={`${BASE_URL}${img}`}
+                                      alt={`Variant image ${idx + 1}`}
+                                      className="w-14 h-14 object-cover rounded-lg border border-gray-200"
+                                      onError={(e) => {
+                                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56"%3E%3Crect fill="%23f3f4f6" width="56" height="56"/%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-10 border border-gray-200 text-center">
+                  <FiSettings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No variant pricing configured</p>
+                </div>
+              )}
+            </div>
+          )}
+
+            {(product.Lotusjewel_direct_price || productDetails.Lotusjewel_direct_price) && (
+            <div className="bg-white rounded-xl p-5 border border-blue-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="text-blue-600">🏪</span> Lotusjewel Direct Price
+              </h3>
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div>
+                  <p className="text-sm text-blue-700 font-medium">
+                    Price shown on Lotusjewel website instead of individual variant prices
+                  </p>
+                  <p className="text-xs text-blue-500 mt-1">
+                    Variants are hidden on Lotusjewel — only this price is displayed
+                  </p>
+                </div>
+                <div className="text-right ml-4">
+                  <span className="text-2xl font-bold text-blue-700">
+                    ₹{Number(product.Lotusjewel_direct_price || productDetails.Lotusjewel_direct_price).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STATUS TAB */}
+          {activeTab === "status" && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiAlertCircle className="text-emerald-600" /> Approval Status
+                </h3>
+                <div className={`p-4 rounded-xl border-2 ${statusInfo.color} mb-4`}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{statusInfo.icon}</span>
+                    <div>
+                      <p className="font-bold text-lg">{statusInfo.label}</p>
+                      <p className="text-sm opacity-80">
+                        {product.status === "pending" && "Your product is waiting for admin review."}
+                        {product.status === "approved" && "Your product is live and visible to customers."}
+                        {product.status === "rejected" && "Your product was not approved. See reason below."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rejection Reason */}
+                {product.status === "rejected" && product.rejection_reason && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
+                      <FiAlertCircle className="w-4 h-4" /> Rejection Reason:
+                    </p>
+                    <p className="text-sm text-red-700">{product.rejection_reason}</p>
+                  </div>
+                )}
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Submitted On</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {new Date(product.created_at).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Last Updated</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {new Date(product.updated_at || product.created_at).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t bg-white">
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back to Products
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
 
 export default Products;

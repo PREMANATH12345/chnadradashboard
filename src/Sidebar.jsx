@@ -88,12 +88,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onLogout, user }) => {
       icon: <CubeIcon className="w-4" />,
       roles: ["admin", "vendor"],
     },
-    {
-      path: "vendorDash",
-      label: "Vendor Dashboard",
-      icon: <BuildingStorefrontIcon className="w-4" />,
-      roles: ["vendor"],
-    },
+    // {
+    //   path: "vendorDash",
+    //   label: "Vendor Dashboard",
+    //   icon: <BuildingStorefrontIcon className="w-4" />,
+    //   roles: ["vendor"],
+    // },
     {
       path: "reviews",
       label: "Reviews",
