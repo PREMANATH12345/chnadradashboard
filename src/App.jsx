@@ -142,7 +142,7 @@ function App() {
 
     // Redirect based on vendor flag
     if (userData?.role === "vendor") {
-      window.location.href = "http://localhost:3001/";
+      window.location.href = import.meta.env.VITE_REDIRECT_URL || "https://www.lotuscasting.com/";
     } else {
       window.location.href = "/";
     }

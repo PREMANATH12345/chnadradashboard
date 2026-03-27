@@ -406,6 +406,160 @@ const VariantImageUpload = ({
   );
 };
 
+const MultiSelectDropdown = ({ label, icon, options, selected, onChange, placeholder, colorScheme = "emerald", disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  const colors = {
+    emerald: {
+      badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      remove: "text-emerald-600 hover:text-emerald-800",
+      header: "border-emerald-300 focus-within:ring-emerald-500",
+      item: "hover:bg-emerald-50",
+      check: "text-emerald-600",
+      search: "focus:ring-emerald-500",
+    },
+    blue: {
+      badge: "bg-blue-100 text-blue-800 border-blue-200",
+      remove: "text-blue-600 hover:text-blue-800",
+      header: "border-blue-300 focus-within:ring-blue-500",
+      item: "hover:bg-blue-50",
+      check: "text-blue-600",
+      search: "focus:ring-blue-500",
+    },
+  };
+
+  const c = colors[colorScheme] || colors.emerald;
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = options.filter(opt =>
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (opt) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter(s => s !== opt));
+    } else {
+      onChange([...selected, opt]);
+    }
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      {/* Header - clickable to open */}
+      <div
+        className={`min-h-[44px] w-full px-3 py-2 border-2 rounded-xl flex flex-wrap gap-1.5 items-center ${c.header} transition-all ${disabled ? "opacity-60 cursor-not-allowed bg-gray-50" : "cursor-pointer bg-white"}`}
+        onClick={() => { if (!disabled) setIsOpen(!isOpen); }}
+      >
+        {selected.length === 0 && (
+          <span className="text-gray-400 text-sm">{placeholder || `Select ${label}...`}</span>
+        )}
+        {selected.map(item => (
+          <span
+            key={item}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.badge}`}
+          >
+            {item}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggle(item); }}
+              className={`ml-0.5 ${c.remove} font-bold text-sm leading-none`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <div className="ml-auto flex items-center gap-1 text-gray-400 flex-shrink-0">
+          {selected.length > 0 && (
+            <span className="text-xs font-medium bg-gray-100 px-1.5 py-0.5 rounded-full">
+              {selected.length}
+            </span>
+          )}
+          <svg
+            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          {/* Search */}
+          <div className="p-2 border-b border-gray-100">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${c.search}`}
+              autoFocus
+            />
+          </div>
+
+          {/* Options */}
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">
+                No options found
+              </div>
+            ) : (
+              filtered.map(opt => {
+                const isSelected = selected.includes(opt);
+                return (
+                  <div
+                    key={opt}
+                    onClick={(e) => { e.stopPropagation(); toggle(opt); }}
+                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${c.item} ${isSelected ? "bg-opacity-50" : ""}`}
+                  >
+                    <div className={`w-4 h-4 border-2 rounded flex items-center justify-center flex-shrink-0 ${isSelected ? `border-current bg-current ${c.check}` : "border-gray-300"}`}>
+                      {isSelected && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700">{opt}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          {selected.length > 0 && (
+            <div className="p-2 border-t border-gray-100 flex justify-between items-center">
+              <span className="text-xs text-gray-500">{selected.length} selected</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onChange([]); }}
+                className="text-xs text-red-500 hover:text-red-700 font-medium"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Products = () => {
   const [currentStep, setCurrentStep] = useState("dashboard");
   const [categories, setCategories] = useState([]);
@@ -977,7 +1131,21 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {pendingProducts.map((product) => {
                 const productDetails = parseProductDetails(product);
-                const mainImage = productDetails.images?.[0] || null;
+                // Get first variant image if no main product image
+                const getFirstVariantImage = (details) => {
+                  if (details.images?.[0]) return details.images[0];
+                  
+                  // Look through variantPricing for first available variant image
+                  if (details.variantPricing) {
+                    for (const [key, pricing] of Object.entries(details.variantPricing)) {
+                      const imgs = pricing.variant_images || [];
+                      if (imgs.length > 0) return imgs[0];
+                    }
+                  }
+                  return null;
+                };
+
+                const mainImage = getFirstVariantImage(productDetails);
 
                 return (
                   <div
@@ -1188,33 +1356,53 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                 {/* Left Column - Images & Basic Info */}
                 <div>
                   {/* Images */}
-                  {viewProductDetails.product_details?.images?.length > 0 ? (
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <FiImage className="w-5 h-5 text-blue-600" />
-                        Product Images
-                      </h4>
-                      <div className="grid grid-cols-3 gap-3">
-                        {viewProductDetails.product_details.images.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={`${BASE_URL}${img}`}
-                            alt={`Product ${idx + 1}`}
-                            className="w-full h-40 object-cover rounded-lg border border-gray-200"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
-                            }}
-                          />
-                        ))}
+                  {(() => {
+                    const productImgs = viewProductDetails.product_details?.images || [];
+                    
+                    // Collect all variant images
+                    const variantImgs = [];
+                    const vp = viewProductDetails.product_details?.variantPricing || {};
+                    Object.values(vp).forEach(pricing => {
+                      (pricing.variant_images || []).forEach(img => {
+                        if (!variantImgs.includes(img)) variantImgs.push(img);
+                      });
+                    });
+
+                    const allImages = [...productImgs, ...variantImgs];
+
+                    return allImages.length > 0 ? (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <FiImage className="w-5 h-5 text-blue-600" />
+                          Product Images
+                          {variantImgs.length > 0 && productImgs.length === 0 && (
+                            <span className="text-xs text-gray-400 font-normal">
+                              (variant images)
+                            </span>
+                          )}
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          {allImages.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={`${BASE_URL}${img}`}
+                              alt={`Product ${idx + 1}`}
+                              className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext fill="%239ca3af" font-family="Arial" font-size="12" x="50" y="50" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
-                      <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-500">No images uploaded</p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="mb-6 p-8 bg-gray-100 rounded-xl text-center">
+                        <FiImage className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-500">No images uploaded</p>
+                      </div>
+                    );
+                  })()}
 
                   {/* Basic Information */}
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-6">
@@ -1328,7 +1516,7 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                         </div>
                       )}
 
-                      {/* Size Configuration - show actual names */}
+                      {/* Size Configuration - show only size names */}
                       {viewProductDetails.product_details.selectedSizes &&
                         Object.keys(viewProductDetails.product_details.selectedSizes).some(k => viewProductDetails.product_details.selectedSizes[k]) && (
                           <div className="bg-white rounded-lg p-3 border border-emerald-200">
@@ -1336,21 +1524,33 @@ const VendorProductsSidebar = ({ onClose, onApproveProduct }) => {
                               <span>📏</span> Sizes Configured
                             </p>
                             <div className="flex flex-wrap gap-2">
-                              {Object.entries(viewProductDetails.product_details.selectedSizes)
-                                .filter(([_, isSelected]) => isSelected)
-                                .map(([sizeKey]) => {
-                                  const parts = sizeKey.split('-');
-                                  const sizePart = parts[2];
-                                  if (!sizePart || sizePart === 'none') return null;
-                                  const sizeOption = categoryData?.attributes?.size?.options?.find(o => o.id === parseInt(sizePart));
-                                  const metalOption = parts[0] !== 'none' ? categoryData?.attributes?.metal?.options?.find(o => o.id === parseInt(parts[0])) : null;
-                                  const diamondOption = parts[1] !== 'none' ? categoryData?.attributes?.diamond?.options?.find(o => o.id === parseInt(parts[1])) : null;
+                              {(() => {
+                                // Collect unique size IDs only
+                                const uniqueSizeIds = new Set();
+                                Object.entries(viewProductDetails.product_details.selectedSizes)
+                                  .filter(([_, isSelected]) => isSelected)
+                                  .forEach(([sizeKey]) => {
+                                    const parts = sizeKey.split('-');
+                                    const sizePart = parts[2];
+                                    if (sizePart && sizePart !== 'none') {
+                                      uniqueSizeIds.add(parseInt(sizePart));
+                                    }
+                                  });
+
+                                return [...uniqueSizeIds].map(sizeId => {
+                                  const sizeOption = categoryData?.attributes?.size?.options?.find(
+                                    o => o.id === sizeId
+                                  );
                                   return (
-                                    <span key={sizeKey} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                      {[metalOption?.option_name, diamondOption?.option_name, sizeOption?.option_name].filter(Boolean).join(' + ')}
+                                    <span
+                                      key={sizeId}
+                                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+                                    >
+                                      {sizeOption?.option_name || `Size ${sizeId}`}
                                     </span>
                                   );
-                                })}
+                                });
+                              })()}
                             </div>
                           </div>
                         )}
@@ -5227,62 +5427,42 @@ const EditProductPanel = ({
               {/* Right Column */}
               <div className="space-y-4 sm:space-y-6">
                 {/* Featured Options */}
-                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
-                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
-                      <FiStar className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                    <span>Featured Tags</span>
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                    {featureOptions.map(opt => opt.title).map((feature) => (
-                      <label
-                        key={feature}
-                        className="flex items-center gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.featured.includes(feature)}
-                          onChange={() => toggleFeatured(feature)}
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 rounded"
-                          disabled={!canEdit}
-                        />
-                        <span className="text-xs sm:text-sm font-medium text-gray-700">
-                          {feature}
-                        </span>
-                      </label>
-                    ))}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
+                    <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
+                        <FiStar className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Featured Tags</span>
+                    </label>
+                    <MultiSelectDropdown
+                      label="Featured Tags"
+                      options={featureOptions.map(opt => opt.title)}
+                      selected={formData.featured}
+                      onChange={(val) => setFormData(prev => ({ ...prev, featured: val }))}
+                      placeholder="Select featured tags..."
+                      colorScheme="emerald"
+                      disabled={!canEdit}
+                    />
                   </div>
-                </div>
 
-                {/* Gender Selection - DYNAMIC */}
-                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
-                  <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
-                      <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                    <span>Target Audience</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    {targetAudienceOptions.map((option) => (
-                      <label
-                        key={option.id}
-                        className="flex flex-col items-center justify-center p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl border border-gray-200 hover:border-emerald-300 cursor-pointer transition-all"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.gender.includes(option.gender)}
-                          onChange={() => toggleGender(option.gender)}
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 focus:ring-emerald-500 mb-1.5"
-                          disabled={!canEdit}
-                        />
-                        <span className="text-xs sm:text-sm font-medium text-gray-700">
-                          {option.gender}
-                        </span>
-                      </label>
-                    ))}
+                  {/* Target Audience */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200">
+                    <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg text-white">
+                        <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </div>
+                      <span>Target Audience</span>
+                    </label>
+                    <MultiSelectDropdown
+                      label="Target Audience"
+                      options={targetAudienceOptions.map(opt => opt.gender)}
+                      selected={formData.gender}
+                      onChange={(val) => setFormData(prev => ({ ...prev, gender: val }))}
+                      placeholder="Select target audience..."
+                      colorScheme="blue"
+                      disabled={!canEdit}
+                    />
                   </div>
-                </div>
 
                 {/* Image Management */}
                 <div className={`bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-emerald-200 ${hasVariants ? 'opacity-70 ring-1 ring-amber-200' : ''}`}>
@@ -6941,52 +7121,34 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
               {/* Featured Options */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                   <span>⭐</span>
                   Featured Options
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {featureOptions.map(opt => opt.title).map((feature) => (
-                    <label
-                      key={feature}
-                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={product.featured.includes(feature)}
-                        onChange={() =>
-                          toggleProductFeatured(product.id, feature)
-                        }
-                        className="w-4 h-4 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">{feature}</span>
-                    </label>
-                  ))}
-                </div>
+                <MultiSelectDropdown
+                  label="Featured Tags"
+                  options={featureOptions.map(opt => opt.title)}
+                  selected={product.featured}
+                  onChange={(val) => setProducts(products.map(p => p.id === product.id ? { ...p, featured: val } : p))}
+                  placeholder="Select featured tags..."
+                  colorScheme="emerald"
+                />
               </div>
 
-              {/* Gender Options - DYNAMIC */}
+              {/* Target Audience */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                   <span>👥</span>
                   Target Audience
                 </label>
-                <div className="flex flex-wrap gap-3">
-                  {targetAudienceOptions.map((option) => (
-                    <label
-                      key={option.id}
-                      className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-green-50 transition-colors flex-1 min-w-[100px]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={product.gender.includes(option.gender)}
-                        onChange={() => toggleProductGender(product.id, option.gender)}
-                        className="w-4 h-4 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">{option.gender}</span>
-                    </label>
-                  ))}
-                </div>
+                <MultiSelectDropdown
+                  label="Target Audience"
+                  options={targetAudienceOptions.map(opt => opt.gender)}
+                  selected={product.gender}
+                  onChange={(val) => setProducts(products.map(p => p.id === product.id ? { ...p, gender: val } : p))}
+                  placeholder="Select target audience..."
+                  colorScheme="blue"
+                />
               </div>
             </div>
 
