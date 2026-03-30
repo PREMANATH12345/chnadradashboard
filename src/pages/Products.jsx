@@ -567,6 +567,7 @@ const Products = () => {
   const [userRole, setUserRole] = useState(null);
   const [showVendorSidebar, setShowVendorSidebar] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [dashboardStatusFilter, setDashboardStatusFilter] = useState(null);
   const [bulkImportFile, setBulkImportFile] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
@@ -739,7 +740,10 @@ const Products = () => {
         {currentStep === "dashboard" && (
           <ProductsDashboard
             categories={categories}
-            onViewProducts={() => setCurrentStep("view-products")}
+            onViewProducts={(statusFilter) => {
+              setDashboardStatusFilter(statusFilter || null);
+              setCurrentStep("view-products");
+            }}
             onAddProducts={() => {
               if (categories.length === 0) {
                 alert("Please create a category first!");
@@ -756,7 +760,10 @@ const Products = () => {
         {currentStep === "view-products" && (
           <ViewProducts
             categories={categories}
-            onBack={() => setCurrentStep("dashboard")}
+            onBack={() => {
+              setDashboardStatusFilter(null);
+              setCurrentStep("dashboard");
+            }}
             onAddProduct={() => {
               if (categories.length === 0) {
                 alert("Please create a category first!");
@@ -765,8 +772,9 @@ const Products = () => {
               setCurrentStep("add-products");
             }}
             userRole={userRole}
+            initialStatusFilter={dashboardStatusFilter}
           />
-        )}
+      )}
 
         {currentStep === "add-products" && (
           <AddProducts
@@ -1828,57 +1836,65 @@ const ProductsDashboard = ({
     fetchStats();
   }, []);
 
-  const fetchStats = async () => {
+ const fetchStats = async () => {
   try {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
     const isVendor = userRole === "vendor";
     const vendorId = user?.vendor_id || user?.id;
 
-    // ✅ For vendors, filter by vendor_id from the start
-    const whereClause = isVendor
+    const baseWhere = isVendor
       ? { is_deleted: 0, vendor_id: vendorId }
       : { is_deleted: 0 };
 
+    // Fetch all products
     const response = await axios.post(
       `${API_URL}/doAll`,
-      { action: "get", table: "products", where: whereClause },
+      { action: "get", table: "products", where: baseWhere },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    if (response.data.success) {
+    // Fetch all NON-DELETED categories
+    const categoryResponse = await axios.post(
+      `${API_URL}/doAll`,
+      { action: "get", table: "category", where: { is_deleted: 0 } },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success && categoryResponse.data.success) {
       const products = response.data.data || [];
+      const activeCategories = categoryResponse.data.data || [];
 
-      // Total = all vendor's products regardless of status
-      const totalProducts = products.length;
+      // Get valid category IDs (non-deleted)
+      const validCategoryIds = new Set(
+        activeCategories.map((c) => c.id)
+      );
 
-      // Pending = vendor's pending products
-      const pendingProducts = products.filter(
-        (p) => p.status === "pending"
-      ).length;
+      // Filter products that belong to non-deleted categories only
+      const validProducts = products.filter((p) =>
+        validCategoryIds.has(p.category_id)
+      );
 
-      // Active = vendor's approved products
-      const activeProducts = products.filter(
+      const totalProducts = validProducts.filter(
         (p) => p.status === "approved"
       ).length;
 
-      // Featured = vendor's products that have featured tags
-      const featuredProducts = products.filter((p) => {
-        try {
-          const details =
-            typeof p.product_details === "string"
-              ? JSON.parse(p.product_details)
-              : p.product_details || {};
-          return details.featured && details.featured.length > 0;
-        } catch {
-          return false;
-        }
-      }).length;
+      const pendingProducts = validProducts.filter(
+        (p) => p.status === "pending"
+      ).length;
+
+      const activeProducts = validProducts.filter(
+        (p) => p.status === "approved"
+      ).length;
+
+      const rejectedProducts = validProducts.filter(
+        (p) => p.status === "rejected"
+      ).length;
 
       setStats({
         totalProducts,
         activeProducts,
-        featuredProducts,
+        rejectedProducts,
         lowStock: 0,
         pendingProducts,
       });
@@ -1886,52 +1902,51 @@ const ProductsDashboard = ({
   } catch (error) {
     console.error("Error fetching stats:", error);
   }
-  };
+};
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <MinimalStatCard
-          icon={<FiPackage className="w-4 h-4 sm:w-5 sm:h-5" />}
-          value={stats.totalProducts}
-          label="Total Products"
-          color="emerald"
-        />
+     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+    <MinimalStatCard
+      icon={<FiPackage className="w-4 h-4 sm:w-5 sm:h-5" />}
+      value={stats.totalProducts}
+      label="Total Products"
+      color="emerald"
+      onClick={() => onViewProducts("approved")}
+      clickable={stats.totalProducts > 0}
+    />
 
-        {userRole === "vendor" && (
-          <MinimalStatCard
-            icon={<FiClock className="w-4 h-4 sm:w-5 sm:h-5" />}
-            value={stats.pendingProducts}
-            label="Pending"
-            color="amber"
-          />
-        )}
+    {userRole === "vendor" && (
+      <MinimalStatCard
+        icon={<FiClock className="w-4 h-4 sm:w-5 sm:h-5" />}
+        value={stats.pendingProducts}
+        label="Pending"
+        color="amber"
+        onClick={() => onViewProducts("pending")}
+        clickable={stats.pendingProducts > 0}
+      />
+    )}
 
-        {userRole === "admin" && (
-          <MinimalStatCard
-            icon={<FiClipboard className="w-4 h-4 sm:w-5 sm:h-5" />}
-            value={pendingCount}
-            label="Pending"
-            color="green"
-            onClick={onOpenVendorSidebar}
-            clickable={pendingCount > 0}
-          />
-        )}
+    {userRole === "admin" && (
+      <MinimalStatCard
+        icon={<FiClipboard className="w-4 h-4 sm:w-5 sm:h-5" />}
+        value={stats.pendingProducts}
+        label="Pending"
+        color="green"
+        onClick={() => onViewProducts("pending")}
+        clickable={stats.pendingProducts > 0}
+      />
+    )}
 
-        <MinimalStatCard
-          icon={<FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
-          value={stats.activeProducts}
-          label="Active"
-          color="emerald"
-        />
-
-        <MinimalStatCard
-          icon={<FiStar className="w-4 h-4 sm:w-5 sm:h-5" />}
-          value={stats.featuredProducts}
-          label="Featured"
-          color="emerald"
-        />
-      </div>
+    <MinimalStatCard
+      icon={<FiX className="w-4 h-4 sm:w-5 sm:h-5" />}
+      value={stats.rejectedProducts}
+      label="Rejected"
+      color="red"
+      onClick={() => onViewProducts("rejected")}
+      clickable={stats.rejectedProducts > 0}
+    />
+  </div>
 
       <div>
         <div className="mb-3 sm:mb-4 flex items-center justify-between">
@@ -2034,31 +2049,37 @@ const MinimalStatCard = ({
   clickable = false,
 }) => {
   const colorClasses = {
-    emerald: {
-      bg: "bg-emerald-50",
-      text: "text-emerald-600",
-      border: "border-emerald-200",
-      hover: "hover:border-emerald-300",
-    },
-    amber: {
-      bg: "bg-amber-50",
-      text: "text-amber-600",
-      border: "border-amber-200",
-      hover: "hover:border-amber-300",
-    },
-    green: {
-      bg: "bg-green-50",
-      text: "text-green-600",
-      border: "border-green-200",
-      hover: "hover:border-green-300",
-    },
-    gray: {
-      bg: "bg-gray-50",
-      text: "text-gray-600",
-      border: "border-gray-200",
-      hover: "hover:border-gray-300",
-    },
-  };
+  emerald: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+    border: "border-emerald-200",
+    hover: "hover:border-emerald-300",
+  },
+  amber: {
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    border: "border-amber-200",
+    hover: "hover:border-amber-300",
+  },
+  green: {
+    bg: "bg-green-50",
+    text: "text-green-600",
+    border: "border-green-200",
+    hover: "hover:border-green-300",
+  },
+  gray: {
+    bg: "bg-gray-50",
+    text: "text-gray-600",
+    border: "border-gray-200",
+    hover: "hover:border-gray-300",
+  },
+  red: {
+    bg: "bg-red-50",
+    text: "text-red-600",
+    border: "border-red-200",
+    hover: "hover:border-red-300",
+  },
+};
 
   const { bg, text, border, hover } = colorClasses[color];
 
@@ -2369,17 +2390,20 @@ const HideVisibilityModal = ({ product, onClose, onSave }) => {
 };
 
 
-const ViewProducts = ({ categories, onBack, onAddProduct, userRole }) => {
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+const ViewProducts = ({ categories, onBack, onAddProduct, userRole, initialStatusFilter }) => {
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(
+    categories.map((c) => c.id) // Auto-select ALL categories
+  );
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [imagePopup, setImagePopup] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
-  const [statusFilter, setStatusFilter] = useState(
-    userRole === "vendor" ? [] : ["approved"]
-  );
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (initialStatusFilter) return [initialStatusFilter];
+    return userRole === "vendor" ? [] : ["approved"];
+  });
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState("all");
   const [vendorLoading, setVendorLoading] = useState(false);
@@ -2565,18 +2589,42 @@ useEffect(() => {
     return false;
   };
 
+  const getEffectivePrice = (product) => {
+  let details = product.product_details;
+  if (typeof details === "string") {
+    try { details = JSON.parse(details); } catch { details = {}; }
+  }
+  if (!details) return 0;
+  if (details.price && parseFloat(details.price) > 0) {
+    return parseFloat(details.price);
+  }
+  if (details.variantPricing && typeof details.variantPricing === "object") {
+    for (const [key, pricing] of Object.entries(details.variantPricing)) {
+      if (pricing?.files && Array.isArray(pricing.files)) {
+        const stl = pricing.files.find(
+          f => f.file_type === "stl_file" && f.price !== null && f.price !== undefined && f.price !== ""
+        );
+        if (stl) return parseFloat(stl.price);
+      }
+    }
+  }
+  return 0;
+};
+
   const filteredProducts = products
-    .filter((product) => {
-      const productName = product.name || "";
-      const productSlug = product.slug || "";
-      const vendorName = product.vendor_name || "";
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        productName.toLowerCase().includes(searchLower) ||
-        productSlug.toLowerCase().includes(searchLower) ||
-        vendorName.toLowerCase().includes(searchLower)
-      );
-    })
+  .filter((product) => {
+    if (sortBy === "vendor" && !product.vendor_id) return false;
+
+    const productName = product.name || "";
+    const productSlug = product.slug || "";
+    const vendorName = product.vendor_name || "";
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      productName.toLowerCase().includes(searchLower) ||
+      productSlug.toLowerCase().includes(searchLower) ||
+      vendorName.toLowerCase().includes(searchLower)
+    );
+  })
     .sort((a, b) => {
       let aDetails = a.product_details;
       let bDetails = b.product_details;
@@ -2600,9 +2648,9 @@ useEffect(() => {
         case "name":
           return a.name.localeCompare(b.name);
         case "price-high":
-          return (bDetails.price || 0) - (aDetails.price || 0);
+          return getEffectivePrice(b) - getEffectivePrice(a);
         case "price-low":
-          return (aDetails.price || 0) - (bDetails.price || 0);
+          return getEffectivePrice(a) - getEffectivePrice(b);
         case "discount":
           return (bDetails.discount || 0) - (aDetails.discount || 0);
         case "date-new":
@@ -2712,7 +2760,7 @@ useEffect(() => {
               <option value="all">All Vendors</option>
               {vendors.map((vendor) => (
                 <option key={vendor.id} value={vendor.id}>
-                  {vendor.username} {vendor.email && `(${vendor.email})`}
+                  {vendor.full_name ? `${vendor.full_name} (${vendor.email})` : `(${vendor.email})`}
                 </option>
               ))}
             </select>
@@ -2745,6 +2793,58 @@ useEffect(() => {
       </div>
     );
   };
+
+  const renderAdminStatusFilter = () => {
+  if (userRole !== "admin") return null;
+
+  return (
+    <div className="mb-4 sm:mb-6">
+      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <FiFilter className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+        <label className="block text-xs sm:text-sm font-semibold text-emerald-800">
+          Filter by Status:
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <button
+          onClick={() => setStatusFilter([])}
+          className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-all ${
+            statusFilter.length === 0
+              ? "bg-gradient-to-r from-gray-600 to-gray-700 text-white"
+              : "bg-gray-50 text-gray-700 border border-gray-200"
+          }`}
+        >
+          <FiPackage className="w-3 h-3" />
+          All
+        </button>
+        {[
+          { status: "approved", label: "Approved", icon: <FiCheckCircle className="w-3 h-3" />, color: "from-emerald-500 to-green-500", bg: "from-emerald-50 to-green-50" },
+          { status: "pending", label: "Pending", icon: <FiClock className="w-3 h-3" />, color: "from-amber-500 to-yellow-500", bg: "from-amber-50 to-yellow-50" },
+          { status: "rejected", label: "Rejected", icon: <FiX className="w-3 h-3" />, color: "from-red-500 to-pink-500", bg: "from-red-50 to-pink-50" },
+        ].map(({ status, label, icon, color, bg }) => (
+          <button
+            key={status}
+            onClick={() => {
+              if (statusFilter.includes(status)) {
+                setStatusFilter(statusFilter.filter(s => s !== status));
+              } else {
+                setStatusFilter([...statusFilter, status]);
+              }
+            }}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-all ${
+              statusFilter.includes(status)
+                ? `bg-gradient-to-r ${color} text-white`
+                : `bg-gradient-to-r ${bg} text-gray-700 border border-gray-200`
+            }`}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -2796,6 +2896,9 @@ useEffect(() => {
       {/* Vendor Filter for Admin */}
       {renderVendorFilter()}
 
+      {/* Status Filter for Admin */}
+      {renderAdminStatusFilter()}
+
       {/* Status Filter for Vendors */}
       {renderStatusFilter()}
 
@@ -2825,7 +2928,6 @@ useEffect(() => {
                 {userRole === "admin" && <option value="vendor">Sort by Vendor</option>}
                 <option value="price-high">Price: High to Low</option>
                 <option value="price-low">Price: Low to High</option>
-                <option value="discount">Discount</option>
                 <option value="date-new">Date: Newest First</option>
                 <option value="date-old">Date: Oldest First</option>
               </select>
