@@ -1830,430 +1830,6 @@ const CollectionSlider = ({ items, categories = [] }) => {
   );
 };
 
-// PreviewSection Component
-// const PreviewSection = ({ section, categories = [] }) => {
-//   if (!section.enabled || !section.data?.items?.length) return null;
-
-//   switch (section.type) {
-//     case SECTION_TYPES.HERO:
-//       return (
-//         <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] overflow-hidden">
-//           {section.data.items.map((item, idx) => (
-//             <div key={idx} className="w-full h-full">
-//               {item.image && (
-//                 <img
-//                   src={getImageUrl(item.image)}
-//                   alt={item.title || "Hero"}
-//                   className="w-full h-full object-cover"
-//                 />
-//               )}
-//             </div>
-//           ))}
-//         </div>
-//       );
-
-//     case SECTION_TYPES.FEATURE:
-//       return (
-//         <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-//           <div className="max-w-6xl mx-auto">
-//             {section.data.items?.map((item, idx) => (
-//               <div key={idx} className="mb-8 sm:mb-12 md:mb-16 last:mb-0">
-//                 {(item.title || item.subtitle) && (
-//                   <div className="text-center mb-6 sm:mb-8">
-//                     {item.title && (
-//                       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">
-//                         {item.title}
-//                       </h2>
-//                     )}
-//                     {item.subtitle && (
-//                       <p className="text-base sm:text-lg md:text-xl text-gray-600">
-//                         {item.subtitle}
-//                       </p>
-//                     )}
-//                   </div>
-//                 )}
-
-//                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-//                   <div
-//                     className="lg:row-span-2 relative group cursor-pointer"
-//                     onClick={() => {
-//                       if (item.leftImageCategory) {
-//                         const category = categories.find(
-//                           (cat) => cat.id === item.leftImageCategory
-//                         );
-//                         alert(
-//                           `Redirecting to category: ${
-//                             category?.name || "Unknown Category"
-//                           }`
-//                         );
-//                       }
-//                     }}
-//                   >
-//                     {item.leftImage && (
-//                       <>
-//                         <img
-//                           src={getImageUrl(item.leftImage)}
-//                           alt={item.title || "Feature"}
-//                           className="w-full h-full min-h-[300px] sm:min-h-[400px] object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
-//                         />
-//                         {item.leftImageCategory && (
-//                           <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-//                             <FiChevronDown className="w-2 h-2" />
-//                             Click to visit category
-//                           </div>
-//                         )}
-//                       </>
-//                     )}
-//                   </div>
-
-//                   <div className="space-y-4 sm:space-y-6">
-//                     <div
-//                       className="relative group cursor-pointer"
-//                       onClick={() => {
-//                         if (item.rightImageCategory) {
-//                           const category = categories.find(
-//                             (cat) => cat.id === item.rightImageCategory
-//                           );
-//                           alert(
-//                             `Redirecting to category: ${
-//                               category?.name || "Unknown Category"
-//                             }`
-//                           );
-//                         }
-//                       }}
-//                     >
-//                       {item.rightImage && (
-//                         <>
-//                           <img
-//                             src={getImageUrl(item.rightImage)}
-//                             alt={`${item.title || "Feature"} right top`}
-//                             className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
-//                           />
-//                           {item.rightImageCategory && (
-//                             <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-//                               <FiChevronDown className="w-2 h-2" />
-//                               Click to visit category
-//                             </div>
-//                           )}
-//                         </>
-//                       )}
-//                     </div>
-
-//                     <div
-//                       className="relative group cursor-pointer"
-//                       onClick={() => {
-//                         if (item.rightBottomImageCategory) {
-//                           const category = categories.find(
-//                             (cat) => cat.id === item.rightBottomImageCategory
-//                           );
-//                           alert(
-//                             `Redirecting to category: ${
-//                               category?.name || "Unknown Category"
-//                             }`
-//                           );
-//                         }
-//                       }}
-//                     >
-//                       {item.rightBottomImage && (
-//                         <>
-//                           <img
-//                             src={getImageUrl(item.rightBottomImage)}
-//                             alt={`${item.title || "Feature"} right bottom`}
-//                             className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg sm:rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
-//                           />
-//                           {item.rightBottomImageCategory && (
-//                             <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-//                               <FiChevronDown className="w-2 h-2" />
-//                               Click to visit category
-//                             </div>
-//                           )}
-//                         </>
-//                       )}
-//                     </div>
-//                   </div>
-//                 </div>
-
-//                 {(item.leftImageCategory ||
-//                   item.rightImageCategory ||
-//                   item.rightBottomImageCategory) && (
-//                   <div className="mt-4 text-center">
-//                     <p className="text-xs text-gray-500">
-//                       Click on images to visit linked categories
-//                     </p>
-//                   </div>
-//                 )}
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       );
-
-//     case SECTION_TYPES.COLLECTION:
-//       return (
-//         <CollectionSlider items={section.data.items} categories={categories} />
-//       );
-
-//     case SECTION_TYPES.CATEGORY_HIGHLIGHT:
-//       // Check if this is HighlightCategory1 or 2
-//       const isSingleCategory =
-//         section.name.toLowerCase().includes("category1") ||
-//         section.name.toLowerCase().includes("category2");
-
-//       return (
-//         <div className="space-y-6">
-//           {!formData.items || formData.items.length === 0 ? (
-//             <SectionCard>
-//               <div className="text-center py-8">
-//                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-//                   <FiPlus className="w-8 h-8 text-emerald-600" />
-//                 </div>
-//                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-//                   No Category Added Yet
-//                 </h3>
-//                 <p className="text-sm text-gray-500 mb-6">
-//                   {isSingleCategory
-//                     ? "This section can display only one category. Add your category below."
-//                     : "Start by adding your first category highlight"}
-//                 </p>
-//                 <PrimaryButton
-//                   onClick={() => {
-//                     const newItem = {
-//                       id: Date.now(),
-//                       title: "",
-//                       image: "",
-//                       selectedCategories: [],
-//                       selectedProducts: [],
-//                     };
-//                     setFormData({ ...formData, items: [newItem] });
-//                   }}
-//                   icon={<FiPlus />}
-//                   className="mx-auto"
-//                 >
-//                   Add Category
-//                 </PrimaryButton>
-//               </div>
-//             </SectionCard>
-//           ) : (
-//             formData.items.map((item, idx) => (
-//               <SectionCard
-//                 key={item.id || idx}
-//                 title={
-//                   isSingleCategory
-//                     ? section.name
-//                     : `Category Highlight ${idx + 1}`
-//                 }
-//               >
-//                 <div className="space-y-6">
-//                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-//                     <div className="flex items-start gap-3">
-//                       <div className="text-blue-600">
-//                         <FiInfo className="w-5 h-5" />
-//                       </div>
-//                       <div className="flex-1">
-//                         <p className="text-sm font-medium text-blue-900">
-//                           {isSingleCategory
-//                             ? "Single Category Mode"
-//                             : "Category Highlight"}
-//                         </p>
-//                         <p className="text-sm text-blue-700 mt-1">
-//                           {isSingleCategory
-//                             ? "This section displays only one category. Update the existing category details."
-//                             : "Add or update category highlights"}
-//                         </p>
-//                       </div>
-//                     </div>
-//                   </div>
-
-//                   <FormInput
-//                     label="Display Title"
-//                     value={item.title || ""}
-//                     onChange={(e) => updateItem(idx, "title", e.target.value)}
-//                     placeholder="Enter display title (optional)"
-//                   />
-//                   <p className="text-xs text-gray-500 -mt-3">
-//                     Leave empty to use category name
-//                   </p>
-
-//                   <ImageUpload
-//                     currentValue={item.image}
-//                     onUpdate={(value) => updateItem(idx, "image", value)}
-//                     label="Category Image"
-//                   />
-
-//                   <CategorySelector
-//                     item={item}
-//                     onUpdate={(updatedItem) =>
-//                       updateEntireItem(idx, updatedItem)
-//                     }
-//                     categories={categories}
-//                   />
-
-//                   <ProductSelector
-//                     item={item}
-//                     onUpdate={(updatedItem) =>
-//                       updateEntireItem(idx, updatedItem)
-//                     }
-//                     categories={categories}
-//                     products={products}
-//                   />
-
-//                   {item.selectedCategories &&
-//                     item.selectedCategories.length > 0 && (
-//                       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-//                         <div className="flex items-start gap-3">
-//                           <div className="text-emerald-600">
-//                             <FiCheck className="w-5 h-5" />
-//                           </div>
-//                           <div className="flex-1">
-//                             <p className="text-sm font-medium text-emerald-900">
-//                               Category Selected
-//                             </p>
-//                             <p className="text-sm text-emerald-700 mt-1">
-//                               {
-//                                 categories.find(
-//                                   (cat) => cat.id === item.selectedCategories[0]
-//                                 )?.name
-//                               }
-//                             </p>
-//                             {item.selectedProducts?.length > 0 && (
-//                               <p className="text-sm text-green-800 mt-2">
-//                                 <span className="font-medium">
-//                                   Featured Products:
-//                                 </span>{" "}
-//                                 {item.selectedProducts.length} selected
-//                               </p>
-//                             )}
-//                           </div>
-//                         </div>
-//                       </div>
-//                     )}
-
-//                   {/* Remove Add More button for single category sections */}
-//                   {!isSingleCategory && formData.items.length > 1 && (
-//                     <div className="pt-4 border-t">
-//                       <SecondaryButton
-//                         onClick={() => removeItem(idx)}
-//                         variant="red"
-//                         icon={<FiTrash2 />}
-//                         className="w-full"
-//                       >
-//                         Remove This Highlight
-//                       </SecondaryButton>
-//                     </div>
-//                   )}
-//                 </div>
-//               </SectionCard>
-//             ))
-//           )}
-
-//           {/* Only show Add button for non-single category sections */}
-//           {!isSingleCategory && formData.items && formData.items.length > 0 && (
-//             <button
-//               onClick={() => {
-//                 const newItem = getNewItemTemplate(section.type, Date.now());
-//                 setFormData({
-//                   ...formData,
-//                   items: [...formData.items, newItem],
-//                 });
-//               }}
-//               className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-//                    text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-//                    transition-colors flex items-center justify-center gap-3"
-//             >
-//               <FiPlus className="w-5 h-5" />
-//               <span className="font-medium">
-//                 Add Another Category Highlight
-//               </span>
-//             </button>
-//           )}
-
-//           <div className="flex flex-col md:flex-row gap-3 pt-6">
-//             <PrimaryButton
-//               onClick={() => saveSection(section.id, formData)}
-//               icon={<FiSave />}
-//               className="flex-1"
-//             >
-//               {isSingleCategory ? "Update Category" : "Save Changes"}
-//             </PrimaryButton>
-//             {/* Hide delete button for single category sections if they have data */}
-//             {(!isSingleCategory ||
-//               !formData.items?.[0]?.selectedCategories?.length) && (
-//               <SecondaryButton
-//                 onClick={() => deleteSection(section.id)}
-//                 variant="red"
-//                 icon={<FiTrash2 />}
-//                 className="flex-1"
-//               >
-//                 Delete Section
-//               </SecondaryButton>
-//             )}
-//           </div>
-//         </div>
-//       );
-
-//     case SECTION_TYPES.STORY:
-//       return (
-//         <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-white">
-//           <div className="max-w-6xl mx-auto">
-//             {section.data.items?.map((item, idx) => (
-//               <div key={idx} className="mb-8 sm:mb-12 last:mb-0">
-//                 {(item.title || item.subtitle) && (
-//                   <div className="text-center mb-6 sm:mb-8">
-//                     {item.title && (
-//                       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">
-//                         {item.title}
-//                       </h2>
-//                     )}
-//                     {item.subtitle && (
-//                       <p className="text-base sm:text-lg md:text-xl text-gray-600">
-//                         {item.subtitle}
-//                       </p>
-//                     )}
-//                   </div>
-//                 )}
-
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-//                   {(item.videos || []).map((video, videoIdx) =>
-//                     video ? (
-//                       <div
-//                         key={videoIdx}
-//                         className="relative bg-black rounded-lg overflow-hidden aspect-video"
-//                       >
-//                         <video
-//                           src={getImageUrl(video)}
-//                           className="w-full h-full object-cover"
-//                           controls
-//                           playsInline
-//                           preload="metadata"
-//                         />
-//                       </div>
-//                     ) : (
-//                       <div
-//                         key={videoIdx}
-//                         className="relative bg-gray-100 rounded-lg overflow-hidden aspect-video flex items-center justify-center"
-//                       >
-//                         <div className="text-center p-4">
-//                           <HiOutlineVideoCamera className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 mx-auto mb-2" />
-//                           <p className="text-xs sm:text-sm text-gray-500">
-//                             Video {videoIdx + 1}
-//                           </p>
-//                           <p className="text-xs text-gray-400 mt-1">
-//                             Not uploaded
-//                           </p>
-//                         </div>
-//                       </div>
-//                     )
-//                   )}
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       );
-//     default:
-//       return null;
-//   }
-// };
 
 // ==================== MAIN COMPONENT ====================
 
@@ -2663,11 +2239,11 @@ const loadSections = async () => {
     }
   };
 
-const saveCategoryData = async (sectionId, categoryData) => {
+// CHANGE the function signature:
+const saveCategoryData = async (sectionId, categoryData, categoriesList) => {
   try {
     const token = getAuthToken();
 
-    // Get existing records
     const existingResponse = await fetch(`${API_URL}/doAll`, {
       method: "POST",
       headers: {
@@ -2690,19 +2266,18 @@ const saveCategoryData = async (sectionId, categoryData) => {
       ? existingResult.data || []
       : [];
 
-    // Save new category data
     if (categoryData.items?.length > 0) {
-      for (const [index, item] of categoryData.items.entries()) {
-        if (item.selectedCategories?.length > 0) {
-          const categoryId = item.selectedCategories[0];
-          const category = categories.find((cat) => cat.id === categoryId);
+      for (const [index, catItem] of categoryData.items.entries()) {
+        if (catItem.selectedCategories?.length > 0) {
+          const categoryId = catItem.selectedCategories[0];
+          const category = categoriesList.find((cat) => cat.id === categoryId);
 
           if (category) {
             const existingItem = existingItems.find(
               (existing) =>
-                existing.id === item.id ||
+                existing.id === catItem.id ||
                 (existing.category_id === categoryId &&
-                  existing.title === (item.title || category.name))
+                  existing.title === (catItem.title || category.name))
             );
 
             if (existingItem) {
@@ -2718,10 +2293,10 @@ const saveCategoryData = async (sectionId, categoryData) => {
                   table: "collection_category",
                   data: {
                     category_id: categoryId,
-                    title: item.title || category.name,
-                    images: JSON.stringify(item.image ? [item.image] : []),
+                    title: catItem.title || category.name,
+                    images: JSON.stringify(catItem.image ? [catItem.image] : []),
                     selected_products: JSON.stringify(
-                      item.selectedProducts || []
+                      catItem.selectedProducts || []
                     ),
                     display_order: index,
                     updated_at: new Date()
@@ -2746,10 +2321,10 @@ const saveCategoryData = async (sectionId, categoryData) => {
                   data: {
                     section_id: sectionId,
                     category_id: categoryId,
-                    title: item.title || category.name,
-                    images: JSON.stringify(item.image ? [item.image] : []),
+                    title: catItem.title || category.name,
+                    images: JSON.stringify(catItem.image ? [catItem.image] : []),
                     selected_products: JSON.stringify(
-                      item.selectedProducts || []
+                      catItem.selectedProducts || []
                     ),
                     display_order: index,
                     updated_at: new Date()
@@ -2767,8 +2342,8 @@ const saveCategoryData = async (sectionId, categoryData) => {
 
       // Soft delete removed items
       const currentItemIds = categoryData.items
-        .filter((item) => item.selectedCategories?.length > 0)
-        .map((item) => item.id);
+        .filter((catItem) => catItem.selectedCategories?.length > 0)
+        .map((catItem) => catItem.id);
 
       for (const existingItem of existingItems) {
         if (!currentItemIds.includes(existingItem.id)) {
@@ -2840,7 +2415,7 @@ const saveSection = async (sectionId, newData) => {
         await saveCategoryData(sectionId, {
           ...newData,
           items: itemsWithIds,
-        });
+        }, categories);
       }
     } else {
       const response = await fetch(`${API_URL}/doAll`, {
@@ -3157,6 +2732,11 @@ const SectionEditor = ({ section }) => {
     return { ...sectionData, items };
   });
 
+  const formDataRef = React.useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const updateItem = (index, field, value) => {
@@ -3304,7 +2884,7 @@ const SectionEditor = ({ section }) => {
           {formData.items?.map((item, idx) => (
             <SectionCard key={idx} title={`Hero Banner ${idx + 1}`}>
               <div className="space-y-6">
-                <FormInput
+                {/* <FormInput
                   label="Title"
                   value={item.title}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -3323,7 +2903,7 @@ const SectionEditor = ({ section }) => {
                     updateItem(idx, "description", e.target.value)
                   }
                   placeholder="Enter banner description"
-                />
+                /> */}
 
                 <ImageUpload
                   currentValue={item.image}
@@ -3338,7 +2918,7 @@ const SectionEditor = ({ section }) => {
                   categories={categories}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormInput
                     label="CTA Text"
                     value={item.cta}
@@ -3356,7 +2936,7 @@ const SectionEditor = ({ section }) => {
                         : "/shop"
                     }
                   />
-                </div>
+                </div> */}
 
                 {formData.items.length > 1 && (
                   <div className="pt-4 border-t">
@@ -3387,7 +2967,7 @@ const SectionEditor = ({ section }) => {
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
               onClick={async () => {
-                const success = await saveSection(section.id, formData);
+                const success = await saveSection(section.id, formDataRef.current);
                 if (success) {
                   // Optionally show a success message or navigate
                 }
@@ -3415,7 +2995,7 @@ const SectionEditor = ({ section }) => {
           {formData.items?.map((item, idx) => (
             <SectionCard key={idx} title={`Feature Item ${idx + 1}`}>
               <div className="space-y-6">
-                <FormInput
+                {/* <FormInput
                   label="Title"
                   value={item.title || ""}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -3427,7 +3007,7 @@ const SectionEditor = ({ section }) => {
                   value={item.subtitle || ""}
                   onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
                   placeholder="e.g., Discover our exclusive collection"
-                />
+                /> */}
 
                 <FeatureImageWithCategory
                   imageType="leftImage"
@@ -3553,7 +3133,7 @@ const SectionEditor = ({ section }) => {
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
               onClick={async () => {
-                const success = await saveSection(section.id, formData);
+                const success = await saveSection(section.id, formDataRef.current);
                 if (success) {
                   // Optionally show a success message or navigate
                 }
@@ -3619,7 +3199,7 @@ const SectionEditor = ({ section }) => {
           {formData.items?.map((item, idx) => (
             <SectionCard key={idx} title={`Collection ${idx + 1}`}>
               <div className="space-y-6">
-                <FormInput
+                {/* <FormInput
                   label="Title"
                   value={item.title || ""}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -3631,7 +3211,7 @@ const SectionEditor = ({ section }) => {
                   value={item.subtitle || ""}
                   onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
                   placeholder="Enter collection subtitle"
-                />
+                /> */}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -3774,7 +3354,7 @@ const SectionEditor = ({ section }) => {
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
               onClick={async () => {
-                const success = await saveSection(section.id, formData);
+                const success = await saveSection(section.id, formDataRef.current);
                 if (success) {
                   // Optionally show a success message or navigate
                 }
@@ -3865,7 +3445,7 @@ const SectionEditor = ({ section }) => {
                 title={`Category Highlight ${idx + 1}`}
               >
                 <div className="space-y-6">
-                  <FormInput
+                  {/* <FormInput
                     label="Display Title"
                     value={item.title || ""}
                     onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -3873,7 +3453,7 @@ const SectionEditor = ({ section }) => {
                   />
                   <p className="text-xs text-gray-500 -mt-3">
                     Leave empty to use category name
-                  </p>
+                  </p> */}
 
                   <ImageUpload
                     currentValue={item.image}
@@ -3946,22 +3526,10 @@ const SectionEditor = ({ section }) => {
             ))
           )}
 
-          {/* {formData.items && formData.items.length > 0 && (
-            <button
-              onClick={addItem}
-              className="w-full border-2 border-dashed border-gray-300 rounded-xl py-6 
-                         text-gray-600 hover:border-emerald-500 hover:text-emerald-600 
-                         transition-colors flex items-center justify-center gap-3"
-            >
-              <FiPlus className="w-5 h-5" />
-              <span className="font-medium">Add Category Highlight</span>
-            </button>
-          )} */}
-
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
               onClick={async () => {
-                const success = await saveSection(section.id, formData);
+                const success = await saveSection(section.id, formDataRef.current);
                 if (success) {
                   // Optionally show a success message or navigate
                 }
@@ -3989,7 +3557,7 @@ const SectionEditor = ({ section }) => {
           {formData.items?.map((item, idx) => (
             <SectionCard key={idx} title={`Story Upload ${idx + 1}`}>
               <div className="space-y-6">
-                <FormInput
+                {/* <FormInput
                   label="Title"
                   value={item.title || ""}
                   onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -4001,7 +3569,7 @@ const SectionEditor = ({ section }) => {
                   value={item.subtitle || ""}
                   onChange={(e) => updateItem(idx, "subtitle", e.target.value)}
                   placeholder="e.g., Watch our latest video stories"
-                />
+                /> */}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -4062,7 +3630,7 @@ const SectionEditor = ({ section }) => {
           <div className="flex flex-col md:flex-row gap-3 pt-6">
             <PrimaryButton
               onClick={async () => {
-                const success = await saveSection(section.id, formData);
+                const success = await saveSection(section.id, formDataRef.current);
                 if (success) {
                   // Optionally show a success message or navigate
                 }
@@ -4106,118 +3674,6 @@ const SectionEditor = ({ section }) => {
     );
   }
 
-  // if (showPreview) {
-  //   return (
-  //     <div className="min-h-screen bg-white">
-  //       <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
-  //         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-  //           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-  //             <h1 className="text-2xl font-bold text-gray-900">
-  //               Homepage Preview
-  //             </h1>
-  //             <SecondaryButton
-  //               onClick={() => setShowPreview(false)}
-  //               icon={<FiEyeOff />}
-  //               className="w-full sm:w-auto"
-  //             >
-  //               Exit Preview
-  //             </SecondaryButton>
-  //           </div>
-  //         </div>
-  //       </div>
-  //       <div>
-  //         {sections
-  //           .filter((s) => s.enabled)
-  //           .sort((a, b) => a.order - b.order)
-  //           .map((section) => (
-  //             <PreviewSection
-  //               key={section.id}
-  //               section={section}
-  //               categories={categories}
-  //             />
-  //           ))}
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // if (view === "reorder") {
-  //   return (
-  //     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-  //       <div className="max-w-7xl mx-auto">
-  //         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-  //           <div>
-  //             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-  //               Reorder Sections
-  //             </h1>
-  //             <p className="text-gray-600 mt-1">
-  //               Drag and drop to rearrange sections on your homepage
-  //             </p>
-  //           </div>
-  //           <SecondaryButton
-  //             onClick={() => setView("dashboard")}
-  //             icon={<FiX />}
-  //             className="w-full sm:w-auto"
-  //           >
-  //             Back to Dashboard
-  //           </SecondaryButton>
-  //         </div>
-
-  //         <SectionCard title="Sections Order">
-  //           <div className="space-y-3">
-  //             {sections.map((section, index) => (
-  //               <div
-  //                 key={section.id}
-  //                 draggable
-  //                 onDragStart={() => handleDragStart(index)}
-  //                 onDragOver={(e) => handleDragOver(e, index)}
-  //                 onDragEnd={handleDragEnd}
-  //                 className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4
-  //                           bg-white border-2 rounded-xl cursor-move transition-all ${
-  //                             draggedIndex === index
-  //                               ? "opacity-50 border-emerald-500 bg-emerald-50"
-  //                               : "border-gray-200 hover:border-emerald-300 hover:shadow-sm"
-  //                           }`}
-  //               >
-  //                 <div className="flex items-center gap-3 mb-3 sm:mb-0">
-  //                   <div className="text-gray-400">
-  //                     <FiMove className="w-5 h-5" />
-  //                   </div>
-  //                   <div>
-  //                     <span className="font-medium text-gray-900 block">
-  //                       {section.name}
-  //                     </span>
-  //                     <div className="flex items-center gap-2 mt-1">
-  //                       <StatusBadge active={section.enabled} />
-  //                       <span className="text-xs text-gray-500">
-  //                         {SECTION_CONFIG[section.type]?.name || section.type}
-  //                       </span>
-  //                     </div>
-  //                   </div>
-  //                 </div>
-
-  //                 <div className="flex items-center gap-3 self-end sm:self-auto">
-  //                   <span className="text-sm text-gray-500">
-  //                     Order: {section.order + 1}
-  //                   </span>
-  //                   <button
-  //                     onClick={() => {
-  //                       setSelectedSection(section);
-  //                       setView("section-edit");
-  //                     }}
-  //                     className="text-emerald-600 hover:text-emerald-700"
-  //                   >
-  //                     <FiEdit className="w-4 h-4" />
-  //                   </button>
-  //                 </div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </SectionCard>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   if (view === "section-edit" && selectedSection) {
     return (
