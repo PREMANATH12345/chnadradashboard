@@ -4643,12 +4643,18 @@ const EditProductPanel = ({
         ⚙️ Variant Configuration (Optional)
       </h5>
 
-      {formData.price && formData.price.toString().trim() !== "" && (
+      {(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 && (
         <div className="mb-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl flex items-start gap-2 sm:gap-3">
           <FiInfo className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 mt-0.5" />
           <div>
-            <p className="text-xs sm:text-sm font-bold text-amber-800">Price is set ({formData.price})</p>
-            <p className="text-[10px] sm:text-xs text-amber-700">Remove the Product Price in Basic Information to enable and configure variants.</p>
+            <p className="text-xs sm:text-sm font-bold text-amber-800">
+              {formData.price && formData.price.toString().trim() !== "" ? `Price is set (${formData.price})` : "Product Images are uploaded"}
+            </p>
+            <p className="text-[10px] sm:text-xs text-amber-700">
+              {formData.price && formData.price.toString().trim() !== "" 
+                ? "Remove the Product Price in Basic Information to enable and configure variants." 
+                : "Remove the product images above to enable and configure product variants."}
+            </p>
           </div>
         </div>
       )}
@@ -4656,13 +4662,13 @@ const EditProductPanel = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
         {/* Choice of Metal */}
         <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.hasMetalChoice}
               onChange={toggleMetalChoice}
               className="w-4 h-4 sm:w-5 sm:h-5"
-              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
+              disabled={!canEdit || ((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0)}
             />
             <span className="font-bold text-sm sm:text-base">
               🔩 Choice of Metal
@@ -4692,13 +4698,13 @@ const EditProductPanel = ({
 
         {/* Diamond Quality */}
         <div className="border-2 border-gray-200 rounded p-2 sm:p-3">
-          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <label className={`flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 cursor-pointer ${(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.hasDiamondChoice}
               onChange={toggleDiamondChoice}
               className="w-4 h-4 sm:w-5 sm:h-5"
-              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
+              disabled={!canEdit || ((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0)}
             />
             <span className="font-bold text-sm sm:text-base">
               💎 Diamond Quality
@@ -4728,13 +4734,13 @@ const EditProductPanel = ({
 
         {/* Size Info */}
         <div className="border-2 border-blue-300 rounded p-2 sm:p-3 bg-blue-50">
-          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.configureSizes || false}
               onChange={toggleConfigureSizes}
               className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600"
-              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
+              disabled={!canEdit || ((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0)}
             />
             <h6 className="font-bold text-sm sm:text-base">
               📏 Configure Sizes with Pricing
@@ -4751,13 +4757,13 @@ const EditProductPanel = ({
 
         {/* Weight Info */}
         <div className="border-2 border-amber-300 rounded p-2 sm:p-3 bg-amber-50">
-          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${formData.price && formData.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+          <label className={`flex items-center gap-2 mb-2 cursor-pointer ${(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
             <input
               type="checkbox"
               checked={formData.hasWeightChoice || false}
               onChange={() => setFormData(prev => ({ ...prev, hasWeightChoice: !prev.hasWeightChoice }))}
               className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600"
-              disabled={!canEdit || (formData.price && formData.price.toString().trim() !== "")}
+              disabled={!canEdit || ((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0)}
             />
             <h6 className="font-bold text-sm sm:text-base">
               ⚖️ Choice of Weight
@@ -4772,7 +4778,7 @@ const EditProductPanel = ({
       </div>
 
       {/* Size & Pricing Configuration */}
-      {!(formData.price && formData.price.toString().trim() !== "") && (formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+      {!((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0) && (formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
         <div className="mt-3 sm:mt-4">
           <div className="mt-4 mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
             <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
@@ -5493,12 +5499,12 @@ const EditProductPanel = ({
                         : ""
                         }`}
                       placeholder="Product Price"
-                      disabled={!canEdit || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes}
+                      disabled={!canEdit || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes || imageUrls.length > 0}
                     />
-                    {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+                    {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes || imageUrls.length > 0) && (
                       <p className="text-[10px] sm:text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
                         <span>⚠️</span>
-                        Remove Variant Configuration to enable Price.
+                        {imageUrls.length > 0 ? "Remove product images to enable Price." : "Remove Variant Configuration to enable Price."}
                       </p>
                     )}
                   </div>
@@ -7419,12 +7425,18 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 ⚙️ Variant Configuration (Optional)
               </h5>
 
-              {product.price && product.price.toString().trim() !== "" && (
+              {(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
                   <span className="text-amber-600 text-lg">ℹ️</span>
                   <div>
-                    <p className="text-sm font-bold text-amber-800">Direct Price is set ({product.price})</p>
-                    <p className="text-xs text-amber-700">Remove the Direct Price above to enable and configure product variants.</p>
+                    <p className="text-sm font-bold text-amber-800">
+                      {product.price && product.price.toString().trim() !== "" ? `Direct Price is set (${product.price})` : "Product Images are uploaded"}
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      {product.price && product.price.toString().trim() !== "" 
+                        ? "Remove the Direct Price above to enable and configure product variants." 
+                        : "Remove the product images above to enable and configure product variants."}
+                    </p>
                   </div>
                 </div>
               )}
@@ -7432,11 +7444,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 {/* Choice of Metal */}
                 <div className="border-2 border-gray-200 rounded p-3">
-                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.hasMetalChoice}
-                      disabled={product.price && product.price.toString().trim() !== ""}
+                      disabled={(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0}
                       onChange={() => toggleProductMetalChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
@@ -7473,11 +7485,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                 {/* Diamond Quality */}
                 <div className="border-2 border-gray-200 rounded p-3">
-                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.hasDiamondChoice}
-                      disabled={product.price && product.price.toString().trim() !== ""}
+                      disabled={(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0}
                       onChange={() => toggleProductDiamondChoice(product.id)}
                       className="w-5 h-5 text-green-600"
                     />
@@ -7516,11 +7528,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                 {/* Size Info */}
                 <div className="border-2 border-blue-300 rounded p-3 bg-blue-50">
-                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.configureSizes || false}
-                      disabled={product.price && product.price.toString().trim() !== ""}
+                      disabled={(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0}
                       onChange={() => toggleConfigureSizes(product.id)}
                       className="w-5 h-5 text-emerald-600"
                     />
@@ -7537,11 +7549,11 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
 
                 {/* Weight Info */}
                 <div className="border-2 border-amber-300 rounded p-3 bg-amber-50">
-                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${product.price && product.price.toString().trim() !== "" ? "opacity-50 cursor-not-allowed" : ""}`}>
+                  <label className={`flex items-center gap-2 mb-3 cursor-pointer ${(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       checked={product.hasWeightChoice || false}
-                      disabled={product.price && product.price.toString().trim() !== ""}
+                      disabled={(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0}
                       onChange={() => {
                         setProducts(products.map(p => p.id === product.id ? { ...p, hasWeightChoice: !p.hasWeightChoice, selectedWeightOptions: [] } : p));
                       }}
@@ -7560,7 +7572,7 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
               </div>
 
               {/* Size & Pricing Configuration */}
-              {!(product.price && product.price.toString().trim() !== "") && (product.hasMetalChoice ||
+              {!((product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0) && (product.hasMetalChoice ||
                 product.hasDiamondChoice ||
                 product.configureSizes) && (
                   <div className="mt-4">
