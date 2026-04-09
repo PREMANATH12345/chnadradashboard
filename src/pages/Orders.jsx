@@ -7,7 +7,7 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState("purchases");
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState({});
-  
+
   // Data states
   const [purchases, setPurchases] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -22,6 +22,11 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Filter States
+  const [roleFilter, setRoleFilter] = useState("all"); // "all" | "admin" | "vendor"
+  const [vendorList, setVendorList] = useState([]);
+  const [selectedVendorId, setSelectedVendorId] = useState(null);
 
   useEffect(() => {
     fetchAllData();
@@ -38,11 +43,12 @@ const Orders = () => {
       const usersRes = await DoAll({ action: "get", table: "users" });
       if (usersRes?.success) {
         const usersMap = {};
-        (usersRes.data || []).forEach(u => { usersMap[u.id] = u; });
+        (usersRes.data || []).forEach(u => {
+          usersMap[u.id] = u;
+        });
         setUsers(usersMap);
       }
 
-      // Fetch categories & products lookup
       const catsRes = await DoAll({ action: "get", table: "category" });
       if (catsRes?.success) {
         const catMap = {};
@@ -55,6 +61,13 @@ const Orders = () => {
         const prodMap = {};
         (prodsRes.data || []).forEach(p => { prodMap[p.id] = p; });
         setProductList(prodMap);
+
+        // Build vendor list AFTER prodsRes — collect unique vendor_ids from products
+        const vendorIdsInProducts = new Set(
+          (prodsRes.data || []).map(p => p.vendor_id).filter(Boolean)
+        );
+        const vendors = (usersRes.data || []).filter(u => vendorIdsInProducts.has(u.id));
+        setVendorList(vendors);
       }
 
       const purchasesRes = await DoAll({ action: "get", table: "purchases" });
@@ -80,7 +93,7 @@ const Orders = () => {
   const getUserDetails = (userId) => {
     const user = users[userId];
     if (!user) return { name: "Guest", email: "N/A", phone: "N/A", address: "N/A" };
-    
+
     const addressParts = [user.address_line1, user.address_line2, user.city, user.state, user.postal_code, user.country].filter(Boolean);
 
     return {
@@ -115,6 +128,46 @@ const Orders = () => {
     return "bg-blue-100 text-blue-800";
   };
 
+  // Shared vendor filter logic — checks product's vendor_id
+  const matchesVendorFilter = (row) => {
+  if (roleFilter === "all") return true;
+
+  const prod = parseJSON(row.purchased_product_details || row.enquiry_product_details);
+
+  // Try product_id first
+  let productId = Number(
+    row.product_id ||
+    prod.product_id ||
+    prod.id ||
+    prod.product ||
+    0
+  );
+
+  let product = productList[productId];
+
+  // If not found by ID, try matching by slug from the snapshot
+  if (!product && prod.slug) {
+    product = Object.values(productList).find(p => p.slug === prod.slug);
+  }
+  if (!product && prod.product_slug) {
+    product = Object.values(productList).find(p => p.slug === prod.product_slug);
+  }
+
+  // vendor_id from found product, or from snapshot directly
+  let productVendorId = product?.vendor_id
+    ? Number(product.vendor_id)
+    : prod.vendor_id
+      ? Number(prod.vendor_id)
+      : null;
+
+  if (roleFilter === "admin") return productVendorId === null;
+  if (roleFilter === "vendor") {
+    if (selectedVendorId) return productVendorId === Number(selectedVendorId);
+    return productVendorId !== null;
+  }
+  return true;
+};
+
   // Filter & Pagination Helper
   const getFilteredData = () => {
     let source = [];
@@ -123,11 +176,64 @@ const Orders = () => {
     else if (activeTab === "enquiries") source = enquiries;
     else source = directProducts.filter(p => activeTab === "direct_orders" ? p.order === 1 : p.enquiry === 1);
 
+    // Apply vendor/admin filter based on product's vendor_id
+    source = source.filter(matchesVendorFilter);
+
+    // Apply search filter
     return source.filter(row => {
       const user = getUserDetails(row.user_id);
       const matchString = `${user.name} ${user.email} ${user.phone}`.toLowerCase();
       return matchString.includes(searchTerm.toLowerCase());
     });
+  };
+
+const getDirectOrderAddress = (row) => {
+  const user = users[row.user_id];
+  if (!user) return "N/A";
+
+  // Try to match address_id from direct_product row against user's addresses JSON
+  const addressId = row.address_id;
+  const addressesJson = user.addresses;
+
+  if (addressId && addressesJson) {
+    try {
+      const addressList = typeof addressesJson === "string"
+        ? JSON.parse(addressesJson)
+        : addressesJson;
+
+      const matched = Array.isArray(addressList)
+        ? addressList.find(a => a.id === addressId)
+        : null;
+
+      if (matched) {
+        return [
+          matched.address_line1,
+          matched.address_line2,
+          matched.city,
+          matched.state,
+          matched.postal_code,
+          matched.country
+        ].filter(Boolean).join(", ");
+      }
+    } catch (e) {}
+  }
+
+  // Fallback: flat fields on user
+  const u = user;
+  return [u.address_line1, u.address_line2, u.city, u.state, u.postal_code, u.country]
+    .filter(Boolean).join(", ") || "N/A";
+};
+
+  // Tab counts that respect the current filter
+  const getTabCount = (tabId) => {
+    let source = [];
+    if (tabId === "purchases") source = purchases;
+    else if (tabId === "orders") source = orders;
+    else if (tabId === "enquiries") source = enquiries;
+    else source = directProducts.filter(p => tabId === "direct_orders" ? p.order === 1 : p.enquiry === 1);
+
+    if (roleFilter === "all") return source.length;
+    return source.filter(matchesVendorFilter).length;
   };
 
   const filteredItems = getFilteredData();
@@ -140,9 +246,9 @@ const Orders = () => {
     const parts = String(text).split(regex);
     return (
       <span>
-        {parts.map((part, i) => 
-          part.toLowerCase() === highlight.toLowerCase() 
-            ? <span key={i} className="bg-yellow-200 font-bold">{part}</span> 
+        {parts.map((part, i) =>
+          part.toLowerCase() === highlight.toLowerCase()
+            ? <span key={i} className="bg-yellow-200 font-bold">{part}</span>
             : part
         )}
       </span>
@@ -151,12 +257,12 @@ const Orders = () => {
 
   const getProductTitleHeader = (row) => {
     const prodDetail = parseJSON(row.purchased_product_details || row.enquiry_product_details);
-    const pId = prodDetail.product_id || row.product_id; 
+    const pId = Number(prodDetail.product_id || prodDetail.id || prodDetail.product || row.product_id || 0);
     const p = productList[pId];
-    
+
     const catName = p ? categories[p.category_id] : (prodDetail.category_name || prodDetail.category);
     const prName = p ? p.name : (prodDetail.product_name || row.product_title || "N/A");
-    
+
     return (
       <div className="space-y-0.5 mt-1 border-l-2 border-blue-200 pl-2">
         <div className="text-xs text-gray-500">Category: <span className="font-semibold text-gray-800">{(catName || "N/A").toUpperCase()}</span></div>
@@ -166,11 +272,11 @@ const Orders = () => {
   };
 
   const tabs = [
-    { id: "purchases", label: "STL Purchases", count: purchases.length, color: "bg-purple-600" },
-    { id: "orders", label: "CAM/Mold Orders", count: orders.length, color: "bg-blue-600" },
-    { id: "enquiries", label: "Enquiries", count: enquiries.length, color: "bg-orange-600" },
-    { id: "direct_orders", label: "Basic Orders", count: directProducts.filter(p => p.order === 1).length, color: "bg-green-600" },
-    { id: "direct_enq", label: "Basic Enquiries", count: directProducts.filter(p => p.enquiry === 1).length, color: "bg-teal-600" },
+    { id: "purchases", label: "STL Purchases", count: getTabCount("purchases"), color: "bg-purple-600" },
+    { id: "orders", label: "CAM/Mold Orders", count: getTabCount("orders"), color: "bg-blue-600" },
+    { id: "enquiries", label: "Customization Enquiries", count: getTabCount("enquiries"), color: "bg-orange-600" },
+    { id: "direct_orders", label: "Direct Product Orders", count: getTabCount("direct_orders"), color: "bg-green-600" },
+    { id: "direct_enq", label: "Direct Product Enquiries", count: getTabCount("direct_enq"), color: "bg-teal-600" },
   ];
 
   return (
@@ -180,7 +286,7 @@ const Orders = () => {
           <h1 className="text-2xl font-bold text-gray-800">Orders & Enquiries Panel</h1>
           <p className="text-sm text-gray-500">Track all purchases and communications here.</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
           <input
             type="text"
             placeholder="Search name, email, or phone..."
@@ -188,7 +294,42 @@ const Orders = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border rounded-lg shadow-sm text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button 
+
+          {/* Role Filter */}
+          <select
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setSelectedVendorId(null);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border rounded-lg shadow-sm text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All</option>
+            <option value="admin">Admin</option>
+            <option value="vendor">Vendor</option>
+          </select>
+
+          {/* Vendor list dropdown — only shows when vendor is selected */}
+          {roleFilter === "vendor" && (
+            <select
+              value={selectedVendorId || ""}
+              onChange={(e) => {
+                setSelectedVendorId(e.target.value ? parseInt(e.target.value) : null);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 border rounded-lg shadow-sm text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Vendors</option>
+              {vendorList.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.full_name || v.email}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
             onClick={fetchAllData}
             className="px-4 py-2 bg-white border rounded-lg shadow-sm hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap"
           >
@@ -203,8 +344,8 @@ const Orders = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`p-4 rounded-xl border flex flex-col items-center transition-all ${activeTab === tab.id 
-              ? `${tab.color} text-white shadow-lg scale-105` 
+            className={`p-4 rounded-xl border flex flex-col items-center transition-all ${activeTab === tab.id
+              ? `${tab.color} text-white shadow-lg scale-105`
               : "bg-white text-gray-600 hover:shadow-md"}`}
           >
             <span className="text-xl font-bold">{tab.count}</span>
@@ -220,6 +361,8 @@ const Orders = () => {
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden border">
           <div className="overflow-x-auto">
+
+            {/* STL Purchases */}
             {activeTab === "purchases" && (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -267,6 +410,7 @@ const Orders = () => {
               </table>
             )}
 
+            {/* CAM/Mold Orders */}
             {activeTab === "orders" && (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -331,6 +475,7 @@ const Orders = () => {
               </table>
             )}
 
+            {/* Customization Enquiries */}
             {activeTab === "enquiries" && (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -361,17 +506,17 @@ const Orders = () => {
                         <td className="px-4 py-3">
                           <div className="text-sm font-semibold text-blue-700">{getProductTitleHeader(row)}</div>
                           <div className="text-xs text-gray-600 space-y-0.5 mt-1 border-l-2 border-gray-200 pl-2">
-                          <p>Metal: <span className="font-semibold">{prod.metal_name || "N/A"}</span></p>
-                          <p>Diamond: <span className="font-semibold">{prod.diamond_name || "N/A"}</span></p>
-                          <p>Weight: <span className="font-semibold">{prod.weight_name || prod.Weight_name || "N/A"}</span></p>
-                          <p>Size: <span className="font-semibold">
-                            {prod.size_name
-                              ? `${prod.size_name}${prod.size_mm ? ` (${prod.size_mm}mm)` : ''}`
-                              : prod.no_size_selected
-                                ? "No Size"
-                                : prod.requested_size || "N/A"}
-                          </span></p>
-                        </div>
+                            <p>Metal: <span className="font-semibold">{prod.metal_name || "N/A"}</span></p>
+                            <p>Diamond: <span className="font-semibold">{prod.diamond_name || "N/A"}</span></p>
+                            <p>Weight: <span className="font-semibold">{prod.weight_name || prod.Weight_name || "N/A"}</span></p>
+                            <p>Size: <span className="font-semibold">
+                              {prod.size_name
+                                ? `${prod.size_name}${prod.size_mm ? ` (${prod.size_mm}mm)` : ''}`
+                                : prod.no_size_selected
+                                  ? "No Size"
+                                  : prod.requested_size || "N/A"}
+                            </span></p>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500">{formatDate(row.created_at)}</td>
                       </tr>
@@ -381,6 +526,7 @@ const Orders = () => {
               </table>
             )}
 
+            {/* Direct Orders & Enquiries */}
             {["direct_orders", "direct_enq"].includes(activeTab) && (
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -396,48 +542,48 @@ const Orders = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {currentItems.map(row => {
-                      const user = getUserDetails(row.user_id);
-                      const prod = parseJSON(row.purchased_product_details);
-                      return (
-                        <tr key={row.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="text-sm font-bold text-gray-800">{highlightText(user.name, searchTerm)}</div>
-                            <div className="text-xs text-gray-500">{highlightText(user.email, searchTerm)}</div>
-                            <div className="text-xs text-gray-500">Phone: {highlightText(user.phone || "N/A", searchTerm)}</div>
+                    const user = getUserDetails(row.user_id);
+                    const prod = parseJSON(row.purchased_product_details);
+                    return (
+                      <tr key={row.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-bold text-gray-800">{highlightText(user.name, searchTerm)}</div>
+                          <div className="text-xs text-gray-500">{highlightText(user.email, searchTerm)}</div>
+                          <div className="text-xs text-gray-500">Phone: {highlightText(user.phone || "N/A", searchTerm)}</div>
+                        </td>
+                        {activeTab === "direct_orders" && (
+                          <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={getDirectOrderAddress(row)}>
+                            {getDirectOrderAddress(row)}
                           </td>
-                          {activeTab === "direct_orders" && (
-                            <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={user.address}>
-                              {user.address}
-                            </td>
-                          )}
-                          <td className="px-4 py-3">
-                            <div className="text-sm font-semibold text-blue-700">{getProductTitleHeader(row)}</div>
-                            <div className="text-xs text-gray-500 mt-1">Gender: {Array.isArray(prod.gender) ? prod.gender.join(", ") : (prod.gender || "Any")}</div>
+                        )}
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-semibold text-blue-700">{getProductTitleHeader(row)}</div>
+                          <div className="text-xs text-gray-500 mt-1">Gender: {Array.isArray(prod.gender) ? prod.gender.join(", ") : (prod.gender || "Any")}</div>
+                        </td>
+                        {activeTab === "direct_enq" && (
+                          <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate">
+                            {prod.description || "N/A"}
                           </td>
-                          {activeTab === "direct_enq" && (
-                            <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate">
-                              {prod.description || "N/A"}
-                            </td>
-                          )}
-                          {activeTab === "direct_orders" && (
-                             <td className="px-4 py-3 text-sm font-bold text-gray-800">₹{parseFloat(row.amount || prod.price).toLocaleString()}</td>
-                          )}
-                          <td className="px-4 py-3 text-sm text-gray-500">{formatDate(row.created_at)}</td>
-                          {activeTab === "direct_orders" && (
-                            <td className="px-4 py-3">
-                              {row.payment_id && <div className="text-xs font-mono mb-1">{row.payment_id}</div>}
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(row.status || "success")}`}>
-                                {row.status?.toUpperCase() || "SUCCESS"}
-                              </span>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
+                        )}
+                        {activeTab === "direct_orders" && (
+                          <td className="px-4 py-3 text-sm font-bold text-gray-800">₹{parseFloat(row.amount || prod.price).toLocaleString()}</td>
+                        )}
+                        <td className="px-4 py-3 text-sm text-gray-500">{formatDate(row.created_at)}</td>
+                        {activeTab === "direct_orders" && (
+                          <td className="px-4 py-3">
+                            {row.payment_id && <div className="text-xs font-mono mb-1">{row.payment_id}</div>}
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(row.status || "success")}`}>
+                              {row.status?.toUpperCase() || "SUCCESS"}
+                            </span>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
-            
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-t border-gray-200 shadow-sm">
@@ -472,16 +618,13 @@ const Orders = () => {
               </div>
             )}
 
-            {/* Empty States inside views */}
-            {((activeTab === "purchases" && purchases.length === 0) ||
-              (activeTab === "orders" && orders.length === 0) ||
-              (activeTab === "enquiries" && enquiries.length === 0) ||
-              (["direct_orders", "direct_enq"].includes(activeTab) && 
-               directProducts.filter(p => activeTab === "direct_orders" ? p.order === 1 : p.enquiry === 1).length === 0)) && (
+            {/* Empty State */}
+            {filteredItems.length === 0 && (
               <div className="text-center py-20 text-gray-500">
                 📦 No records found for this section.
               </div>
             )}
+
           </div>
         </div>
       )}

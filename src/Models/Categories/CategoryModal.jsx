@@ -587,33 +587,30 @@ imageUrls = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null;
 
       toast.success('Category updated successfully!');
       
-    } else {
+   } else {
       // ========== CREATE NEW CATEGORY ==========
-      const createResponse = await DoAll({
-        action: 'insert',
-        table: 'category',
-        data: {
-          name: categoryName.trim(),
-          slug: categorySlug,
-          image_url: imageUrls,
-          created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          is_deleted: 0
-        }
+      const token = localStorage.getItem('token');
+      const createResponse = await axios.post(`${API_URL}/category/create`, {
+        name: categoryName.trim(),
+        slug: categorySlug,
+        image_url: imageUrls,
+        created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-
-      // ✅ FIX: Check response.success instead of response.data.success
-      if (!createResponse.success) {
-        throw new Error(createResponse.message || 'Failed to create category');
+      if (!createResponse.data.success) {
+        toast.error(createResponse.data.message || 'Failed to create category');
+        setSaving(false);
+        return;
       }
 
-      // ✅ FIX: Get insertId from response.insertId instead of response.data.insertId
-      if (!createResponse.insertId) {
+      if (!createResponse.data.insertId) {
         throw new Error('No category ID returned from database');
       }
 
-      categoryId = createResponse.insertId;
+      categoryId = createResponse.data.insertId;
       
       // Save styles and metals
       await saveStyles(categoryId, validStyles);
@@ -631,16 +628,19 @@ imageUrls = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null;
     
   } catch (error) {
     console.error('Error saving category:', error);
-    
-    // More specific error message
-    if (error.message.includes('insertId')) {
+
+    // Handle 400 response from backend (e.g. duplicate category)
+    if (error.response && error.response.data && error.response.data.message) {
+      toast.error(error.response.data.message);
+    } else if (error.message.includes('insertId')) {
       toast.error('Category created but ID not returned. Please refresh the page.');
     } else if (error.message.includes('image')) {
       toast.error('Error uploading image. Please try again.');
     } else {
       toast.error(`Error ${editingCategory ? 'updating' : 'creating'} category: ${error.message}`);
     }
-  } finally {
+  }
+  finally {
     setSaving(false);
   }
 };

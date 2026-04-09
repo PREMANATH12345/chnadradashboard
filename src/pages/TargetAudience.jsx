@@ -137,7 +137,19 @@ const TargetAudience = () => {
         if (response?.success) {
           toast.success('Target audience updated successfully!');
         }
-      } else {
+     } else {
+        // Check if same gender already exists
+        const checkExisting = await DoAll({
+          action: 'get',
+          table: 'target_audience',
+          where: { gender: formData.gender.trim() }
+        });
+
+        if (checkExisting?.data?.length > 0) {
+          toast.error(`"${formData.gender.trim()}" already exists. Please create a unique one.`);
+          return;
+        }
+
         // Create new target audience
         response = await DoAll({
           action: 'insert',

@@ -4643,17 +4643,23 @@ const EditProductPanel = ({
         ⚙️ Variant Configuration (Optional)
       </h5>
 
-      {(formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0 && (
+      {((formData.price && formData.price.toString().trim() !== "") || imageUrls.length > 0) && (
         <div className="mb-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl flex items-start gap-2 sm:gap-3">
           <FiInfo className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 mt-0.5" />
           <div>
             <p className="text-xs sm:text-sm font-bold text-amber-800">
-              {formData.price && formData.price.toString().trim() !== "" ? `Price is set (${formData.price})` : "Product Images are uploaded"}
+              {(formData.price && formData.price.toString().trim() !== "") && imageUrls.length > 0
+                ? `Price (${formData.price}) and Product Images are set`
+                : formData.price && formData.price.toString().trim() !== ""
+                ? `Price is set (${formData.price})`
+                : "Product Images are uploaded"}
             </p>
             <p className="text-[10px] sm:text-xs text-amber-700">
-              {formData.price && formData.price.toString().trim() !== "" 
-                ? "Remove the Product Price in Basic Information to enable and configure variants." 
-                : "Remove the product images above to enable and configure product variants."}
+              {(formData.price && formData.price.toString().trim() !== "") && imageUrls.length > 0
+                ? "Remove the Price and Product Images to enable and configure variants."
+                : formData.price && formData.price.toString().trim() !== ""
+                ? "Remove the Product Price in Basic Information to enable and configure variants."
+                : "Remove the product images in Basic Information to enable and configure product variants."}
             </p>
           </div>
         </div>
@@ -5499,14 +5505,18 @@ const EditProductPanel = ({
                         : ""
                         }`}
                       placeholder="Product Price"
-                      disabled={!canEdit || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes || imageUrls.length > 0}
-                    />
-                    {(formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes || imageUrls.length > 0) && (
-                      <p className="text-[10px] sm:text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
-                        <span>⚠️</span>
-                        {imageUrls.length > 0 ? "Remove product images to enable Price." : "Remove Variant Configuration to enable Price."}
-                      </p>
-                    )}
+                      disabled={!canEdit || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes || imageFiles.length > 0}
+                      />
+                      {(imageFiles.length > 0 || formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes) && (
+                        <p className="text-[10px] sm:text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+                          <span>⚠️</span>
+                          {imageFiles.length > 0 && (formData.hasMetalChoice || formData.hasDiamondChoice || formData.configureSizes)
+                            ? "Remove product images and Variant Configuration to enable Price."
+                            : imageFiles.length > 0
+                            ? "Remove product images to enable Price."
+                            : "Remove Variant Configuration to enable Price."}
+                        </p>
+                      )}
                   </div>
                 </div>
 
@@ -7425,21 +7435,27 @@ const AddProducts = ({ onBack, categories, onRefresh, userRole }) => {
                 ⚙️ Variant Configuration (Optional)
               </h5>
 
-              {(product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0 && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                  <span className="text-amber-600 text-lg">ℹ️</span>
-                  <div>
-                    <p className="text-sm font-bold text-amber-800">
-                      {product.price && product.price.toString().trim() !== "" ? `Direct Price is set (${product.price})` : "Product Images are uploaded"}
-                    </p>
-                    <p className="text-xs text-amber-700">
-                      {product.price && product.price.toString().trim() !== "" 
-                        ? "Remove the Direct Price above to enable and configure product variants." 
-                        : "Remove the product images above to enable and configure product variants."}
-                    </p>
+              {((product.price && product.price.toString().trim() !== "") || product.imageUrls.length > 0) && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                    <span className="text-amber-600 text-lg">ℹ️</span>
+                    <div>
+                      <p className="text-sm font-bold text-amber-800">
+                        {(product.price && product.price.toString().trim() !== "") && product.imageUrls.length > 0
+                          ? "Direct Price and Product Images are set"
+                          : product.price && product.price.toString().trim() !== ""
+                          ? `Direct Price is set (${product.price})`
+                          : "Product Images are uploaded"}
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        {(product.price && product.price.toString().trim() !== "") && product.imageUrls.length > 0
+                          ? "Remove Direct Price and Product Images to enable and configure product variants."
+                          : product.price && product.price.toString().trim() !== ""
+                          ? "Remove the Direct Price above to enable and configure product variants."
+                          : "Remove the product images above to enable and configure product variants."}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 {/* Choice of Metal */}

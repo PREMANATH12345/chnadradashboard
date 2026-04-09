@@ -156,16 +156,22 @@ const Features = () => {
           toast.success('Feature section updated successfully!');
         }
       } else {
-        // For new items, set default is_active only
-        const newItemData = {
-          ...apiData,
-        
-        };
-        
+        // Check if same title already exists
+        const checkExisting = await DoAll({
+          action: 'get',
+          table: 'feature_options',
+          where: { title: formData.title.trim() }
+        });
+
+        if (checkExisting?.data?.length > 0) {
+          toast.error(`"${formData.title.trim()}" already exists. Please create a unique one.`);
+          return;
+        }
+
         response = await DoAll({
           action: 'insert',
           table: 'feature_options',
-          data: newItemData
+          data: apiData
         });
         
         if (response?.success) {
