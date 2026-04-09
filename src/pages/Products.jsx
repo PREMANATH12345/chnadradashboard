@@ -1948,7 +1948,7 @@ const ProductsDashboard = ({
     />
   </div>
 
-      <div>
+      {/* <div>
         <div className="mb-3 sm:mb-4 flex items-center justify-between">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Quick Actions
@@ -2035,7 +2035,7 @@ const ProductsDashboard = ({
             onClick={() => alert("Inventory management coming soon!")}
           />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
