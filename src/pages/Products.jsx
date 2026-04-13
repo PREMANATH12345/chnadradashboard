@@ -8324,19 +8324,30 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
 
 
   const handleBulkFileUpload = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const files = Array.from(e.target.files);
+  if (!files || files.length === 0) return;
 
-    setIsUploading(true);
-    setUploadProgress(0);
+  setIsUploading(true);
+  setUploadProgress(0);
 
-    try {
+  // Split into chunks of 15 files at a time
+  const CHUNK_SIZE = 15;
+  const chunks = [];
+  for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+    chunks.push(files.slice(i, i + CHUNK_SIZE));
+  }
+
+  let allUploadedFiles = [];
+  let allFileMapping = {};
+
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
       const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append('bulk_files', file);
-      });
+      chunk.forEach(file => formData.append('bulk_files', file));
 
       const token = localStorage.getItem("token");
+
       const response = await axios.post(
         `${API_URL}/products/bulk/upload-files`,
         formData,
@@ -8345,31 +8356,44 @@ const BulkImportProducts = ({ onBack, categories, userRole }) => {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           },
+          // Track progress per chunk but show overall progress
           onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(percentCompleted);
-          }
+            const chunkProgress = progressEvent.loaded / progressEvent.total;
+            const overallProgress = Math.round(
+              ((i + chunkProgress) / chunks.length) * 100
+            );
+            setUploadProgress(overallProgress);
+          },
+          timeout: 600000 // 10 minutes timeout for large files
         }
       );
 
       if (response.data.success) {
-        setUploadedFiles(response.data.data.files);
-
-        const mapping = response.data.data.fileMapping || {};
-        setFileMapping(mapping);
-        localStorage.setItem('bulkFileMapping', JSON.stringify(mapping));
-
-
-        alert(`✅ ${response.data.data.files.length} files uploaded successfully!`);
+        allUploadedFiles = [...allUploadedFiles, ...response.data.data.files];
+        allFileMapping = { ...allFileMapping, ...response.data.data.fileMapping };
+        console.log(`✅ Batch ${i + 1}/${chunks.length} done - ${chunk.length} files`);
+      } else {
+        throw new Error(`Batch ${i + 1} failed: ${response.data.message}`);
       }
-    } catch (error) {
-      console.error('File upload error:', error);
-      alert("Error uploading files: " + (error.response?.data?.message || error.message));
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
     }
-  };
+
+    // Save everything after all chunks done
+    setUploadedFiles(allUploadedFiles);
+    setFileMapping(allFileMapping);
+    localStorage.setItem('bulkFileMapping', JSON.stringify(allFileMapping));
+
+    alert(`✅ All ${allUploadedFiles.length} files uploaded successfully!`);
+
+  } catch (error) {
+    console.error('File upload error:', error);
+    alert(
+      `❌ Error uploading files: ${error.response?.data?.message || error.message}`
+    );
+  } finally {
+    setIsUploading(false);
+    setUploadProgress(0);
+  }
+};
 
   // Step 1: Download Template
   const downloadTemplate = async () => {
